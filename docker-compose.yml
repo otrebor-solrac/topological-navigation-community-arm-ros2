@@ -1,0 +1,46 @@
+services:
+  ros2_dev:
+    # 1. BUILD & IDENTITY
+    build: . # Build the image using the Dockerfile in the current directory.
+    container_name: ros2_thesis_env # Fixed name for easier container management.
+
+    # 2. VOLUMES: Persistent data and GUI bridging.
+    volumes:
+      - .:/home/ros_ws # Bind mount: Syncs local source code with the container's workspace.
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw # Connects the container to the host's X11 display server.
+      - $HOME/.Xauthority:/root/.Xauthority:rw # Forwards X11 authentication for GUI access.
+
+    # 3. ENVIRONMENT VARIABLES: GUI, GPU, and Simulation paths.
+    environment:
+      - DISPLAY=${DISPLAY} # Points the GUI output to the host machine's screen.
+      - QT_X11_NO_MITSHM=1 # Disables MIT-SHM to prevent rendering errors in Docker/Qt.
+      - XAUTHORITY=/root/.Xauthority # Path to the X11 authentication file inside the container.
+      - NVIDIA_VISIBLE_DEVICES=all # Exposes all GPU devices to the container.
+      - NVIDIA_DRIVER_CAPABILITIES=all # Enables graphics, compute, and utility GPU features.
+      # Gazebo-specific paths for model loading and resource discovery:
+      - GAZEBO_MODEL_PATH=/home/ros_ws/src/robots/open_manipulator/models
+      - GAZEBO_RESOURCE_PATH=/usr/share/gazebo-11
+      - GAZEBO_MODEL_DATABASE_URI="" # Prevents Gazebo from hanging while trying to sync with the online DB.
+
+    # 4. GPU RESERVATION: Hardware acceleration via NVIDIA Container Toolkit.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+    # 5. NETWORKING & PERMISSIONS: Critical for ROS2 stability and speed.
+    network_mode: host # Directly uses the host's network stack (standard for ROS2 discovery).
+    ipc: host # Uses host's Inter-Process Communication (vital for FastDDS shared memory).
+    privileged: true # Grants full access to host hardware (required for USB/Serial devices).
+
+    # 6. INTERACTIVE MODE
+    stdin_open: true # Keeps the standard input open even if not attached.
+    tty: true # Allocates a pseudo-TTY for interactive terminal usage.
+
+    # 7. ENTRYPOINT EXECUTION
+    # By default, the container stays alive in the background.
+    # The 'start_manual.sh' script then executes the simulation inside it.
+    command: tail -f /dev/null

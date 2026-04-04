@@ -1,0 +1,15 @@
+# ROS2 Auto-generated folders
+build/
+install/
+log/
+
+# Python compiled files
+__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
