@@ -1,0 +1,29 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#fafafa"/>
+  <text x="400" y="40" font-family="sans-serif" font-size="24" text-anchor="middle" font-weight="bold">Demostración: q2 estático (60°), q3 varía (20° -> 80°)</text>
+
+  <!-- LOWER SHANK (NO SE MUEVE) -->
+  <line x1="150" y1="500" x2="290.0" y2="257.5128869403572" stroke="#4a90e2" stroke-width="12" stroke-linecap="round"/>
+  <text x="190" y="360" font-family="sans-serif" font-size="20" fill="#4a90e2" font-weight="bold">lower_shank_140 (Fijo)</text>
+
+  <!-- POSE 1 (Semitransparente) q3 = 20 -->
+  <line x1="402.763114494309" y1="216.47046974127693" x2="8.092213764227495" y2="360.1189299380578" stroke="#f5a623" stroke-width="18" stroke-linecap="round" opacity="0.4"/>
+  <line x1="150" y1="500" x2="262.763114494309" y2="458.95758280091974" stroke="#417505" stroke-width="12" stroke-linecap="round" opacity="0.4"/>
+  <line x1="262.763114494309" y1="458.95758280091974" x2="402.763114494309" y2="216.47046974127693" stroke="#4a90e2" stroke-width="6" stroke-dasharray="10,6" opacity="0.4"/>
+  <circle cx="402.763114494309" cy="216.47046974127693" r="10" fill="#9013fe" opacity="0.4"/>
+
+  <!-- POSE 2 (Sólido) q3 = 80 -->
+  <line x1="310.8377813200317" y1="139.3359565788922" x2="237.90554669992088" y2="552.9552128440196" stroke="#d35400" stroke-width="18" stroke-linecap="round"/>
+  <text x="237.90554669992088" y="582.9552128440196" font-family="sans-serif" font-size="18" fill="#d35400" font-weight="bold">upper_shank_140 (q3=80)</text>
+  
+  <line x1="150" y1="500" x2="170.83778132003164" y2="381.823069638535" stroke="#27ae60" stroke-width="12" stroke-linecap="round"/>
+  <text x="70.83778132003164" y="361.823069638535" font-family="sans-serif" font-size="18" fill="#27ae60" font-weight="bold">arm_lever</text>
+  
+  <line x1="170.83778132003164" y1="381.823069638535" x2="310.8377813200317" y2="139.3359565788922" stroke="#2980b9" stroke-width="6" stroke-dasharray="10,6" stroke-linecap="round"/>
+  <text x="270.8377813200317" y="260.5795131087136" font-family="sans-serif" font-size="18" fill="#2980b9" font-weight="bold">pleuel_140 (Sigue paralelo)</text>
+  <circle cx="310.8377813200317" cy="139.3359565788922" r="10" fill="#9013fe" />
+
+  <!-- Puntos pivote estáticos -->
+  <circle cx="150" cy="500" r="10" fill="#d0021b" />
+  <circle cx="290.0" cy="257.5128869403572" r="8" fill="#333" />
+</svg>

@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
     ros-humble-robot-state-publisher \
     ros-humble-joint-state-publisher-gui \
     git \
+    python3-pip \
+    && pip3 install pudb \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up workspace directory
