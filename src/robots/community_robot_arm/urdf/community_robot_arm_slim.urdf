@@ -1364,7 +1364,7 @@
         <child link="gripper_shaft" />
     </joint>
     <joint name="fixed_node_to_root_joint_0" type="fixed">
-        <origin xyz="-0.0604648 0.0900997 0.153201" rpy="0 -0 0" />
+        <origin xyz="-0.101239 0.049005 0.0677" rpy="0 0 0" />
         <axis xyz="0 0 1" />
         <parent link="root" />
         <child link="robot_belt_arm_basering" />

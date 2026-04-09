@@ -155,6 +155,13 @@ class URDFMigrationTool:
                     origin.set('xyz', "0.045 -0.0035 0.008")
                     origin.set('rpy', "0 1.23027 -3.14159")
 
+            # Centrar la base del robot al origen (X/Y=centro, Z=piso)
+            if joint.find('parent') is not None and joint.find('parent').get('link') == 'root':
+                origin = joint.find('origin')
+                if origin is not None:
+                    origin.set('xyz', "-0.101239 0.049005 0.0677")
+                    origin.set('rpy', "0 0 0")
+
             if name in self.parallelogram_joints or name.capitalize() in self.parallelogram_joints or name.replace("r", "R") in self.parallelogram_joints:
                 joint.set('type', 'continuous')
                 for m in joint.findall('mimic'): joint.remove(m)
