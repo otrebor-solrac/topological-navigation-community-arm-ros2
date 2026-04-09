@@ -33,35 +33,23 @@ class ParallelogramKinematics(Node):
         joints['revolute_16_0'] = -q3 - q2
         joints['revolute_12_0'] = q2 + q3
 
-        # 3. Triplates (7 y 17) - Reparenteados al brazo
-        # Los mantenemos nivelados compensando la rotación del Lower Shank (q2)
-        joints['revolute_7_0'] = -q2
-        joints['revolute_17_0'] = q2  # Signo opuesto si el eje es invertido en URDF
+        # 3. Bielas Inferiores (Nuevos "Shanks" falsos anclados al cuerpo principal)
+        # El usuario modificó el URDF para que las bielas curvas cuelguen de main_body
+        # Deben imitar exactamente el ángulo de lower_shank (q2)
+        joints['revolute_32_0'] = q2   # Eje 0 1 0
+        joints['revolute_31_0'] = -q2  # Eje 0 -1 0
 
-        # 4. Bielas curvas (Paralelogramos superior e inferior)
-        # Inferiores (van a la base, dependen del Joint 2):
-        # revolute_13_0 (eje 0 1 0) -> Sigue a q2
-        joints['revolute_13_0'] = q2
-        # revolute_18_0 (eje 0 -1 0) -> Sigue a q2 pero con eje invertido
-        joints['revolute_18_0'] = -q2
+        # 4. Triplates colgando de las bielas inferiores
+        # Deben mantenerse nivelados compensando la rotación de sus padres (q2)
+        joints['revolute_13_0'] = -q2  # Eje 0 1 0 (inverso a revolute_32)
+        joints['revolute_18_0'] = q2   # Eje 0 -1 0 (inverso a revolute_31)
 
-        # Superiores (van al efector final, dependen del Joint 3):
-        # El upper_shank tiene un ángulo absoluto de -q3 (debido a la geometría).
-        # revolute_15_0 (eje 0 -1 0) -> Sigue a -q3 con eje invertido -> q3
-        joints['revolute_15_0'] = q3
-        # revolute_19_0 (eje 0 1 0) -> Sigue a -q3
-        joints['revolute_19_0'] = -q3
+        # 5. Bielas Superiores (colgando del triplate hacia el efector final)
+        # Invertimos el signo para que giren en la misma dirección que el upper_shank
+        joints['revolute_15_0'] = -q3   # Eje 0 -1 0
+        joints['revolute_19_0'] = q3    # Eje 0 1 0
 
 
-        # Registro en CSV para análisis de trayectoria (q2=Rev9, q3=Rev11)
-        # csv_path = '/tmp/trajectory_analysis.csv'
-        # import os
-        # if not os.path.exists(csv_path):
-        #     with open(csv_path, 'w') as f:
-        #         f.write("timestamp_ns,rev9_q2,rev11_q3,rev16_upper,rev12_pleuel\n")
-        
-        # with open(csv_path, 'a') as f:
-        #     f.write(f"{self.get_clock().now().nanoseconds},{q2:.6f},{q3:.6f},{joints['Revolute 16_0']:.6f},{joints['Revolute 12_0']:.6f}\n")
         
         out = JointState()
         out.header   = msg.header

@@ -146,7 +146,16 @@ class URDFMigrationTool:
         # Ajuste de Juntas
         for joint in root.findall('joint'):
             name = joint.get('name')
-            if name in self.parallelogram_joints:
+            
+            # Parche para error de asimetría en exportación desde OnShape (la 15 es la correcta, la 19 está mal)
+            if name == 'revolute_19_0':
+                origin = joint.find('origin')
+                if origin is not None:
+                    # Invertimos la Y (-0.0035) y mantenemos el pitch 1.23027 de revolute_15_0
+                    origin.set('xyz', "0.045 -0.0035 0.008")
+                    origin.set('rpy', "0 1.23027 -3.14159")
+
+            if name in self.parallelogram_joints or name.capitalize() in self.parallelogram_joints or name.replace("r", "R") in self.parallelogram_joints:
                 joint.set('type', 'continuous')
                 for m in joint.findall('mimic'): joint.remove(m)
 
