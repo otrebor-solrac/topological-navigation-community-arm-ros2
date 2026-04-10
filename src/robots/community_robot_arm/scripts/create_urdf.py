@@ -147,13 +147,13 @@ class URDFMigrationTool:
         for joint in root.findall('joint'):
             name = joint.get('name')
             
-            # Parche para error de asimetría en exportación desde OnShape (la 15 es la correcta, la 19 está mal)
+            # Parche para error de asimetría en exportación desde Onshape (la 15 es la correcta, la 19 está mal)
             if name == 'revolute_19_0':
                 origin = joint.find('origin')
                 if origin is not None:
-                    # Invertimos la Y (-0.0035) y mantenemos el pitch 1.23027 de revolute_15_0
+                    # Sincronizamos con revolute_15_0 (0.0035) invirtiendo el signo para Y
                     origin.set('xyz', "0.045 -0.0035 0.008")
-                    origin.set('rpy', "0 1.23027 -3.14159")
+                    origin.set('rpy', "-3.14159 1.43826 0")
 
             # Centrar la base del robot al origen (X/Y=centro, Z=piso)
             if joint.find('parent') is not None and joint.find('parent').get('link') == 'root':

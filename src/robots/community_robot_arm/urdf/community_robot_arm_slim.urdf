@@ -340,14 +340,99 @@
             </material>
         </visual>
     </link>
+    <link name="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_1">
+        <inertial>
+            <mass value="3.61428e-08" />
+            <origin xyz="1.14751e-19 -1.17791e-18 -0.00099897" rpy="0 -0 0" />
+            <inertia ixx="8.40217e-14" ixy="0" ixz="0" iyy="8.40217e-14" iyz="0" izz="1.44574e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_5.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_2">
+        <inertial>
+            <mass value="3.61428e-08" />
+            <origin xyz="1.14751e-19 -1.17791e-18 -0.00099897" rpy="0 -0 0" />
+            <inertia ixx="8.40217e-14" ixy="0" ixz="0" iyy="8.40217e-14" iyz="0" izz="1.44574e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_5.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_3">
+        <inertial>
+            <mass value="3.61428e-08" />
+            <origin xyz="1.14751e-19 -1.17791e-18 0.00100103" rpy="0 -0 0" />
+            <inertia ixx="8.40217e-14" ixy="0" ixz="0" iyy="8.40217e-14" iyz="0" izz="1.44574e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0.002" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_5.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_5">
+        <inertial>
+            <mass value="3.61428e-08" />
+            <origin xyz="1.14751e-19 -1.17791e-18 -0.00099897" rpy="0 -0 0" />
+            <inertia ixx="8.40217e-14" ixy="0" ixz="0" iyy="8.40217e-14" iyz="0" izz="1.44574e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="0 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_5.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
     <link name="limit_switch">
         <inertial>
             <mass value="4.37372e-07" />
-            <origin xyz="0.002305 -0.00289826 -0.00315396" rpy="0 -0 0" />
+            <origin xyz="0.002305 0.00290174 -0.00315396" rpy="0 -0 0" />
             <inertia ixx="7.46487e-12" ixy="0" ixz="-3.07011e-13" iyy="8.10428e-12" iyz="0" izz="2.95151e-12" />
         </inertial>
         <visual>
-            <origin xyz="-0.0640691 0.0728651 0.00585" rpy="0 -0 0" />
+            <origin xyz="-0.0640691 0.0786651 0.00585" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/limit_switch_2.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.019608_0.019608_0.019608_0.000000_0.000000">
+                <texture />
+                <color rgba="0.0196078 0.0196078 0.0196078 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="limit_switch_1">
+        <inertial>
+            <mass value="4.37372e-07" />
+            <origin xyz="0.002305 0.00290174 -0.00315396" rpy="0 -0 0" />
+            <inertia ixx="7.46487e-12" ixy="0" ixz="-3.07011e-13" iyy="8.10428e-12" iyz="0" izz="2.95151e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0640691 0.0786651 0.00585" rpy="0 -0 0" />
             <geometry>
                 <mesh filename="package://community_robot_arm/meshes/limit_switch_2.stl" scale="1 1 1" />
             </geometry>
@@ -394,11 +479,11 @@
     <link name="manipulator_dual">
         <inertial>
             <mass value="1.86105e-05" />
-            <origin xyz="0.0114384 0.00750006 0.00405812" rpy="0 -0 0" />
+            <origin xyz="-0.00356158 0.0220001 -0.0159419" rpy="0 -0 0" />
             <inertia ixx="5.21773e-09" ixy="3.20908e-15" ixz="3.12277e-10" iyy="3.64946e-09" iyz="-4.73798e-15" izz="6.02391e-09" />
         </inertial>
         <visual>
-            <origin xyz="-0.182858 0.524005 -0.198759" rpy="0 -0 0" />
+            <origin xyz="-0.197858 0.538505 -0.218759" rpy="0 -0 0" />
             <geometry>
                 <mesh filename="package://community_robot_arm/meshes/manipulator_dual.stl" scale="1 1 1" />
             </geometry>
@@ -408,6 +493,9 @@
             </material>
         </visual>
     </link>
+    <link name="parallel_4_0" />
+    <link name="parallel_4_1" />
+    <link name="parallel_4_2" />
     <link name="pleuel_140">
         <inertial>
             <mass value="8.66732e-06" />
@@ -767,6 +855,23 @@
             </material>
         </visual>
     </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
     <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_1">
         <inertial>
             <mass value="8.30381e-08" />
@@ -776,7 +881,7 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -793,7 +898,41 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_11">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_12">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -810,7 +949,24 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_14">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -827,7 +983,24 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_16">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -844,7 +1017,7 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -861,7 +1034,7 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -878,7 +1051,75 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_4">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_5">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_6">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00239142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00175 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_7">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -895,7 +1136,24 @@
         <visual>
             <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9">
+        <inertial>
+            <mass value="8.30381e-08" />
+            <origin xyz="0.00249142 -7.46853e-13 -2.0375e-12" rpy="0 -0 0" />
+            <inertia ixx="1.63366e-13" ixy="0" ixz="0" iyy="7.65861e-13" iyz="0" izz="7.65858e-13" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.00165 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -920,6 +1178,91 @@
             </material>
         </visual>
     </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx">
+        <inertial>
+            <mass value="8.35744e-08" />
+            <origin xyz="0.00242909 2.6097e-19 7.20845e-20" rpy="0 -0 0" />
+            <inertia ixx="1.34181e-13" ixy="0" ixz="0" iyy="1.25086e-12" iyz="0" izz="1.25086e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0025 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_4.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_2">
+        <inertial>
+            <mass value="8.35744e-08" />
+            <origin xyz="0.00242909 2.6097e-19 7.20845e-20" rpy="0 -0 0" />
+            <inertia ixx="1.34181e-13" ixy="0" ixz="0" iyy="1.25086e-12" iyz="0" izz="1.25086e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0025 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_4.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_3">
+        <inertial>
+            <mass value="8.35744e-08" />
+            <origin xyz="0.00242909 2.6097e-19 7.20845e-20" rpy="0 -0 0" />
+            <inertia ixx="1.34181e-13" ixy="0" ixz="0" iyy="1.25086e-12" iyz="0" izz="1.25086e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0025 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_4.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_4">
+        <inertial>
+            <mass value="8.35744e-08" />
+            <origin xyz="0.00242909 2.6097e-19 7.20845e-20" rpy="0 -0 0" />
+            <inertia ixx="1.34181e-13" ixy="0" ixz="0" iyy="1.25086e-12" iyz="0" izz="1.25086e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0025 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_4.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx">
+        <inertial>
+            <mass value="1.32238e-07" />
+            <origin xyz="0.00200023 3.34407e-19 1.45156e-19" rpy="0 -0 0" />
+            <inertia ixx="3.35773e-13" ixy="0" ixz="0" iyy="2.1237e-12" iyz="0" izz="2.1237e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.003 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
     <link name="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_1">
         <inertial>
             <mass value="1.32238e-07" />
@@ -929,7 +1272,41 @@
         <visual>
             <origin xyz="-0.003 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_4.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_2">
+        <inertial>
+            <mass value="1.32238e-07" />
+            <origin xyz="0.00200023 3.34407e-19 1.45156e-19" rpy="0 -0 0" />
+            <inertia ixx="3.35773e-13" ixy="0" ixz="0" iyy="2.1237e-12" iyz="0" izz="2.1237e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.003 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_3">
+        <inertial>
+            <mass value="1.32238e-07" />
+            <origin xyz="0.00200023 3.34407e-19 1.45156e-19" rpy="0 -0 0" />
+            <inertia ixx="3.35773e-13" ixy="0" ixz="0" iyy="2.1237e-12" iyz="0" izz="2.1237e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.003 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -946,7 +1323,58 @@
         <visual>
             <origin xyz="-0.003 0 0" rpy="0 -0 0" />
             <geometry>
-                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_4.stl" scale="1 1 1" />
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_5">
+        <inertial>
+            <mass value="1.32238e-07" />
+            <origin xyz="0.00200023 3.34407e-19 1.45156e-19" rpy="0 -0 0" />
+            <inertia ixx="3.35773e-13" ixy="0" ixz="0" iyy="2.1237e-12" iyz="0" izz="2.1237e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.003 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_6">
+        <inertial>
+            <mass value="1.32238e-07" />
+            <origin xyz="0.00200023 3.34407e-19 1.45156e-19" rpy="0 -0 0" />
+            <inertia ixx="3.35773e-13" ixy="0" ixz="0" iyy="2.1237e-12" iyz="0" izz="2.1237e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.003 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
+            </geometry>
+            <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
+                <texture />
+                <color rgba="0.776471 0.756863 0.737255 1" />
+            </material>
+        </visual>
+    </link>
+    <link name="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7">
+        <inertial>
+            <mass value="1.32238e-07" />
+            <origin xyz="0.00190023 3.34407e-19 1.45156e-19" rpy="0 -0 0" />
+            <inertia ixx="3.35773e-13" ixy="0" ixz="0" iyy="2.1237e-12" iyz="0" izz="2.1237e-12" />
+        </inertial>
+        <visual>
+            <origin xyz="-0.0031 0 0" rpy="0 -0 0" />
+            <geometry>
+                <mesh filename="package://community_robot_arm/meshes/socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7.stl" scale="1 1 1" />
             </geometry>
             <material name="0.776471_0.756863_0.737255_0.000000_0.000000">
                 <texture />
@@ -1142,55 +1570,55 @@
         </visual>
     </link>
     <joint name="fastened_10_0" type="fixed">
-        <origin xyz="-0.0175 0.0008 0" rpy="-3.14159 1.93505e-15 -1.5708" />
+        <origin xyz="-0.0175 0.0008 -5.55112e-17" rpy="3.14159 1.22954e-15 -1.5708" />
         <axis xyz="1 0 0" />
         <parent link="28byj_48_5v_stepper_motor" />
         <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_6_sbhcs___n" />
     </joint>
     <joint name="fastened_11_0" type="fixed">
-        <origin xyz="0.003 1.38778e-17 2.77556e-17" rpy="-3.14159 1.96753e-30 3.14159" />
+        <origin xyz="0.003 0 -2.77556e-17" rpy="-3.14159 -1.02305e-22 -3.14159" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_stabilizer___logigate" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_8_hex_shcs____8nhx" />
     </joint>
     <joint name="fastened_12_0" type="fixed">
-        <origin xyz="0.003 0.046 -2.77556e-17" rpy="-3.14159 1.96753e-30 3.14159" />
+        <origin xyz="0.003 0.046 0" rpy="-3.14159 -1.02305e-22 -3.14159" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_stabilizer___logigate" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_8_hex_shcs____8nhx_2" />
     </joint>
     <joint name="fastened_13_0" type="fixed">
-        <origin xyz="0.003 2.77556e-17 0.01" rpy="-3.14159 1.96753e-30 3.14159" />
+        <origin xyz="0.003 -1.38778e-17 0.01" rpy="-3.14159 -1.02305e-22 -3.14159" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_stabilizer___logigate" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_8_hex_shcs____8nhx_1" />
     </joint>
     <joint name="fastened_14_0" type="fixed">
-        <origin xyz="0.003 0.046 0.01" rpy="-3.14159 1.96753e-30 3.14159" />
+        <origin xyz="0.003 0.046 0.01" rpy="-3.14159 -1.02305e-22 -3.14159" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_stabilizer___logigate" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_8_hex_shcs____8nhx_3" />
     </joint>
     <joint name="fastened_15_0" type="fixed">
-        <origin xyz="-0.0035 -0.046 5.55112e-17" rpy="1.5708 1.65263e-16 1.12293e-16" />
+        <origin xyz="-0.0035 -0.046 -5.55112e-17" rpy="1.5708 -1.67804e-16 -1.09752e-16" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_endstop___mymod" />
         <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_2" />
     </joint>
     <joint name="fastened_16_0" type="fixed">
-        <origin xyz="-0.0035 -0.046 -0.01" rpy="1.5708 1.65263e-16 1.12293e-16" />
+        <origin xyz="-0.0035 -0.046 -0.01" rpy="1.5708 -1.67804e-16 -1.09752e-16" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_endstop___mymod" />
         <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_10" />
     </joint>
     <joint name="fastened_17_0" type="fixed">
-        <origin xyz="-0.0035 0 -0.01" rpy="1.5708 1.65263e-16 1.12293e-16" />
+        <origin xyz="-0.0035 6.93889e-18 -0.01" rpy="1.5708 -1.67804e-16 -1.09752e-16" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_endstop___mymod" />
         <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_8" />
     </joint>
     <joint name="fastened_18_0" type="fixed">
-        <origin xyz="-0.0035 0 2.77556e-17" rpy="1.5708 -6.06318e-15 -6.20479e-15" />
+        <origin xyz="-0.0035 1.38778e-17 -8.32667e-17" rpy="1.5708 -6.1742e-15 -6.37132e-15" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_endstop___mymod" />
         <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_1" />
@@ -1226,40 +1654,40 @@
         <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_17" />
     </joint>
     <joint name="fastened_23_0" type="fixed">
-        <origin xyz="0.00999996 0.004 0" rpy="-1.88426e-17 6.21203e-17 1.5708" />
+        <origin xyz="0.00999996 0.004 -5.55112e-17" rpy="-7.9111e-17 -1.61837e-16 1.5708" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_gear_body_1" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_20_hex_shcs____20nhx_1" />
     </joint>
     <joint name="fastened_24_0" type="fixed">
-        <origin xyz="0 0.004 -0.01" rpy="-1.35122e-16 -1.0967e-16 1.5708" />
+        <origin xyz="-2.77556e-17 0.004 -0.01" rpy="-1.62115e-16 -1.33819e-16 1.5708" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_gear_body_1" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_20_hex_shcs____20nhx_2" />
     </joint>
     <joint name="fastened_25_0" type="fixed">
-        <origin xyz="-0.01 0.004 1.38778e-17" rpy="-2.79844e-16 -8.78588e-17 1.5708" />
+        <origin xyz="-0.01 0.004 -2.77556e-17" rpy="-2.75873e-15 -1.50918e-15 1.5708" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_gear_body_1" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_20_hex_shcs____20nhx" />
     </joint>
     <joint name="fastened_26_0" type="fixed">
-        <origin xyz="0 0.004 0.01" rpy="1.5708 -2.83107e-15 1.5708" />
+        <origin xyz="-2.77556e-17 0.004 0.01" rpy="1.5708 -6.05072e-15 1.5708" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_gear_body_1" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_20_hex_shcs____20nhx_3" />
     </joint>
     <joint name="fastened_27_0" type="fixed">
-        <origin xyz="-0.005 -0.019 -0.001488" rpy="0 -1.5708 4.71239" />
-        <axis xyz="0 1 0" />
+        <origin xyz="-0.002 -0.019 -0.001488" rpy="0 -1.5708 4.71239" />
+        <axis xyz="0 -1 0" />
         <parent link="robot_belt_arm_endstop___mymod" />
         <child link="limit_switch" />
     </joint>
     <joint name="fastened_28_0" type="fixed">
-        <origin xyz="-0.0104652 -0.031 0.031735" rpy="-8.33744e-18 -3.92985e-17 2.77556e-17" />
+        <origin xyz="-0.0359195 -0.0632203 0.02135" rpy="0 -0 6.16298e-33" />
         <axis xyz="0 -1 0" />
-        <parent link="robot_belt_arm_endstop___mymod" />
-        <child link="limit_switch_2" />
+        <parent link="robot_belt_arm_socket_v2" />
+        <child link="limit_switch_1" />
     </joint>
     <joint name="fastened_2_0" type="fixed">
         <origin xyz="0.151989 -0.0490051 -0.0632" rpy="0 -0 1.5708" />
@@ -1273,11 +1701,125 @@
         <parent link="robot_belt_arm_socket_v2" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_4" />
     </joint>
+    <joint name="fastened_31_0" type="fixed">
+        <origin xyz="-0.0155 -0.022 0.0425" rpy="3.11173e-31 2.0095e-31 -1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_4" />
+    </joint>
+    <joint name="fastened_32_0" type="fixed">
+        <origin xyz="0.0155 -0.022 0.0425" rpy="9.89967e-31 2.12041e-31 -1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_9" />
+    </joint>
+    <joint name="fastened_33_0" type="fixed">
+        <origin xyz="-0.0155 -0.022 0.0115" rpy="-3.04483e-16 -5.16486e-16 -1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_6" />
+    </joint>
+    <joint name="fastened_34_0" type="fixed">
+        <origin xyz="0.0155 0.02 0.0425" rpy="-3.14159 -4.21932e-16 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_12" />
+    </joint>
+    <joint name="fastened_35_0" type="fixed">
+        <origin xyz="-0.0155 0.022 0.0425" rpy="8.78734e-32 1.07211e-32 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_7" />
+    </joint>
+    <joint name="fastened_36_0" type="fixed">
+        <origin xyz="0.0155 0.022 0.0115" rpy="2.04623e-30 3.82837e-31 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_14" />
+    </joint>
+    <joint name="fastened_37_0" type="fixed">
+        <origin xyz="-0.0155 0.022 0.0115" rpy="1.82277e-30 2.5794e-31 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n" />
+    </joint>
+    <joint name="fastened_38_0" type="fixed">
+        <origin xyz="0.0155 -0.022 0.0115" rpy="3.14159 -3.75105e-16 -1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_11" />
+    </joint>
+    <joint name="fastened_39_0" type="fixed">
+        <origin xyz="-0.0037 -0.019 -0.001488" rpy="1.5708 -6.22641e-15 -6.31911e-15" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_endstop___mymod" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_2" />
+    </joint>
     <joint name="fastened_3_0" type="fixed">
         <origin xyz="0.0999887 0.00299489 -0.0632" rpy="0 -0 3.14159" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_basering" />
         <child link="robot_belt_arm_leg_2" />
+    </joint>
+    <joint name="fastened_40_0" type="fixed">
+        <origin xyz="-0.0037 -0.0255 -0.001488" rpy="1.5708 2.498e-16 2.31645e-16" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_endstop___mymod" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_3" />
+    </joint>
+    <joint name="fastened_41_0" type="fixed">
+        <origin xyz="-0.00586899 -0.033 0.0271388" rpy="6.47909e-23 3.75144e-23 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_endstop___mymod" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_4" />
+    </joint>
+    <joint name="fastened_42_0" type="fixed">
+        <origin xyz="-0.0104652 -0.033 0.031735" rpy="6.47909e-23 3.75144e-23 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_endstop___mymod" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx" />
+    </joint>
+    <joint name="fastened_43_0" type="fixed">
+        <origin xyz="0.0097465 -2.77556e-17 -5.20417e-18" rpy="0 1.5708 4.07471e-17" />
+        <axis xyz="0 0 -1" />
+        <parent link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_3" />
+        <child link="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_5" />
+    </joint>
+    <joint name="fastened_44_0" type="fixed">
+        <origin xyz="0.0097465 -5.55112e-17 0" rpy="0 -1.5708 -3.61459e-30" />
+        <axis xyz="0 0 -1" />
+        <parent link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_2" />
+        <child link="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_3" />
+    </joint>
+    <joint name="fastened_45_0" type="fixed">
+        <origin xyz="-0.022 -0.0181602 0.005" rpy="0 1.5708 -0" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_socket_v2" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_6" />
+    </joint>
+    <joint name="fastened_46_0" type="fixed">
+        <origin xyz="-0.022 -0.0491602 0.005" rpy="0 1.5708 -0" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_socket_v2" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx" />
+    </joint>
+    <joint name="fastened_47_0" type="fixed">
+        <origin xyz="0.0097465 3.46945e-18 -2.77556e-17" rpy="0 -1.5708 3.14159" />
+        <axis xyz="0 0 1" />
+        <parent link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx" />
+        <child link="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_1" />
+    </joint>
+    <joint name="fastened_48_0" type="fixed">
+        <origin xyz="0.0097465 -3.46945e-18 -2.77556e-17" rpy="0 -1.5708 3.14159" />
+        <axis xyz="0 0 -1" />
+        <parent link="socket_head_cap_screw_am_b18_3_1m___2_5_x_0_45_x_10_hex_shcs____10nhx_4" />
+        <child link="hex_nut_style_1_am_b18_2_4_1m___hex_nut__style_1___m2_5_x_0_45___d_n_2" />
+    </joint>
+    <joint name="fastened_49_0" type="fixed">
+        <origin xyz="-0.174416 -0.0251722 2.77556e-17" rpy="0 -1.5708 3.14159" />
+        <axis xyz="1 0 0" />
+        <parent link="gripper_finger_washer___mymod" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_5" />
     </joint>
     <joint name="fastened_4_0" type="fixed">
         <origin xyz="-6.93889e-18 0.01834 0.036" rpy="0 -0 3.14159" />
@@ -1285,68 +1827,74 @@
         <parent link="robot_belt_arm_leg_2" />
         <child link="robot_belt_arm_socket_v2" />
     </joint>
+    <joint name="fastened_50_0" type="fixed">
+        <origin xyz="-0.174416 -0.0251722 -2.77556e-17" rpy="0 -1.5708 4.38178e-17" />
+        <axis xyz="1 0 0" />
+        <parent link="gripper_finger_washer___mymod_1" />
+        <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_8_sbhcs___n_16" />
+    </joint>
     <joint name="fastened_5_0" type="fixed">
-        <origin xyz="-2.77556e-17 0.0065 4.16334e-17" rpy="0 -1.5708 6.16777e-16" />
+        <origin xyz="2.77556e-17 0.0065 2.77556e-17" rpy="0 -1.5708 1.39786e-15" />
         <axis xyz="0 -1 0" />
         <parent link="robot_belt_arm_gear_body_1" />
         <child link="lower_shank_140" />
     </joint>
     <joint name="fastened_6_0" type="fixed">
-        <origin xyz="0.021 0.023 0.0345" rpy="3.14159 1.11575e-15 6.10623e-15" />
+        <origin xyz="0.021 0.023 0.0345" rpy="3.14159 1.11575e-15 -5.4956e-15" />
         <axis xyz="-1 0 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="robot_belt_arm_stabilizer___logigate" />
     </joint>
     <joint name="fastened_7_0" type="fixed">
-        <origin xyz="-0.0225 0.023 0.0385" rpy="-3.98519e-16 -2.34135e-17 -3.38618e-15" />
+        <origin xyz="-0.0225 0.023 0.0385" rpy="-3.98519e-16 -2.34146e-17 3.35842e-15" />
         <axis xyz="1 0 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="robot_belt_arm_endstop___mymod" />
     </joint>
     <joint name="fastened_8_0" type="fixed">
-        <origin xyz="0.0269997 0.00750003 -0.00700002" rpy="0 -1.5708 3.14159" />
+        <origin xyz="0.0119997 0.022 -0.027" rpy="0 -1.5708 3.14159" />
         <axis xyz="1 0 0" />
         <parent link="manipulator_dual" />
         <child link="socket_button_head_cap_screw_am_b18_3_4m___4_x_0_7_x_20_sbhcs___n_4" />
     </joint>
     <joint name="fastened_9_0" type="fixed">
-        <origin xyz="0.0175 0.0008 0" rpy="-3.14159 4.0268e-16 -1.5708" />
+        <origin xyz="0.0175 0.0008 -1.11022e-16" rpy="-3.14159 2.50042e-15 -1.5708" />
         <axis xyz="1 0 0" />
         <parent link="28byj_48_5v_stepper_motor" />
         <child link="socket_button_head_cap_screw_am_b18_3_4m___3_x_0_5_x_6_sbhcs___n_1" />
     </joint>
     <joint name="final_motor_fastened_joint_0" type="fixed">
-        <origin xyz="0.199541 -0.0467529 -0.195348" rpy="7.61356e-15 3.49877e-15 -3.14159" />
+        <origin xyz="0.199541 -0.0467529 -0.195348" rpy="7.61352e-15 3.4988e-15 -3.14159" />
         <axis xyz="0 0 1" />
         <parent link="gripperbase_by_ftobler" />
         <child link="gripperfinger_by_ftobler_1" />
     </joint>
     <joint name="final_motor_fastened_joint_1" type="fixed">
-        <origin xyz="-0.145292 0.0466209 -0.195348" rpy="-2.52509e-16 5.33644e-16 -5.55126e-17" />
+        <origin xyz="-0.145292 0.0466209 -0.195348" rpy="-2.52468e-16 5.33604e-16 -3.33068e-16" />
         <axis xyz="0 0 1" />
         <parent link="gripperbase_by_ftobler" />
         <child link="gripperfinger_by_ftobler" />
     </joint>
     <joint name="final_motor_fastened_joint_2" type="fixed">
-        <origin xyz="-0.00527287 0.0177687 9.9951e-13" rpy="-1.01871e-15 -6.12848e-16 -0.0134012" />
+        <origin xyz="-0.00527287 0.0177687 9.99485e-13" rpy="-1.01868e-15 -6.1282e-16 -0.0134012" />
         <axis xyz="0 0 1" />
         <parent link="gripper_fingers_link_wire" />
         <child link="gripper_fingers_link_wire_1" />
     </joint>
     <joint name="final_motor_fastened_joint_3" type="fixed">
-        <origin xyz="0.175273 -0.041981 0.204848" rpy="1.5708 -4.16334e-16 -0.348517" />
+        <origin xyz="0.175273 -0.041981 0.204848" rpy="1.5708 2.77556e-17 -0.348517" />
         <axis xyz="0 0 1" />
         <parent link="gripper_shaft" />
         <child link="28byj_48_5v_stepper_motor" />
     </joint>
     <joint name="final_motor_fastened_joint_4" type="fixed">
-        <origin xyz="-0.34748 -0.0935381 -8.32667e-16" rpy="1.586e-15 -6.62775e-15 -3.14159" />
+        <origin xyz="-0.34748 -0.0935381 -8.60423e-16" rpy="1.58602e-15 -6.62772e-15 -3.14159" />
         <axis xyz="0 0 1" />
         <parent link="gripper_finger_washer___mymod_1" />
         <child link="gripper_finger_washer___mymod" />
     </joint>
     <joint name="final_motor_fastened_joint_5" type="fixed">
-        <origin xyz="0.350607 -0.0217646 0.189648" rpy="7.06873e-16 -5.31245e-14 -0.123995" />
+        <origin xyz="0.350607 -0.0217646 0.189648" rpy="7.06858e-16 -5.31245e-14 -0.123995" />
         <axis xyz="0 0 1" />
         <parent link="gripperfinger_by_ftobler" />
         <child link="gripper_finger_washer___mymod_1" />
@@ -1358,7 +1906,7 @@
         <child link="gripper_fingers_link_wire" />
     </joint>
     <joint name="final_motor_fastened_joint_7" type="fixed">
-        <origin xyz="-0.20806 0.129344 -0.189148" rpy="-9.77073e-15 1.25527e-15 -1.09828" />
+        <origin xyz="-0.20806 0.129344 -0.189148" rpy="-9.77076e-15 1.25539e-15 -1.09828" />
         <axis xyz="0 0 1" />
         <parent link="gripper_finger_washer___mymod" />
         <child link="gripper_shaft" />
@@ -1369,134 +1917,155 @@
         <parent link="root" />
         <child link="robot_belt_arm_basering" />
     </joint>
+    <joint name="parallel_4_3" type="prismatic">
+        <origin xyz="-0.02115 -0.03151 0.027" rpy="1.5708 -6.69813e-15 3.14159" />
+        <axis xyz="0 1 0" />
+        <parent link="robot_belt_arm_main_body_v2______mymod" />
+        <child link="parallel_4_2" />
+        <limit effort="1" velocity="1" lower="-10000" upper="10000" />
+    </joint>
+    <joint name="parallel_4_4" type="prismatic">
+        <origin xyz="0 0 0" rpy="0 -0 0" />
+        <axis xyz="0 0 1" />
+        <parent link="parallel_4_2" />
+        <child link="parallel_4_1" />
+        <limit effort="1" velocity="1" lower="-10000" upper="10000" />
+    </joint>
+    <joint name="parallel_4_5" type="prismatic">
+        <origin xyz="0 0 0" rpy="0 -0 0" />
+        <axis xyz="1 0 0" />
+        <parent link="parallel_4_1" />
+        <child link="parallel_4_0" />
+        <limit effort="1" velocity="1" lower="-10000" upper="10000" />
+    </joint>
     <joint name="revolute_10_0" type="continuous">
-        <origin xyz="3.8384e-08 0.0135 0.064" rpy="3.14159 0.206001 2.87083e-15" />
+        <origin xyz="3.8384e-08 0.0135 0.064" rpy="3.14159 0.232182 -1.3986e-15" />
         <axis xyz="0 1 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="robot_belt_arm_gear_body" />
     </joint>
     <joint name="revolute_11_0" type="continuous">
-        <origin xyz="5.55112e-17 -1.38778e-17 -2.77556e-17" rpy="-3.14159 -1.40802 -3.09284e-14" />
+        <origin xyz="2.60209e-18 -1.38778e-17 -2.77556e-17" rpy="-3.14159 -0.908726 -1.13289e-14" />
         <axis xyz="0 -1 0" />
         <parent link="robot_belt_arm_gear_body" />
         <child link="robot_belt_arm_lever___mymod" />
     </joint>
     <joint name="revolute_12_0" type="continuous">
-        <origin xyz="-0.035954 -0.008 -0.0175303" rpy="1.5708 0.209788 6.52688e-16" />
+        <origin xyz="-0.035954 -0.008 -0.0175303" rpy="1.5708 0.987621 -1.93546e-14" />
         <axis xyz="0 0 -1" />
         <parent link="robot_belt_arm_lever___mymod" />
         <child link="pleuel_140" />
     </joint>
     <joint name="revolute_13_0" type="continuous">
-        <origin xyz="-0.102411 1.16229e-09 0.0954576" rpy="-3.14159 -1.44881 3.14159" />
+        <origin xyz="-0.102411 -2.58759e-08 0.0954575" rpy="-3.14159 -1.14393 3.14159" />
         <axis xyz="0 1 0" />
         <parent link="pleuel_bend_140" />
         <child link="robot_belt_arm_triplate" />
     </joint>
     <joint name="revolute_14_0" type="continuous">
-        <origin xyz="0.102411 0.00500004 -0.0954576" rpy="1.5708 -1.12688e-14 1.5708" />
+        <origin xyz="0.102411 0.00500004 -0.0954576" rpy="1.07158 -3.33067e-15 1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140_mirrored_1" />
         <child link="f624zz_103" />
     </joint>
     <joint name="revolute_15_0" type="continuous">
-        <origin xyz="0.045 0.0035 0.008" rpy="4.88698e-16 1.23027 3.14159" />
+        <origin xyz="0.045 0.0035 0.008" rpy="3.14159 1.43826 -1.14751e-14" />
         <axis xyz="0 -1 0" />
         <parent link="robot_belt_arm_triplate" />
         <child link="pleuel_bend_140_mirrored_1" />
     </joint>
     <joint name="revolute_16_0" type="continuous">
-        <origin xyz="-0.139911 0.0205 -0.005" rpy="-1.5708 -1.31772 -2.26142e-14" />
+        <origin xyz="-0.139911 0.0205 -0.005" rpy="1.5708 -1.04593 3.14159" />
         <axis xyz="0 0 1" />
         <parent link="lower_shank_140" />
         <child link="upper_shank_140" />
     </joint>
     <joint name="revolute_18_0" type="continuous">
-        <origin xyz="-0.102411 -1.11022e-16 0.0954576" rpy="3.14159 -1.44881 -3.14159" />
+        <origin xyz="-0.102411 4.85723e-17 0.0954576" rpy="-3.14159 -1.14393 3.14159" />
         <axis xyz="0 -1 0" />
         <parent link="pleuel_bend_140_mirrored" />
         <child link="triplate_dual" />
     </joint>
     <joint name="revolute_19_0" type="continuous">
-        <origin xyz="0.045 -0.0035 0.008" rpy="0 1.23027 -3.14159" />
+        <origin xyz="0.045 -0.0035 0.008" rpy="-3.14159 1.43826 0" />
         <axis xyz="0 1 0" />
         <parent link="triplate_dual" />
         <child link="pleuel_bend_140_1" />
     </joint>
     <joint name="revolute_1_0" type="continuous">
-        <origin xyz="-2.08167e-17 -0.0336603 0.0257" rpy="1.90568e-16 1.59644e-16 -1.27729" />
+        <origin xyz="4.85723e-17 -0.0336603 0.0257" rpy="2.02624e-16 -4.55524e-17 0.559643" />
         <axis xyz="0 0 -1" />
         <parent link="robot_belt_arm_socket_v2" />
         <child link="robot_belt_arm_main_body_v2______mymod" />
     </joint>
-    <joint name="revolute_21_0" type="continuous">
-        <origin xyz="0.14 -1.29294e-09 -0.015" rpy="1.5708 -7.21645e-16 -1.16102" />
-        <axis xyz="0 -1 0" />
-        <parent link="upper_shank_140" />
-        <child link="manipulator_dual" />
-    </joint>
     <joint name="revolute_22_0" type="continuous">
-        <origin xyz="0.0269997 0.00750003 -0.001" rpy="1.93138e-15 -4.34816e-16 2.80332e-15" />
+        <origin xyz="0.0119997 0.022 -0.021" rpy="1.94752e-15 -1.28355e-15 9.71452e-16" />
         <axis xyz="0 0 -1" />
         <parent link="manipulator_dual" />
         <child link="gripperbase_by_ftobler" />
     </joint>
+    <joint name="revolute_23_0" type="continuous">
+        <origin xyz="0.102411 -1.11022e-16 -0.0954576" rpy="-3.14159 1.43823 1.50858e-14" />
+        <axis xyz="0 1 0" />
+        <parent link="pleuel_bend_140_mirrored_1" />
+        <child link="manipulator_dual" />
+    </joint>
     <joint name="revolute_24_0" type="continuous">
-        <origin xyz="0.03 0.0089 -0.012" rpy="-0.377454 4.77396e-15 -1.5708" />
+        <origin xyz="0.03 0.0089 -0.012" rpy="-0.377448 2.52576e-15 -1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="robot_belt_arm_triplate" />
         <child link="f686zz_83" />
     </joint>
     <joint name="revolute_25_0" type="continuous">
-        <origin xyz="-0.11402 0.0812835 0.001" rpy="0 1.5708 -3.56578e-06" />
+        <origin xyz="-0.11402 0.0812835 0.001" rpy="0 1.5708 0.311198" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_140" />
         <child link="f624zz_23" />
     </joint>
     <joint name="revolute_26_0" type="continuous">
-        <origin xyz="-5.55112e-17 0.00500004 -1.04083e-17" rpy="-1.5708 -2.22045e-16 1.5708" />
+        <origin xyz="5.55112e-17 0.00500004 5.55112e-17" rpy="-2.07001 1.11022e-16 1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140_mirrored_1" />
         <child link="f624zz_90" />
     </joint>
     <joint name="revolute_27_0" type="continuous">
-        <origin xyz="0 -0.00500004 -1.38778e-17" rpy="1.5708 4.996e-16 -1.5708" />
+        <origin xyz="5.55112e-17 -0.00500004 0" rpy="2.2706 -4.32987e-15 -1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140_1" />
         <child link="f624zz_34" />
     </joint>
     <joint name="revolute_28_0" type="continuous">
-        <origin xyz="-0.102411 0.00500004 0.0954576" rpy="-1.84603 -5.55112e-17 1.5708" />
+        <origin xyz="-0.102411 0.00500004 0.0954576" rpy="-2.15739 -3.60822e-15 1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140_mirrored" />
         <child link="f624zz_5" />
     </joint>
     <joint name="revolute_29_0" type="continuous">
-        <origin xyz="-0.102411 -0.00500004 0.0954576" rpy="1.84603 -4.4964e-15 -1.5708" />
+        <origin xyz="-0.102411 -0.00500004 0.0954576" rpy="2.15739 6.10623e-16 -1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140" />
         <child link="f624zz_46" />
     </joint>
     <joint name="revolute_2_0" type="continuous">
-        <origin xyz="3.81639e-17 1.38778e-17 0" rpy="-1.87643e-15 1.85486e-16 2.84045" />
+        <origin xyz="5.55112e-17 1.73472e-16 3.33067e-16" rpy="-2.08079e-15 3.12771e-16 1.00352" />
         <axis xyz="0 0 -1" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="robot_belt_arm_rotategear___mymod" />
     </joint>
     <joint name="revolute_30_0" type="continuous">
-        <origin xyz="3.8384e-08 0.026 0.064" rpy="-1.5708 5.88418e-15 5.85208e-15" />
+        <origin xyz="3.8384e-08 0.026 0.064" rpy="-1.5708 -1.44676e-15 6.57373e-15" />
         <axis xyz="0 0 -1" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="prevailing_torque_hex_flange_nut_am_am_m6_n_1" />
     </joint>
     <joint name="revolute_31_0" type="continuous">
-        <origin xyz="-0.03 0.026 0.076" rpy="-3.14159 1.44879 -3.14159" />
+        <origin xyz="-0.03 0.026 0.076" rpy="-3.14159 1.14391 -3.14159" />
         <axis xyz="0 -1 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="pleuel_bend_140_mirrored" />
     </joint>
     <joint name="revolute_32_0" type="continuous">
-        <origin xyz="-0.03 -0.026 0.076" rpy="-3.14159 1.44879 -3.14159" />
+        <origin xyz="-0.03 -0.026 0.076" rpy="-3.14159 1.14391 -3.14159" />
         <axis xyz="0 1 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="pleuel_bend_140" />
@@ -1507,38 +2076,68 @@
         <parent link="robot_belt_arm_socket_v2" />
         <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_1" />
     </joint>
+    <joint name="revolute_34_0" type="continuous">
+        <origin xyz="-0.0104652 -0.031 0.031735" rpy="-3.28385e-15 -0.785398 8.31403e-15" />
+        <axis xyz="0 -1 0" />
+        <parent link="robot_belt_arm_endstop___mymod" />
+        <child link="limit_switch_2" />
+    </joint>
+    <joint name="revolute_38_0" type="continuous">
+        <origin xyz="-1.82146e-17 -0.0025 -0.01" rpy="3.44926e-14 1.99844e-15 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_gear_body" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_5" />
+    </joint>
+    <joint name="revolute_39_0" type="continuous">
+        <origin xyz="-4.33681e-18 -0.0025 0.01" rpy="3.44926e-14 1.99844e-15 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_gear_body" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_3" />
+    </joint>
     <joint name="revolute_3_0" type="continuous">
-        <origin xyz="-5.55112e-17 -0.00500004 1.38778e-17" rpy="1.84603 -5.05151e-15 -1.5708" />
+        <origin xyz="2.77556e-17 -0.00500004 4.16334e-17" rpy="2.15739 -4.44089e-16 -1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140" />
         <child link="f624zz_55" />
     </joint>
+    <joint name="revolute_40_0" type="continuous">
+        <origin xyz="-0.01 -0.0025 -2.77556e-17" rpy="-1.5708 -1.11022e-15 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_gear_body" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_2" />
+    </joint>
+    <joint name="revolute_41_0" type="continuous">
+        <origin xyz="0.00999996 -0.0025 -2.77556e-17" rpy="3.44926e-14 1.99844e-15 1.5708" />
+        <axis xyz="1 0 0" />
+        <parent link="robot_belt_arm_gear_body" />
+        <child link="socket_head_cap_screw_am_b18_3_1m___3_x_0_5_x_10_hex_shcs____10nhx_7" />
+    </joint>
     <joint name="revolute_4_0" type="continuous">
-        <origin xyz="2.77556e-17 0.00500004 4.16334e-17" rpy="-1.84603 7.21645e-16 1.5708" />
+        <origin xyz="-5.55112e-17 0.00500004 -4.16334e-17" rpy="-2.15739 -4.88498e-15 1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140_mirrored" />
         <child link="f624zz_78" />
     </joint>
     <joint name="revolute_5_0" type="continuous">
-        <origin xyz="-2.77556e-17 -0.007 0" rpy="-8.87308e-07 1.56423e-15 1.5708" />
+        <origin xyz="-0.015 0.0075 -0.02" rpy="3.32548e-07 1.99214e-15 1.5708" />
         <axis xyz="1 0 0" />
         <parent link="manipulator_dual" />
         <child link="socket_head_cap_screw_am_b18_3_1m___6_x_1_0_x_40_hex_shcs____24nhx" />
     </joint>
     <joint name="revolute_6_0" type="continuous">
-        <origin xyz="-1.94289e-16 5.55112e-17 0.005" rpy="0 -1.5708 3.14159" />
+        <origin xyz="-5.55112e-17 8.32667e-17 0.005" rpy="0 -1.5708 3.45279" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_140" />
         <child link="f624zz_14" />
     </joint>
     <joint name="revolute_8_0" type="continuous">
-        <origin xyz="0.102411 -0.00500004 -0.0954576" rpy="-1.09686 -1.52101e-14 -1.5708" />
+        <origin xyz="0.102411 -0.00500004 -0.0954576" rpy="-0.397052 -1.6348e-14 -1.5708" />
         <axis xyz="-1 0 0" />
         <parent link="pleuel_bend_140_1" />
         <child link="f624zz_73" />
     </joint>
     <joint name="revolute_9_0" type="continuous">
-        <origin xyz="-4.83882e-08 -0.02 0.064" rpy="-3.14159 -0.908 3.14159" />
+        <origin xyz="3.53185e-08 -0.02 0.064" rpy="3.14159 -1.21288 -3.14159" />
         <axis xyz="0 1 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
         <child link="robot_belt_arm_gear_body_1" />
