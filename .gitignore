@@ -13,3 +13,5 @@ __pycache__/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+# Temporary/Private packages
+src/topological_motion_planners/
