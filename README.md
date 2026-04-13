@@ -1,5 +1,7 @@
 # Topological Navigation: Community Robot Arm (ROS 2)
 
+![Community Robot Arm](docs/images/Robot-Arm.png)
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![ROS2](https://img.shields.io/badge/ros2-humble-green.svg)
 
