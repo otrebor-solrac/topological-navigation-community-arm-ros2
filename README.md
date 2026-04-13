@@ -90,4 +90,3 @@ python3 src/robots/community_robot_arm/scripts/create_urdf.py --mode full
 
 ## 👨‍🔬 Author
 **Roberto Carlos Vazquez Nava**  
-*UnADM / TESH - Mechatronics Engineering*
