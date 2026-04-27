@@ -1,39 +1,37 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-def generate_launch_description():
-    # Get the share directory of the package community_robot_arm previously built
+def launch_setup(context, *args, **kwargs):
     pkg_share = get_package_share_directory('community_robot_arm')
+    
+    # Obtenemos el valor del argumento
+    use_spherized = LaunchConfiguration('spherized').perform(context).lower() == 'true'
+    
+    if use_spherized:
+        urdf_file = os.path.join(pkg_share, 'urdf', 'community_robot_arm_slim_spherized_ROS2.urdf')
+        print("LOADING SPHERIZED MODEL (ROS 2 COMPATIBLE)...")
+    else:
+        urdf_file = os.path.join(pkg_share, 'urdf', 'community_robot_arm_slim.urdf')
+        print("LOADING NORMAL MODEL...")
 
-    # Declare the launch argument mode
-    mode_arg = DeclareLaunchArgument(
-        'mode', default_value='full',
-        description='Modo de carga: full o slim'
-    )
-
-    # Se resuelve en runtime, pero para simplificar usamos full por defecto
-    # Para cambiar: ros2 launch community_robot_arm display.launch.py mode:=slim
-    mode = LaunchConfiguration('mode')
-
-    # Intentar cargar slim primero, si no existe, cargar full
-    slim_path = os.path.join(pkg_share, 'urdf', 'community_robot_arm_slim.urdf')
-    full_path = os.path.join(pkg_share, 'urdf', 'community_robot_arm_full.urdf')
-
-    # Por defecto cargamos full
-    urdf_file = full_path
-    if os.path.exists(slim_path):
-        # Si existe slim, lo usamos por defecto
-        urdf_file = slim_path
+    if not os.path.exists(urdf_file):
+        # Fallback al full si el slim no existe
+        urdf_file = os.path.join(pkg_share, 'urdf', 'community_robot_arm_full.urdf')
 
     with open(urdf_file, 'r') as infp:
         robot_desc = infp.read()
 
-    return LaunchDescription([
-        mode_arg,
+    # Seleccionar archivo RViz
+    if use_spherized:
+        rviz_config = os.path.join(pkg_share, 'rviz', 'spherized.rviz')
+    else:
+        rviz_config = os.path.join(pkg_share, 'rviz', 'display.rviz')
+
+    return [
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -46,7 +44,7 @@ def generate_launch_description():
             executable='joint_state_publisher_gui',
             name='joint_state_publisher_gui',
             output='screen',
-            remappings=[('/joint_states', '/master_states')]
+            remappings=[('/joint_states', LaunchConfiguration('gui_topic'))]
         ),
         ExecuteProcess(
             cmd=['python3', '/home/ros_ws/src/robots/community_robot_arm/scripts/parallelogram_kinematics.py'],
@@ -57,6 +55,21 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             output='screen',
-            arguments=['-d', os.path.join(pkg_share, 'rviz', 'display.rviz')]
+            arguments=['-d', rviz_config]
         )
+    ]
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'spherized',
+            default_value='true',
+            description='Usa "true" para ver las esferas'
+        ),
+        DeclareLaunchArgument(
+            'gui_topic',
+            default_value='/gui_master_states',
+            description='Topic where the GUI publishes master joint states'
+        ),
+        OpaqueFunction(function=launch_setup)
     ])

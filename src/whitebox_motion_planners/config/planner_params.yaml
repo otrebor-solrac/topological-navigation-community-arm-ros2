@@ -1,0 +1,16 @@
+whitebox_planner:
+  ros__parameters:
+    # Point B (Goal) - [revolute_1_0, revolute_9_0, revolute_10_0] in radians
+    goal: [3.14, 0.78, -0.78]
+    
+    # Grid resolution (lower means more precision but slower planning)
+    step_size_deg: 10.0
+    
+    # Collision radius for the robot links
+    link_radius: 0.04
+
+    # Algorithm: "astar" or "rrt"
+    planner_type: "rrt"
+
+    # Metric/Heuristic: "L1" (Manhattan) or "L2" (Euclidean)
+    heuristic_type: "L2"
