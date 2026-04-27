@@ -1,4 +1,7 @@
 # ROS2 Auto-generated folders
+# Thesis and local tests
+Tesis/
+robot-test/
 build/
 install/
 log/
