@@ -1,6 +1,0 @@
-\babel@toc {spanish}{}\relax 
-\beamer@sectionintoc {1}{Contexto y planteamiento}{3}{0}{1}
-\beamer@sectionintoc {2}{Estado del arte}{7}{0}{2}
-\beamer@sectionintoc {3}{Avances teóricos}{8}{0}{3}
-\beamer@sectionintoc {4}{Avance técnico}{13}{0}{4}
-\beamer@sectionintoc {5}{Conclusiones}{14}{0}{5}
