@@ -1,0 +1,182 @@
+\section{Paradigmas modernos en la representación del espacio de búsqueda}
+
+\subsection{De la nube de puntos a la variedad Topológica ($T^n$)}
+Tradicionalmente, el Espacio de Planificación de Rutas (PPS) se definía analizando 
+nubes de puntos o mallas discretas. Sin embargo, este enfoque sufre de 
+\enquote{ceguera estructural} porque ignora las propiedades intrínsecas 
+del espacio, y genera un costo computacional masivo por las constantes 
+proyecciones requeridas para evitar obstáculos, exacerbado por la maldición 
+de la dimensionalidad \parencite{radhakrishnan2024state, semwal2024manipulator}.
+
+Para superar estas limitaciones, el paradigma actual modela el entorno como 
+variedades topológicas (\textit{manifolds}), garantizando continuidad geométrica. 
+Al tratar a los manipuladores robóticos como topológicamente homeomorfos a un 
+toroide de $k$-dimensiones ($T^k$) estructurado por sus articulaciones 
+\parencite{pierce2025constrained}, los planificadores pueden incrustar las 
+rutas matemáticas usando cartas locales. Como resultado, la planificación 
+navega de manera fluida y analítica a través de \enquote{pasajes estrechos} 
+sin tener que reevaluar colisiones vértice por vértice \parencite{radhakrishnan2024state}.
+
+\subsection{Mapeo de obstáculos mediante geometrías convexas}
+Para optimizar aún más la detección de colisiones, la investigación 
+migró de mallas poligonales a representaciones convexas. Enfoques como el 
+\enquote{Mundo de Esferas} (\textit{Sphere World}) encapsulan los obstáculos 
+dentro de uniones disjuntas de bolas cerradas, elipsoides o variedades carentes 
+de bordes afilados (\textit{edge-free}) \parencite{radhakrishnan2024state}. El 
+gran impacto de estas \enquote{geometrías de delimitación} es la reducción drástica 
+de tiempo computacional, ya que permite que los algoritmos calculen analíticamente 
+la divergencia más corta (la geodésica matemática) fluyendo alrededor de las 
+fronteras de los objetos, garantizando seguridad y suavidad en la evasión.
+
+
+
+\section{Análisis comparativo de algoritmos en espacios de configuración ($C$)}
+
+\subsection{El puente algorítmico: Homotopía para evadir colisiones dinámicas}
+Una vez que el espacio de búsqueda se ha mapeado analíticamente como una 
+variedad ($T^n$), el siguiente desafío es enseñar al sistema qué rutas son 
+matemáticamente equivalentes para saltar entre ellas si un obstáculo cierra el 
+paso repentinamente. En este punto entran los métodos basados en homotopía 
+(HBM) \parencite{radhakrishnan2024state2}.
+
+La homotopía permite estructurar este amplio espacio agrupando infinitas 
+configuraciones en \enquote{clases de homotopía}: familias de rutas que 
+conectan dos puntos y que pueden deformarse elásticamente sin intersectarse con 
+ningún obstáculo. Para clasificarlas y guiar al robot, enfoques modernos utilizan 
+Firmas Matemáticas (\textit{H-signature}) o secuencias de cruces topológicos 
+llamadas \enquote{Palabras canónicas} \parencite{Bhattacharya2012Topological}. 
+La principal función de formar esta estructura es otorgar inmunidad a los 
+planificadores ante los \enquote{mínimos locales}. Si un objeto dinámico bloquea 
+un rumbo, un algoritmo homotópico avanzado como POSH rechaza la fricción de forzar 
+un cruce y decide de forma inteligente \enquote{saltar} (\textit{switch}) 
+intencionalmente hacia una familia de homotopía distinta (ej. rodear un bloque 
+por la izquierda en lugar de la derecha).
+
+Justamente, para poder construir estas ramas homotópicas y buscar la solución 
+más óptima, la literatura confronta constantemente dos arquitecturas algorítmicas 
+de base: los grafos de búsqueda matemática y el muestreo de exploración probabilístico.
+
+\subsection{Eficiencia computacional: A* frente a RRT en variedades}
+El desempeño entre planificadores basados en exploración por grafos y en 
+muestreo aleatorio revela un compromiso crítico (\textit{trade-off}). En 
+ambientes topológicos altamente desafiantes, los planificadores deterministas 
+rigurosos como \textbf{HA*} aseguran la ruta matemáticamente óptima, pero a un 
+costo temporal muy estricto, promediando 30.99 segundos y escalando exponencialmente 
+al expandir árboles limitados por continuaciones de altas dimensiones 
+\parencite{Bhattacharya2012Topological, radhakrishnan2024state}.
+
+En marcado contraste, los enfoques probabilísticos abstractos como \textbf{HRRT} y 
+variaciones híbridas como \textbf{AtlasRRT} son casi 130 veces más rápidos (con medias 
+de 0.239 segundos en RRT). No obstante, esta tremenda agilidad compensa sacrificando 
+fuertemente la calidad topológica original del trayecto, generando rutas de 1.4 a 
+2.19 veces más largas e inestables que la propuesta matemática óptima 
+\parencite{Bhattacharya2012Topological, radhakrishnan2024state}.
+
+\subsection{Algoritmos de vanguardia en alta dimensionalidad}
+Para escenarios con intensa estrechez estática se han propuesto métodos altamente 
+resolutivos como \textbf{Many-RRT*}, una arquitectura que genera objetivos dinámicos 
+paralelos para evadir singularidades computacionales cinemáticas. Al evaluarse 
+rigurosamente en brazos manipuladores de 6 y 7 grados de libertad (UR10e y Panda) 
+contra estándares base de muestreo (RRT*, RRT-Connect), este método logró una 
+métrica disruptiva: una tasa de éxito casi perfecta del 100\% en laberintos 
+caóticos donde todos los sistemas probabilísticos tradicionales colapsaron 
+logrando tan sólo del 1.4\% al 5.0\% de éxito. Además de la agilidad de los 
+caminos, logra estabilizar trayectorias mucho más uniformes convergiendo en 
+soluciones útiles con resoluciones de convergencia 6 veces menores, permitiéndole 
+reducir finalmente el costo métrico analítico global (distancia operada combinada 
+en la variedad) hasta un 44.5\% gastando exactamente el mismo runtime operacional 
+preasignado \parencite{belmont2026many}.
+
+\section{Democratización del hardware y gemelos digitales}
+
+\subsection{Democratización mediante bajo costo y su vacío pedagógico}
+En los últimos años, la dependencia de la academia por los masivos y costosos 
+robots industriales se mitigó por un avance sustancial con software Open-Source 
+complementados por la fabricación aditiva (FDM 3D). Diseños como el manipulador 
+articulado \textbf{G-ARM} han probado las bases pragmáticas en su despliegue 
+educativo robótico integral mediante un costo estimado total de adquisición para 
+los constructores de apenas 171 euros. Paralelamente, sistemas mecanum orientados a 
+cinemáticas omnidireccionales diferenciales como \textbf{SMARTmBOT} limitan los gastos 
+completos, proveyendo bases Raspberry Pi robustas y hasta formaciones LIDAR mediante 
+Time Of Flight y cámaras visuales por aproximadamente 210 dólares netos, probando ser 
+viables para replicaciones a gran escala en centros sin presupuesto elevado 
+\parencite{vega2025g, jo2022smartmbot}.
+
+Sin embargo, a pesar de este gran acierto algorítmico global, la gran crítica persiste 
+ante estas mecánicas robóticas por fomentar el \enquote{vacío pedagógico} 
+educativo \parencite{de2025development}. Las investigaciones de vanguardia 
+delegan puramente las funciones complejas preenlatadas de estos manipuladores 
+accesibles a \enquote{Cajas Negras} matemáticas de la industria (MoveIt2, OPML, 
+algoritmos orientados como KDL) provocando que las mecánicas del sistema operen 
+fluidamente en evasiones avanzadas, pero el diseñador/estudiante pierda tangibilidad. 
+Estos métodos unificados blindan el conocimiento algebraico interno de manera que 
+jamás se enfrentan transparentemente al modelado o la parametrización analítica de 
+la propia topología en el $C-space$ limitando gravemente el entendimiento conceptual 
+interno detrás de las planificaciones robóticas  
+\parencite{semwal2024manipulator, vega2025g}.
+
+\subsection{Cerrando el reality gap y asegurando la reproducibilidad}
+Para cruzar la alta barrera aislacionista teórica matemática, métodos de 
+instrumentación reciente interlazan de forma constante el mundo virtual mediante 
+vinculaciones fluidas entre los planificadores y el hardware. Agrupados dentro de 
+paradigmas como Gemelos Digitales asíncronos, se busca garantizar que las órbitas y 
+resoluciones matemáticas colisiónen perfectamente entre la iteración teórica sin 
+desviaciones abrumadoras causadas ante deficiencias motrices (resolviendo drásticamente 
+el Reality-Gap de la fabricación) \parencite{de2025development}. 
+
+No obstante, esta interactividad del software a menudo envejece críticamente mal. Las 
+debilidades originadas por las dependencias binarias atadas a diferentes SO operativos 
+Linux destrozan de raíz la reusabilidad del entorno cuando este expira, sumiendo los 
+códigos a un ciclo corto. La respuesta a esta \textit{crisis de reproducibilidad} ha 
+sido respaldada por \textbf{Docker}, permitiendo desplazar arquitecturas operativas 
+fijadas permanentemente. En especial, mediante el uso de orquestadores como 
+\textbf{Docker Compose} y el puenteo directo del servidor gráfico (X11), se logra 
+aislar la renderización GUI y evitar la contaminación del sistema operativo local 
+con librerías de un solo uso, operando entornos complejos mediante un simple comando 
+de terminal unificada \parencite{martinez2022docker, cervera2023run}.
+
+\section{Síntesis y brecha de investigación}
+
+La revisión literaria evidencia una desconexión crítica actual. Por un lado, 
+la matemática de las topologías teóricas ($T^k$) han alcanzado planificaciones 
+inmejorables limitadas a centros con alto presupuesto o teorías exclusivas 
+virtuales \parencite{radhakrishnan2024state}. Contrariamente, en la contraparte 
+educativa del brazo robótico abierto, las aplicaciones son lideradas integralmente 
+recargando los algoritmos a softwares caja-negra comerciales unificados 
+\parencite{semwal2024manipulator, vega2025g}. La literatura explorada sugiere 
+una falta de integración para documentar y construir desde su base algorítmica 
+una propuesta de simulador educativo tipo \enquote{Caja Blanca}, exponiendo los 
+cálculos topológicos de forma transparente y encapsulada para hardware 
+comunitario \parencite{cervera2023run, de2025development}.
+
+Basados en esta brecha del panorama académico referenciado, el argumento que 
+fundamentaría y fortalecería esta propuesta se apoya de cuatro validaciones esenciales:
+
+\begin{enumerate}
+    \item \textbf{Transparencia frente a las \enquote{cajas negras}:} A diferencia de 
+    las metodologías que ocultan la lógica en bloques automatizados como MoveIt2 
+    \parencite{semwal2024manipulator}, operar con algoritmos A* o RRT construidos 
+    desde cero ayuda a cerrar el \enquote{vacío pedagógico}, permitiendo al estudiante 
+    interactuar directamente con la matemática del espacio de configuración topológico.
+    \item \textbf{Mitigación al \textit{curve-jumping}:} A nivel metodológico 
+    algebraico, el anclar el planificador A*/RRT resolviendo sobre métricas equivalentes 
+    en $T^n$ blinda al algoritmo y lo hace inmune del crítico fenómeno en 
+    \enquote{salto de curvas no-lineales} garantizando congruencias 
+    \parencite{radhakrishnan2024state2, velez2022novel}.
+    \item \textbf{Consistencia del entorno mediante Docker:} El uso de contenedores 
+    elimina la acumulación de dependencias obsoletas y evita la modificación o 
+    contaminación del sistema operativo local con software redundante. Esto asegura 
+    que el código fuente actúe de manera inmune y replicable de manera inmediata sin 
+    temor a la expiración de las versiones \parencite{cervera2023run}.
+    \item \textbf{Validación física y reducción del reality gap:} Finalmente,
+     aterrizar este enfoque contenedorizado sobre el diseño del brazo impreso 
+     3D asíncrono permite validar que la teoría topológica planificada se traduzca 
+     de forma fidedigna en los motores reales orientando una vinculación directa entre 
+     la abstracción matemática y la práctica en la ingeniería mecatrónica 
+     \parencite{de2025development}.
+\end{enumerate}
+
+En conclusión, este enfoque cruza y vincula tres áreas aisladas en la literatura: 
+el modelado de la matemática pura de variedades topológicas, la difusión práctica 
+pedagógica en la educación impulsada a coste libre, y las garantías de software 
+modernas basadas en contenedores computacionales.

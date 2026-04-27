@@ -1,0 +1,16 @@
+[0] Config.pm:307> INFO - This is Biber 2.17
+[0] Config.pm:310> INFO - Logfile is 'main.blg'
+[63] biber:340> INFO - === Tue Apr 21, 2026, 17:08:30
+[74] Biber.pm:418> INFO - Reading 'main.bcf'
+[160] Biber.pm:969> INFO - Using all citekeys in bib section 0
+[172] Biber.pm:4383> INFO - Processing section 0
+[181] Biber.pm:4574> INFO - Looking for bibtex file 'Referencias/referencias.bib' for section 0
+[183] bibtex.pm:1713> INFO - LaTeX decoding ...
+[223] bibtex.pm:1518> INFO - Found BibTeX data source 'Referencias/referencias.bib'
+[547] UCollate.pm:68> INFO - Overriding locale 'es-ES' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[547] UCollate.pm:68> INFO - Overriding locale 'es-ES' defaults 'variable = shifted' with 'variable = non-ignorable'
+[547] Biber.pm:4203> INFO - Sorting list 'apa/global//global/global' of type 'entry' with template 'apa' and locale 'es-ES'
+[606] bbl.pm:654> INFO - Writing 'main.bbl' with encoding 'UTF-8'
+[636] bbl.pm:757> INFO - Output to main.bbl
+[636] Biber.pm:130> WARN - legacy month field 'November' in entry 'grant2015topology' is not an integer - this will probably not sort properly.
+[636] Biber.pm:132> INFO - WARNINGS: 1

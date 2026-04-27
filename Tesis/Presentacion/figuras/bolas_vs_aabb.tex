@@ -1,0 +1,79 @@
+\begin{tikzpicture}[
+    % Definición de perspectiva isométrica limpia
+    x={(0.866cm,0.5cm)}, y={(-0.866cm,0.5cm)}, z={(0cm,1cm)},
+    scale=0.9,
+    % ESTILOS UNIFICADOS CON LA PALETA UNADM
+    link_robot/.style={draw=PPTGrey!40, line width=4pt, line cap=round},
+    joint_robot/.style={ball color=white, opacity=0.9},
+    % Estilo AABB (Gris/Naranja para indicar ineficiencia/error)
+    aabb_style/.style={draw=PPTOrange, fill=PPTOrange!10, opacity=0.2, dashed, line width=0.6pt},
+    % Estilo Bolas (Verde Esmeralda para indicar precisión/topología)
+    sphere_vol/.style={ball color=PPTSteel, opacity=0.5},
+    obstacle_style/.style={ball color=black!80},
+    grid_style/.style={draw=PPTGrey!20, thin}
+]
+
+    % --- LADO IZQUIERDO: AABB (TRADICIONAL) ---
+    \begin{scope}[xshift=0cm]
+        \foreach \i in {-1,0,1,2} {
+            \draw[grid_style] (\i,-1,0) -- (\i,2,0);
+            \draw[grid_style] (-1,\i,0) -- (2,\i,0);
+        }
+        
+        \node[font=\small\sffamily\bfseries, color=PPTGrey] at (0.5,0.5,-1) {AABB (Ingeniería Clásica)};
+        
+        % Robot
+        \draw[link_robot] (0,0,0) -- (0,0,1.8) -- (1.5,0,2.8);
+        
+        % Articulaciones
+        \fill[joint_robot] (0,0,0) circle (0.2);
+        \fill[joint_robot] (0,0,1.8) circle (0.18);
+        \fill[joint_robot] (1.5,0,2.8) circle (0.16);
+
+        % Obstáculo flotante (punto negro)
+        \fill[obstacle_style] (1.1,0.8,1.5) circle (0.12);
+
+        % CAJA 1: Vertical
+        \draw[aabb_style] (-0.4,-0.4,0) -- (0.4,-0.4,0) -- (0.4,0.4,0) -- (-0.4,0.4,0) -- cycle;
+        \draw[aabb_style] (-0.4,-0.4,1.8) -- (0.4,-0.4,1.8) -- (0.4,0.4,1.8) -- (-0.4,0.4,1.8) -- cycle;
+        \foreach \i/\j in {-0.4/-0.4, 0.4/-0.4, 0.4/0.4, -0.4/0.4} \draw[aabb_style] (\i,\j,0) -- (\i,\j,1.8);
+
+        % CAJA 2: Inclinada
+        \draw[aabb_style] (-0.3,-0.4,1.8) -- (1.6,-0.4,1.8) -- (1.6,0.5,1.8) -- (-0.3,0.5,1.8) -- cycle;
+        \draw[aabb_style] (-0.3,-0.4,2.9) -- (1.6,-0.4,2.9) -- (1.6,0.5,2.9) -- (-0.3,0.5,2.9) -- cycle;
+        \foreach \i/\j in {-0.3/-0.4, 1.6/-0.4, 1.6/0.5, -0.3/0.5} \draw[aabb_style] (\i,\j,1.8) -- (\i,\j,2.9);
+            
+        \node[PPTOrange, font=\footnotesize\sffamily\bfseries] at (0.5,1.8,3.2) {COLISIÓN FALSA};
+    \end{scope}
+
+    % --- LADO DERECHO: BOLAS ABIERTAS (TOPOLOGÍA) ---
+    \begin{scope}[xshift=5.5cm]
+        \foreach \i in {-1,0,1,2} {
+            \draw[grid_style] (\i,-1,0) -- (\i,2,0);
+            \draw[grid_style] (-1,\i,0) -- (2,\i,0);
+        }
+
+        \node[font=\small\sffamily\bfseries, color=PPTSteel] at (0.5,0.5,-1) {Recubrimiento (Topología)};
+
+        % Esqueleto interno
+        \draw[link_robot, opacity=0.3] (0,0,0) -- (0,0,1.8) -- (1.5,0,2.8);
+
+        % Cadena de esferas (Más densas para evitar huecos)
+        \foreach \z in {0.1, 0.4, 0.7, 1.0, 1.3, 1.6, 1.9}
+            \fill[sphere_vol] (0,0,\z) circle (0.35);
+        
+        \foreach \t in {0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.05}
+            \fill[sphere_vol] ({1.5*\t}, 0, {1.8 + 1.0*\t}) circle (0.33);
+
+        % Articulaciones
+        \fill[joint_robot] (0,0,0) circle (0.2);
+        \fill[joint_robot] (0,0,1.8) circle (0.18);
+        \fill[joint_robot] (1.5,0,2.8) circle (0.16);
+
+        % Obstáculo (Misma posición)
+        \fill[obstacle_style] (1.1,0.8,1.5) circle (0.12);
+        
+        \node[PPTSteel!80!black, font=\footnotesize\sffamily\bfseries] at (0.5,1.8,3.2) {LIBRE (SIN COLISIÓN)};
+    \end{scope}
+
+\end{tikzpicture}

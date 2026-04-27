@@ -1,0 +1,132 @@
+La industria 4.0 y los cambios en
+la política industrial
+José Luis Solleiro
+■ ■ ■ ■ ■ ■
+La innovación en el contexto de la industria 4.0 se ha acelerado y exige cambios en la
+política industrial. La intervención del Estado mexicano en el desarrollo industrial ha
+reducido la cantidad y calidad de sus instrumentos de política, por lo que es importante
+revisar la estrategia actual, así como hacer propuestas para recuperar el dinamismo, las
+cuales constituyen el aporte de este artículo.
+Introducción
+Nos encontramos en medio de una transformación de la manera como se
+fabrican los productos, la cual deriva de la digitalización de los procesos de manufactura. Es tan amplio el alcance de este fenómeno que ha sido
+llamado industria 4.0, aludiendo a que está ligado a una Cuarta Revolución Indus-trial. Vale la pena recordar que la Primera Revolución Industrial comprendió la mecanización de muchas actividades, gracias a las primeras máquinas propulsadas por vapor; la Segunda Revolución Industrial vino con el uso de la electricidad, el acero y nuevos medios de transporte, como el ferrocarril, para, paulatinamente, llevar a la producción en masa; más adelante, la Tercera Revolución Industrial se presentó con la automatización de muchos procesos y la adopción de compu-tadoras para el manejo de la información y el control de las actividades agrícolas, manufactureras y de servicios.
+La industria 4.0 está revolucionando la producción y distribución de bienes y servicios, al tiempo que se va construyendo sobre los avances de la Tercera Revo-lución Industrial, debido a la interconexión entre productos, máquinas, procesos y consumidores, mediante el uso intensivo de tecnologías como internet de las co-sas, inteligencia artificial, computación en la nube, sensores, robots autónomos y otros servicios digitales usados para procesar grandes cantidades de datos. Algunas personas aún tienen dudas sobre la penetración y las perspectivas de la industria 4.0, pero es importante tener claro que son innegables sus manifestaciones en di-versas actividades económicas, en las comunicaciones, en la distribución global
+https://lh3.googleusercontent.com/notebooklm/ANHLwAzKLkoGVQj2ZEaXStP1nbcx7CJfp7ktRUacmABm8RZPT9qFzVfZaZ3iAUhJebFMFZWHBkDmtzhQO3-Owz7Fw4tBVTxsHL9NsxgxDJm5l40KsDyDHTNXKKrkjms2WrvJHkpOKyQ9Uw=w981-h1280-v0
+de productos y en la prestación de servicios. El uso extendido de internet y los objetos “inteligentes” (máquinas y productos) conlleva la combinación de elementos del mundo físico y del mundo virtual mediante las tecnologías modernas de información y comunicación. Esta combinación lleva a los llama-dos sistemas ciberfísicos, con los pilares ilustrados en la Figura 1 (Alcácer y Cruz, 2019):
+1. Internet de las cosas: una combinación de tecnolo-gías que permite la interconexión entre objetos, sin necesidad de la intervención humana.
+2. Computación en la nube: el uso de servicios de al-macenamiento y procesamiento de información en la llamada “nube” representa un salto en la capacidad para que los sistemas interactúen, se compartan datos y se mejore el desempeño.
+3. Manejo de grandes volúmenes de datos (big data): nuevas técnicas que facilitan el procesamiento y análisis de datos.
+4. Simulación: desarrollo de modelos para entender la dinámica de negocios, procesos gubernamenta-les y prestación de servicios, usando datos reales, pero simulando mediante lo que ahora se llama “gemelos digitales”.
+5. Realidad aumentada: sistemas que posibilitan la interacción entre ambientes virtuales y el mundo
+físico, para que ambos se entremezclen por medio de dispositivos tecnológicos.
+6. Manufactura aditiva: una tecnología que permite la fabricación rápida de prototipos de productos mediante la impresión tridimensional con dife-rentes materiales.
+7. Integración horizontal y vertical de sistemas: en las empresas, la integración horizontal consiste en establecer condiciones para la interconexión y coordinación entre proveedores, fábricas y clien-tes; la integración vertical involucra sistemas de tecnologías de la información a lo largo de dife-rentes niveles y unidades.
+8. Robots autónomos: autómatas con inteligencia ar-tificial que tienen gran capacidad de adaptación y flexibilidad.
+9. Ciberseguridad: sistemas y procedimientos para garantizar la seguridad de la infraestructura en tecnologías de la información y de los datos.
+Beneficios de la industria 4.0 El resultado de la introducción de las tecnologías
+propias de la industria 4.0 ha sido la fábrica inteli-gente, donde máquinas, dispositivos, sensores y per-sonas se conectan y se comunican en tiempo real, lo que ocurre tanto dentro de la compañía como en sus relaciones con otras empresas. La disponibilidad de información útil y las herramientas para su análisis constituyen condiciones óptimas para tomar decisio-nes basadas en evidencias que se traducen en una mejor ejecución de tareas, la respuesta rápida ante problemas y otros beneficios para la innovación y la productividad.
+No obstante, la transformación digital no sólo afecta al sector manufacturero, sino que también tiene impacto en la agricultura por el uso de senso- res para optimizar el riego y la aplicación de ferti-lizantes y agroquímicos, además de drones para la supervisión y control de plagas. Asimismo, el co-mercio usa cada vez más plataformas digitales y los servicios financieros se han transformado, mien-tras que los servicios públicos también han cambia-do por la implementación creciente de soluciones digitales.
+Computación en la nube
+Internet de las cosas
+Simulación Integración de sistemas
+Manufactura aditiva
+Realidad aumentada
+Ciberseguridad
+Manejo de gran-des cantidades
+de datos
+Robots autónomos
+■ Figura 1. Pilares de la industria 4.0. Fuente: elaboración propia con base en Alcácer y Cruz (2019).
+Políticas públicas para la industria 4.0 Capitalizar los beneficios mencionados implica la
+intervención deliberada y planificada de diferentes actores. La Comisión de Ciencia y Tecnología para el Desarrollo de las Naciones Unidas (2022) identi-ficó las economías del mundo que están mejor prepa-radas para la industria 4.0, a partir de las capacidades de los empleados y la exportación de bienes de alta tecnología basados en trabajo altamente calificado. Los resultados del estudio evidencian la relevancia que tiene la inversión en educación y capacitación, como parte fundamental de una política de desa-rrollo productivo. México fue clasificado como país con buenas oportunidades por sus exportaciones de bienes de alta tecnología, pero con respecto a sus re-cursos humanos obtuvo una calificación por debajo del promedio; dicha situación representa un desa- fío de política que se aborda en la última sección de este artículo.
+Para tener una respuesta estratégica ante el fenó-meno de la industria 4.0, diversos países han diseñado políticas industriales para inducir una transformación estructural, con incentivos para la adopción de las nuevas tecnologías, la formación y capacitación de recursos humanos y el impulso al gobierno electróni-co. Al respecto, el ejemplo de la iniciativa de digita-
+lización de la industria europea muestra el objetivo de impulsar la industria 4.0 para recuperar empleos perdidos en la competencia con países que tienen menores costos laborales.
+Un estudio sobre las políticas de distintos países europeos para impulsar la industria 4.0 (Teixeira y Tavares, 2022) clasificó las intervenciones públicas integradas en 25 planes nacionales implantados en-tre 2011 y 2021, y las organizó en las áreas ilustra-das en la Figura 2, las cuales ofrecen una referencia útil para identificar los elementos de una política en esta materia. Cabe destacar que, para la ejecución de estos instrumentos de política, los países europeos han puesto particular atención en propiciar una gobernanza participativa que facilita la toma de decisiones, los acuerdos entre los sectores públicos y privados, así como el financiamiento conjunto de proyectos entre gobiernos y empresas.
+La política de digitalización en México Un análisis de las políticas digitales en México
+implementadas durante este siglo (Oropeza y Bera-saluce, 2021) concluye que se ha priorizado el acceso a internet para la población del país; sin embargo, dicho objetivo se ha logrado apenas parcialmente
+• Implementación de procesos
+• Adopción de internet de las cosas
+• Fortalecimiento de la
+infraestructura de acceso a internet
+• Digitalización de empresas pequeñas y medianas
+• Desarrollo de capacidades de personal
+• Análisis del humano en la fábrica digital
+• Desarrollo de programas de formación y rediseño curricular de carreras
+Fomento a la digitalización de empresas
+Investigación, desarrollo e innovación
+Regulaciones y estándares
+Educación y capacitación
+• Financiamiento a proyectos
+• Coordinación entre empresas e instituciones de investigación
+• Fomento al desarrollo de productos y servicios
+• Denición de áreas prioritarias
+• Ciberseguridad
+• Marcos para arreglos
+público-privados
+■ Figura 2. Políticas de digitalización en Europa. Fuente: elaboración propia a partir de Teixeira y Tavares (2022).
+https://lh3.googleusercontent.com/notebooklm/ANHLwAxCiF6eP1SPiQSZ6Db5TJITNP6UX8kX0b9L9dJ4zxT_I8pAD79yYt1vs7DaBrIxxPhAKOeaG1mlH9BPTKvqJrnGSZkGeD5UMrhZBRA3CgMPUGtxYxaxLpdPtTd05fFnd_xiHZzrUw=w472-h305-v0
+mación y comunicación; así como de los servicios de banda ancha e internet y su potencial transformador para el desarrollo social, cultural y económico.
+Los principios que rigen la Estrategia Digital Na-cional 2021-2024 se ilustran en la Figura 3. En lí- nea con el principio de austeridad, no se contempla una asignación presupuestal para cumplir con sus ob-jetivos, los cuales están orientados a fortalecer los sistemas de información gubernamentales, sin aten-der el impulso de la digitalización en las empresas ni la formación de capacidades para no sólo tener acce-so a internet, sino para adoptar y generar soluciones avanzadas. Esto deja de lado la atención al tema de formación de capacidades digitales, pues, de acuerdo con el diagnóstico de la Unión Internacional de Te-lecomunicaciones para 2021, el porcentaje de indi-viduos con capacidades avanzadas en tecnologías de la información fue de sólo 7% (ITU, 2021).
+La Estrategia Digital Nacional 2021-2024 tam-poco identifica a las industrias prioritarias para fo-mentar su digitalización, como ha sucedido en otros países. De hecho, apenas el 21 de septiembre de 2022,1 la Secretaría de Economía publicó el docu-
+1 La titular de la Secretaría de Economía, encargada de este documento, fue sustituida un par de semanas después de su publicación, lo cual hace cuestionar seriamente su ejecu- ción, pues ha quedado un vacío notable en cuanto a la es- trategia de desarrollo industrial del país y su incorporación planificada al fenómeno de la industria 4.0.
+porque persisten problemas de infraestructura y co-nectividad, en gran parte debido a que las estrategias de las últimas cuatro administraciones federales han contado con presupuestos bajos y se ha carecido de continuidad en los instrumentos de fomento. A pesar de esto, México ha avanzado con un ritmo paulatino en su proceso de digitalización de las ac-tividades gubernamentales, al ir automatizando di-versas operaciones y promoviendo el intercambio de datos entre las dependencias.
+En el caso de la industria, el uso de las tecnolo-gías de la información se ha intensificado, aunque de forma heterogénea, pues las empresas grandes in-tegradas a los mercados internacionales son las que tienen un mayor progreso. Por otro lado, la mayo- ría de las empresas pequeñas apenas ha adoptado el uso de computadoras, internet y algunas soluciones digitales. De esta forma, para 2017, México ocupó el lugar 87 en el Índice de Desarrollo de las Tecno-logías de la Información y Comunicación elaborado por la Unión Internacional de Telecomunicaciones (ITU, 2017); en tanto, en el Índice de Madurez de Conectividad de 2020, se ubicó en el lugar 63 (Sutta y Lanvin, 2020).
+Actualmente, el gobierno federal mantiene como prioridad de la Estrategia Digital Nacional 2021-2024 la cobertura de internet para todo el país. La Estrate-gia fue publicada en el Diario Oficial de la Federación el 6 de septiembre de 2021, a la mitad del sexenio, lo cual indica que se emitió con retraso. Su misión es:
+promover e impulsar que las y los mexicanos gocen y se beneficien del acceso a las tecnologías de la infor-
+Austeridad
+Combate a la corrupción
+Eciencia en los procesos digitales
+Seguridad de la información
+Soberanía tecnológica
+■ Figura 3. Principios de la Estrategia Digital Nacional. Fuente: elabora-ción propia con base en Gobierno de México (2021).
+Referencias específicas Alcácer, V. y V. Cruz (2019), “Scanning the Industry
+4.0: A Literature Review on Technologies for Ma-nufacturing Systems”, Engineering Science and Tech-nology, an International Journal, 22(3):899-919. Dis-ponible en: ‹doi.org/10.1016/j.jestch.2019.01.006›, consultado en enero de 2023.
+Comisión de Ciencia y Tecnología para el Desarrollo de las Naciones Unidas (2022), Industry 4.0 for in-clusive development. Report of the Secretary-General, Ginebra, UNCTAD.
+ITU (2017), The ICT Development Index. Disponible en: ‹www.itu.int/en/ITU-D/Statistics/Pages/IDI/default. aspx›, consultado el 10 de noviembre de 2022.
+ITU (2021), Digital Trends Reports 2021, Ginebra, In-ternational Telecommunications Union. Disponi- ble en: ‹www.itu.int/en/ITU-D/Conferences/WTDC/ WTDC21/Pages/RPM/Digital-Trends-Reports- 2021.aspx›, consultado el 17 de noviembre de 2022.
+Oropeza, A. y J. Berasaluce (2021), De la revolución industrial a la revolución digital, México, IIJ-UNAM/ IDIC.
+Sutta, S. y B. Lanvin (2020), “The Network Readiness Index. Accelerating Digital Transformation in a post-COVID Global Economy”, Washington, D. C., Portulans Institute. Disponible en: ‹https://networ-kreadinessindex.org/wp-content/uploads/2020/10/ NRI-2020-Final-Report-October2020.pdf›, consul-tado el 10 de octubre de 2022.
+Teixeira, J. E. y A. T. Tavares (2022), “Industry 4.0 in the European Union: policies and national stra-tegies”, Technological Forecasting & Social Change, 180:121664. Disponible en: ‹doi.org/10.1016/j.te-chfore.2022.121664›, consultado en enero de 2023.
+mento Rumbo a una política industrial, en el que pro-pone cinco sectores estratégicos (véase la Figura 4) y cuatro acciones transversales:
+1. Innovación y tendencias tecnológicas-científicas. 2. Formación de capital humano para las nuevas
+tendencias. 3. Promoción de contenido regional y encadena-
+miento para las micro, pequeñas y medianas em-presas.
+4. Industrias sostenibles y sustentables.
+Reflexiones finales Este planteamiento de política industrial tiene
+un mejor sustento, pero llega tarde y carece de una base presupuestal. Como puede observarse, México tiene mucho que aprender sobre los pilares de las políticas industrial y de desarrollo digital. Ya es ur-gente que se adopte una postura estratégica para un fenómeno que tiene implicaciones económicas y de transformación social. Si México no toma decisiones pronto, habrá que resignarse a que la forma en que se adopte la digitalización de la economía del país sea dependiente y reactiva.
+José Luis Solleiro
+Instituto de Ciencias Aplicadas y Tecnología, Universidad Nacional
+Autónoma de México.
+solleiro@unam.mx
+Agroalimentario
+• Industria alimentaria
+• Tecnicación de la producción agrícola
+Eléctrico-Electrónico
+• Electrodomésticos
+• Equipos de
+comunicación y medición
+• Equipo de cómputo
+• Manufacturas para
+exportación
+• Semiconductores
+Electro-movilidad
+• Autopartes
+• Baterías y sus
+componentes
+• Vehículos ligeros
+y de carga
+• Vehículos de
+transporte público
+Servicios médicos y farmacéuticos
+• Dispositivos médicos
+• Medicamentos y productos relacionados
+Industrias creativas
+• Industri fílmica
+• Industria televisiva
+• Videojuegos
+• Entretenimiento
+en vivo
+• Plataformas
+virtuales
+• Moda
+■ Figura 4. Los sectores estratégicos propuestos para la política industrial de México. Fuente: Secretaría de Economía (2022), Rumbo a una política indus-trial, México, Secretaría de Economía.

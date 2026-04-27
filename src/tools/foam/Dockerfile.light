@@ -1,0 +1,56 @@
+# --- ETAPA 1: Compilación (Build Stage) ---
+FROM python:3.11-slim-bookworm AS builder
+
+# Instalamos herramientas de compilación necesarias
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    ninja-build \
+    git \
+    libprotobuf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copiamos todo el repositorio
+COPY . .
+
+# 1. Compilamos los binarios de C++
+RUN cmake -Bbuild -GNinja . && \
+    cmake --build build/
+
+# 2. Pre-compilamos las dependencias de Python (incluyendo pybullet)
+# Esto genera archivos .whl en la carpeta /build/wheels
+RUN pip wheel --no-cache-dir --wheel-dir /build/wheels -r requirements.txt
+
+# --- ETAPA 2: Ejecución (Runtime Stage) ---
+FROM python:3.11-slim-bookworm
+
+LABEL maintainer="Antigravity Optimizer"
+
+# Instalamos solo la librería de runtime necesaria
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libprotobuf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /foam
+
+# Copiamos los "wheels" pre-compilados y los instalamos
+COPY --from=builder /build/wheels /wheels
+RUN pip install --no-cache-dir --no-index --find-links=/wheels /wheels/*.whl && \
+    rm -rf /wheels
+
+# Copiamos el paquete foam y los scripts
+COPY --from=builder /build/foam ./foam
+COPY --from=builder /build/scripts ./scripts
+COPY --from=builder /build/setup.py .
+COPY --from=builder /build/pyproject.toml .
+
+# Instalamos el paquete foam localmente
+RUN pip install --no-cache-dir .
+
+# Definimos el punto de entrada
+ENTRYPOINT ["python3", "scripts/generate_sphere_urdf.py"]
+
+# Comando por defecto
+CMD ["--help"]
