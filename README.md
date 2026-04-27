@@ -90,3 +90,61 @@ python3 src/robots/community_robot_arm/scripts/create_urdf.py --mode full
 
 ## 👨‍🔬 Author
 **Roberto Carlos Vazquez Nava**  
+
+---
+
+# 📂 Project Structure
+
+This section describes the organization of the **topological-navigation-community-arm-ros2** workspace.
+
+```text
+ROS2/ (Workspace Root)
+│
+├── src/
+│   ├── robots/
+│   │   └── community_robot_arm/      <-- ROBOT DEFINITION PACKAGE
+│   │       ├── urdf/                 <-- [CAD] Cleaned-up Robot Models (URDF)
+│   │       ├── meshes/               <-- Optimized STL/DAE files
+│   │       ├── launch/               <-- Visualizers and State Publishers
+│   │       └── scripts/              <-- Parallel Kinematics Solvers
+│   │
+│   └── whitebox_motion_planners/     <-- CORE ALGORITHMIC PACKAGE
+│       ├── whitebox_motion_planners/
+│       │   ├── core/                 <-- [OOP] Interfaces & Exceptions
+│       │   ├── kinematics/           <-- [KINEMATICS] Robot Models
+│       │   ├── collision/            <-- [FOAM] Grid & Spherical Colliders
+│       │   ├── planners/             <-- [ALGO] A*, RRT, and Factory
+│       │   └── ros2/                 <-- ROS 2 Nodes and Integrations
+│       ├── config/                   <-- [YAML] Single Source of Truth
+│       ├── launch/                   <-- Master Orchestration
+│       ├── setup.py
+│       └── README.md             <-- Package documentation and architecture guide
+│
+├── Tesis/                            <-- ACADEMIC DOCUMENTATION (LaTeX)
+│   ├── Capítulos/                    <-- 1-Intro, 2-Marco-Teórico, 3-Metodología...
+│   ├── Imagenes/                     <-- TikZ, PGF, and external figures
+│   └── main.tex                      <-- Thesis entry point
+│
+├── Makefile                          <-- [EXEC] Unified Command Center (build, run, shell)
+├── docker-compose.yml                <-- [INFRA] Environment Orchestration
+├── Dockerfile                        <-- [IMAGE] ROS 2 Humble base image
+└── README.md                         <-- This document
+```
+
+## Component Descriptions
+
+### 🤖 Robots & Hardware (`src/robots/`)
+Contains the physical representation of the manipulators. The `community_robot_arm` is the main focus, featuring a "Slim" URDF purged of non-functional hardware (screws, caps) to optimize collision checking.
+
+### 🌀 Planners (`src/whitebox_motion_planners/`)
+The "White-Box" implementation of the planning pipeline. 
+- **Topological Math**: Handles the "Wrap-around" distance calculations to treat joints as $S^1$ components of a Torus $T^n$.
+- **Collision Engine**: Uses the FOAM (Fast Open Approximation of Manifolds) approach, representing obstacles as unions of open balls.
+
+### 🎓 Thesis (`Tesis/`)
+The complete academic work. It is structured to maintain a direct link between mathematical definitions (Chapter 2) and their implementation in the source code.
+
+### 🐳 Infrastructure
+The project is fully containerized to ensure reproducibility. 
+- **Docker Compose**: Bridges the host's X11 socket for RViz2 hardware acceleration.
+- **Makefile**: Provides a unified interface for the developer (`make run`, `make build`, `make shell`).

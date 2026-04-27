@@ -4,11 +4,12 @@ services:
     build: . # Build the image using the Dockerfile in the current directory.
     container_name: ros2_thesis_env # Fixed name for easier container management.
 
-    # 2. VOLUMES: Persistent data and GUI bridging.
+    # 2. VOLUMES: Only sync what we need to edit.
     volumes:
-      - .:/home/ros_ws # Bind mount: Syncs local source code with the container's workspace.
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw # Connects the container to the host's X11 display server.
-      - $HOME/.Xauthority:/root/.Xauthority:rw # Forwards X11 authentication for GUI access.
+      - ./src:/home/ros_ws/src # Sync source code
+      - ./simulation_entrypoint.sh:/home/ros_ws/simulation_entrypoint.sh # Sync entrypoint
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - $HOME/.Xauthority:/root/.Xauthority:rw
 
     # 3. ENVIRONMENT VARIABLES: GUI, GPU, and Simulation paths.
     environment:
@@ -18,7 +19,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all # Exposes all GPU devices to the container.
       - NVIDIA_DRIVER_CAPABILITIES=all # Enables graphics, compute, and utility GPU features.
       # Gazebo-specific paths for model loading and resource discovery:
-      - GAZEBO_MODEL_PATH=/home/ros_ws/src/robots/open_manipulator/models
+      - GAZEBO_MODEL_PATH=/home/ros_ws/src/robots
       - GAZEBO_RESOURCE_PATH=/usr/share/gazebo-11
       - GAZEBO_MODEL_DATABASE_URI="" # Prevents Gazebo from hanging while trying to sync with the online DB.
 

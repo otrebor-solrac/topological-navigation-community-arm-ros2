@@ -26,6 +26,7 @@ class ParallelogramKinematics(Node):
         joints = dict(zip(msg.name, msg.position))
         
         # 1. Definimos los Motores Principales (Maestros)
+        q1 = joints.get('revolute_1_0', 0.0)
         q2 = joints.get('revolute_9_0', 0.0)   # Motor 2 (Lower Shank)
         q3 = joints.get('revolute_10_0', 0.0)  # Motor 3 (Lever / Palanca)
         
