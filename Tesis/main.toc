@@ -1,0 +1,47 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {chapter}{\numberline {1}Introducción}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Contexto social}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Planteamiento del problema}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Justificación}{3}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Pregunta de investigación}{4}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Hipótesis}{4}{subsection.1.4.1}%
+\contentsline {section}{\numberline {1.5}Objetivos}{5}{section.1.5}%
+\contentsline {subsection}{\numberline {1.5.1}Objetivo general}{5}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.2}Objetivos específicos}{5}{subsection.1.5.2}%
+\contentsline {chapter}{\numberline {2}Estado del arte}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Paradigmas modernos en la representación del espacio de búsqueda}{6}{section.2.1}%
+\contentsline {subsection}{\numberline {2.1.1}De la nube de puntos a la variedad Topológica ($T^n$)}{6}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Mapeo de obstáculos mediante geometrías convexas}{6}{subsection.2.1.2}%
+\contentsline {section}{\numberline {2.2}Análisis comparativo de algoritmos en espacios de configuración ($C$)}{7}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}El puente algorítmico: Homotopía para evadir colisiones dinámicas}{7}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Eficiencia computacional: A* frente a RRT en variedades}{7}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Algoritmos de vanguardia en alta dimensionalidad}{7}{subsection.2.2.3}%
+\contentsline {section}{\numberline {2.3}Democratización del hardware y gemelos digitales}{8}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Democratización mediante bajo costo y su vacío pedagógico}{8}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Cerrando el reality gap y asegurando la reproducibilidad}{8}{subsection.2.3.2}%
+\contentsline {section}{\numberline {2.4}Síntesis y brecha de investigación}{9}{section.2.4}%
+\contentsline {chapter}{\numberline {3}Marco teórico}{11}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Fundamentos de la robótica topológica}{11}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Espacios topológicos y variedades diferenciables}{11}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Construcción topológica del Toro de dimensión $n$ ($T^n$)}{14}{subsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.1.3}Métricas en variedades y topología métrica}{15}{subsection.3.1.3}%
+\contentsline {section}{\numberline {3.2}Geometría del espacio de estados y conectividad}{17}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Mapeo del espacio de trabajo al espacio de configuración ($\mathcal {C}$-Space)}{17}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Teoría de recubrimientos y aproximación por bolas abiertas}{18}{subsection.3.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Conectividad por caminos e inestabilidades topológicas}{20}{subsection.3.2.3}%
+\contentsline {section}{\numberline {3.3}Planificación de trayectorias y arquitectura algorítmica en ROS2}{21}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Discretización de la variedad y grafos métricos}{21}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Búsqueda determinista: Algoritmo A* en espacios no euclidianos}{22}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.3}Búsqueda estocástica: Algoritmo RRT y completitud probabilística}{25}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {3.3.4}Integración y visualización algorítmica en RViz2}{27}{subsection.3.3.4}%
+\contentsline {section}{\numberline {3.4}Análisis diferencial y seguridad cinemática}{29}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}El mapa cinemático como aplicación diferencial}{29}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Singularidades y el teorema de la función inversa}{30}{subsection.3.4.2}%
+\contentsline {chapter}{\numberline {4}Metodología}{33}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Caracterización y construcción del modelo URDF}{34}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Modelado matemático del espacio topológico ($T^n$)}{34}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Arquitectura y virtualización por contenedores}{35}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Implementación de algoritmos \enquote {caja blanca}}{35}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Protocolo de evaluación y métricas de desempeño}{36}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Cronograma de actividades}{36}{section.4.6}%
+\contentsline {chapter}{Referencias}{41}{chapter*.12}%

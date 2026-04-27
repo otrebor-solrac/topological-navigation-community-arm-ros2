@@ -1,0 +1,620 @@
+\documentclass[10pt, aspectratio=169]{beamer}
+
+% Temas y colores de Beamer
+\usetheme{Madrid}
+\usecolortheme{default}
+
+% --- METADATA DEL POWERPOINT ---
+
+% 1. Definición exacta de la paleta Hexadecimal de PowerPoint
+\definecolor{PPTNavy}{HTML}{0E2841}
+\definecolor{PPTLightBlue}{HTML}{0F9ED5}
+\definecolor{PPTSteel}{HTML}{245C4F}
+\definecolor{PPTOrange}{HTML}{BC945A}
+\definecolor{PPTGreen}{HTML}{245C4F}
+\definecolor{PPTGrey}{HTML}{7F7F7F} % Actualizado al Gris Pizarra real
+
+% 2. Asignación de esos colores a los elementos de Beamer
+\setbeamercolor{structure}{fg=PPTNavy} % Color general de viñetas, líneas y tablas
+\setbeamercolor{title}{fg=PPTSteel, bg=} % Color Teal del PPTX
+\setbeamercolor{subtitle}{fg=PPTOrange} % Color Naranja del PPTX
+\setbeamercolor{author}{fg=PPTGrey} % Color Gris para el autor
+\setbeamercolor{date}{fg=PPTSteel!70} % Corregido: usando el nombre PPTSteel
+\setbeamercolor{institute}{fg=black!70}
+\setbeamercolor{frametitle}{fg=PPTSteel, bg=} % Título de lámina en verde y fondo transparente
+\setbeamercolor{block title}{fg=white, bg=PPTSteel} % Título de cajas / bloques
+\setbeamercolor{block body}{fg=black, bg=PPTGrey!50} % Fondo de las cajas
+\setbeamercolor{alerted text}{fg=PPTOrange} % Texto de alerta o énfasis (\alert{texto})
+\setbeamercolor{section in toc}{fg=PPTSteel} % Texto del índice en verde
+\setbeamercolor{section in toc projected}{bg=PPTGrey, fg=white} % Bolas del índice en gris
+\setbeamercolor{item projected}{bg=PPTGrey, fg=white} % Forzar círculos enumerados a gris
+\setbeamercolor{itemize item}{fg=PPTGrey} % Viñetas normales en gris
+\setbeamercolor{itemize subitem}{fg=PPTGrey} % Viñetas secundarias en gris
+
+% Ajuste total del cintillo inferior (Mezcla de Gris Pizarra y Verde Esmeralda)
+\setbeamercolor{author in head/foot}{bg=PPTGrey, fg=white}    % Segmento izquierda (Gris)
+\setbeamercolor{title in head/foot}{bg=PPTSteel, fg=white}    % Segmento centro (Verde)
+\setbeamercolor{date in head/foot}{bg=PPTGrey, fg=white}      % Segmento derecha (Gris)
+\setbeamercolor{palette primary}{bg=PPTGrey, fg=white}
+\setbeamercolor{palette secondary}{bg=PPTSteel!85, fg=white}
+\setbeamercolor{palette tertiary}{bg=PPTSteel!70, fg=white}
+\setbeamercolor{section in head/foot}{bg=PPTSteel, fg=white}
+\setbeamercolor{subsection in head/foot}{bg=PPTSteel, fg=white}
+
+
+
+% Paquetes requeridos
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{helvet} % Tipografía Helvética (limpia y profesional)
+\renewcommand{\familydefault}{\sfdefault} % Aplicar sans-serif a todo el documento
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{csquotes}
+\usepackage{booktabs}
+\usepackage{multimedia} % Added for Option 2 video embedding test
+\usepackage[backend=biber,style=apa]{biblatex}
+
+% Ruta corregida apuntando a la carpeta Referencias
+\addbibresource{../Referencias/referencias.bib} 
+
+\usepackage{tikz}
+\usetikzlibrary{decorations.markings, arrows.meta}
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+
+% Información de la portada
+\title[Avances: Topología y Planificación]{\textbf{Modelado topológico y planificación de trayectorias en variedades toroidales}}
+\subtitle{\textbf{Un enfoque comparativo mediante algoritmos A* y RRT para el Brazo Robótico Comunitario}}
+\author[R. Vazquez]{\textbf{Roberto Carlos Vazquez Nava}}
+\institute[UnADM - TESH]{
+  Universidad Abierta y a Distancia de México (UnADM) \\
+  Tecnológico de Estudios Superiores de Huixquilucan (TESH) \\
+  \vspace{0.3cm}
+  {\small \textbf{Asesor Interno:} Dr. Hugo Alberto Flores Arguedas} \\
+  {\small \textbf{Asesor Externo:} Dr. Enrique García Trinidad}
+}
+\date{\today}
+
+\begin{document}
+
+% ---------------------------------------------------
+% Lámina 1: Portada
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Title_v1.jpg}}
+\begin{frame}
+    \vspace*{4.4cm}
+    {\centering
+    \usebeamerfont{title}\usebeamercolor[fg]{title}\inserttitle\par
+    \ifx\insertsubtitle\@empty\else
+      \vspace{0.1cm}
+      \usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par
+    \fi
+    \vspace{0.3cm}
+    {\usebeamerfont{author}\color{PPTGrey}\insertauthor\par}
+    \vspace{0.3cm}
+    {\scriptsize \color{PPTGrey}
+    \begin{tabular}{l}
+    \textbf{Asesor Interno:} Dr. Hugo Alberto Flores Arguedas --- UnADM\\
+    \textbf{Asesor Externo:} Dr. Enrique García Trinidad --- TESH
+    \end{tabular}
+    }
+    }
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 2: Índice
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}
+    \setbeamercolor{structure}{fg=PPTGrey} % Esto fuerza que las bolas/iconos sean grises
+    \vspace{1.2cm} % Lo bajamos más para que quede centrado en el espacio blanco
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Resumen e Índice}}
+    \vspace{0.1cm} % Reducido al mínimo para subir el contenido
+    \tableofcontents
+\end{frame}
+}
+
+
+
+
+% ---------------------------------------------------
+\section{Contexto y planteamiento}
+% Lámina 3: Contexto y motivación
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Contexto y motivación}} \par
+    \vspace{0.4cm}
+    \begin{itemize}
+        \item \textbf{Crisis tecnológica en México:} Dependencia de tecnología extranjera; solo el 7\% de la fuerza laboral posee competencias avanzadas \parencite{Solleiro2023}.
+        \item \textbf{Transformación de la industria:} Se requiere que el ingeniero comprenda de forma profunda la \textbf{interacción entre el software y el control físico}.
+        \item \textbf{Limitación educativa (TESH):} El uso de entornos cerrados (\enquote{caja negra}) impide que el estudiante comprenda de forma íntegra el funcionamiento del robot.
+        \item \textbf{La propuesta del Dr. Trinidad:} Desarrollo de tecnología propia para el TESH que permita un entendimiento total del sistema usando el \textit{Community Robot Arm}.
+    \end{itemize}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 4: Planteamiento del problema
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Planteamiento del problema}} \par
+    \vspace{0.4cm}
+    \begin{block}{La abstracción del movimiento}
+        El manipulador antropomórfico no se mueve en un plano infinito, sino en un \textbf{espacio de configuración con estructura toroidal ($T^n$)} \parencite{Munkres2000}. 
+    \end{block}
+    \vspace{0.3cm}
+    \textbf{Retos principales:}
+    \begin{enumerate}
+        \item Transformar esta geometría abstracta en un entorno de cálculo numérico \parencite{farber2008}.
+        \item Contrastar dos filosofías de exploración geométrica: 
+        \begin{itemize}
+            \item \textbf{A*:} Búsqueda del camino óptimo (más corto) en cuadrícula \parencite{Hart1968}.
+            \item \textbf{RRT:} Exploración rápida mediante muestreo de puntos aleatorios \parencite{LaValle1998}.
+        \end{itemize}
+        \item Carencia de un entorno de \textit{software caja blanca} para experimentar la viabilidad topológica de las trayectorias.
+    \end{enumerate}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 5: Pregunta de Investigación e Hipótesis
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Pregunta de investigación e hipótesis}} \par
+    \vspace{0.4cm}
+    \textbf{Pregunta de investigación:} \\
+    \textit{¿De qué manera es posible modelar el espacio de configuración mediante una variedad toroidal, integrando recubrimientos por bolas abiertas, para permitir el estudio comparativo de eficiencia entre los algoritmos A* y RRT?}
+    
+    \vspace{0.4cm}
+    \textbf{Hipótesis:} \\
+    La formalización toroidal y el modelado por bolas abiertas permitirán resolver la conectividad en el espacio libre. Se anticipa que:
+    \begin{itemize}
+        \item \textbf{A*:} Garantizará la trayectoria óptima respecto a la métrica seleccionada, siendo ideal para análisis de precisión.
+        \item \textbf{RRT:} Ofrecerá completitud probabilística y mayor eficiencia computacional en entornos de alta complejidad geométrica.
+    \end{itemize}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 6: Objetivos
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Objetivos del proyecto}} \par
+    \vspace{0.4cm}
+    \textbf{Objetivo General:} \\
+    Desarrollar una plataforma de planificación topológica para comparar algoritmos y fortalecer la enseñanza matemática en ingeniería.
+    
+    \vspace{0.3cm}
+    \textbf{Objetivos Específicos:}
+    \begin{enumerate}
+        \item \textbf{Modelar} analíticamente el subespacio libre $\mathcal{C}_{free}$ mediante la teoría de recubrimientos por bolas abiertas \parencite{coumar2025foam}.
+        \item \textbf{Implementar} A* y RRT en un paquete propio de ROS2, usando análisis diferencial para evadir inestabilidades topológicas \parencite{Mosquera2017}.
+        \item \textbf{Evaluar} convergencia utilizando métricas \textit{wrap-around} y visualizar en RViz2 \parencite{lynch2017modern}.
+    \end{enumerate}
+
+    \vspace{0.2cm}
+    {\scriptsize \color{PPTGrey} \textit{* \textbf{Wrap-around:} Propiedad que permite calcular distancias cruzando la frontera del espacio cíclico.}}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 7: Estado del Arte
+\section{Estado del arte}
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Estado del arte: Paradigmas y brecha tecnológica}} \par
+    \vspace{0.4cm}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{Evolución del paradigma}
+            \begin{itemize}
+                \item \small \textbf{Tradicional:} Nubes de puntos y mallas discretas (\textit{ceguera estructural}).
+                \item \small \textbf{Moderna:} Variedades topológicas ($T^n$) y geometrías convexas (\textit{Sphere World}) \parencite{radhakrishnan2024state}.
+                \item \small \textbf{Algoritmos:} Trade-off entre optimalidad ($A^*$) y velocidad ($RRT$) \parencite{belmont2026many}.
+            \end{itemize}
+        \end{column}
+        
+        \begin{column}{0.5\textwidth}
+            \textbf{La brecha de investigación}
+            \begin{itemize}
+                \item \small \alert{Vacío pedagógico:} Uso excesivo de \enquote{cajas negras} (MoveIt2) en hardware de bajo costo \parencite{semwal2024manipulator}.
+                \item \small \alert{Crisis de reproducibilidad:} Dependencias de software que expiran rápidamente.
+                \item \small \alert{Propuesta:} Un entorno de \enquote{caja blanca} con Docker y vinculación física real \parencite{cervera2023run}.
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    
+    \vspace{0.4cm}
+    \begin{block}{Oportunidad de la tesis}
+        Integrar el rigor matemático de las variedades toroidales en una plataforma educativa transparente y reproducible.
+    \end{block}
+\end{frame}
+
+
+% ---------------------------------------------------
+% Lámina 8: Avances - Robótica Topológica y el Toro
+
+
+\section{Avances teóricos}
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.1cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Robótica topológica y el toro $T^n$}} \par
+    \vspace{0.2cm}
+    \begin{columns}[T]
+        \column{0.55\textwidth}
+        \begin{itemize}
+            \item \textbf{Construcción:} El estado articular reside en el producto cartesiano de circunferencias ($S^1$).
+            \item \textbf{Compacidad:} Por el Teorema de Tíconov, la variedad garantiza que los algoritmos no diverjan.
+            \item \textbf{Topología cociente:} Identifica los bordes del espacio. El ángulo $359^\circ$ es continuo con el $1^\circ$.
+        \end{itemize}
+        
+        \vspace{0.1cm}
+        \begin{block}{Definición Topológica}
+            \small \centering $\mathbb{T}^n = \underbrace{S^1 \times S^1 \times \dots \times S^1}_{n} \cong \mathbb{R}^n / \mathbb{Z}^n$
+        \end{block}
+        
+        \vspace{0.1cm}
+        {\scriptsize \color{PPTGrey} \textit{* Una \textbf{Variedad} es un espacio que localmente parece plano, pero cuya estructura global se cierra sobre sí misma (como una dona o la Tierra).}}
+
+        
+        \column{0.45\textwidth}
+        \begin{center}
+            \includegraphics[width=0.65\textwidth]{figuras/c_space_3d.pdf}
+            
+            \vspace{0.05cm}
+            \textit{\tiny \textbf{Fig 1.} Modelado 3D del espacio de configuración.}
+        \end{center}
+    \end{columns}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 9: Visualización de Variedad Toroidal (Video)
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Visualización de variedad toroidal}} \par
+    \vspace{-0.1cm}
+    \begin{center}
+        \movie[width=0.7\textwidth,height=0.4\textwidth,showcontrols,autostart,loop]{}{figuras/Toro_Brazo.mp4}
+    \end{center}
+    
+    \vspace{-0.2cm}
+    {\footnotesize \color{PPTGrey} \textit{* Simulación visual del mapeo articular hacia la superficie del toro.}}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 10: Avances - Geometría y Recubrimientos
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.1cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Geometría y recubrimientos}} \par
+    \vspace{0.2cm}
+    \begin{columns}[T]
+        \column{0.55\textwidth}
+        \begin{itemize}
+            \item Transición de obstáculos en $\mathbb{R}^3$ a \enquote{agujeros} en el espacio de configuración ($\mathcal{C}_{obs}$ ) .
+            \item \textbf{Aproximación esférica:} Se reemplazan las cajas AABB de la ingeniería clásica por \textbf{uniones finitas de bolas abiertas}.
+            \item \textbf{Ventaja:} Optimiza el costo de consultas de distancia $L_2$ y garantiza consistencia topológica estricta.
+        \end{itemize}
+
+        \vspace{0.1cm}
+        \begin{block}{Recubrimiento Esférico}
+            \small \centering $\mathcal{C}_{obs} \approx \bigcup_{i=1}^{k} \mathcal{B}(c_i, r_i), \quad \mathcal{B} = \{ q \in \mathcal{C} \mid \|q - c_i\| < r_i \}$
+        \end{block}
+        
+        \column{0.45\textwidth}
+        \begin{center}
+            \resizebox{0.70\textwidth}{!}{\input{figuras/bolas_vs_aabb.tex}}
+            
+            \vspace{0.05cm}
+            \textit{\tiny \textbf{Fig 2.} Comparativa de Volúmenes: AABB vs. Ball Covering.}
+        \end{center}
+    \end{columns}
+    
+    \vspace{0.1cm}
+    {\scriptsize \color{PPTGrey} \textit{* Todo obstáculo se aproxima uniendo esferas. Para la PC, esquivar colisiones se simplifica a garantizar que la distancia del robot a cada centro siempre sea mayor al radio.}}
+\end{frame}
+}
+% ---------------------------------------------------
+% Lámina 11: Avance Teórico - Algoritmos y Discretización
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Algoritmos y discretización}} \par
+    \vspace{0.4cm}
+    \begin{itemize}
+        \item \textbf{Voxelización topológica:} Partición de la variedad continua $T^n$ en celdas discretas (Voxeles) para permitir la búsqueda numérica.
+        \item \textbf{Criterio métrico:} Análisis comparativo entre Manhattan ($L_1$) y Euclidiana ($L_2$) para guiar la búsqueda en la retícula toroidal \parencite{lavalle2006planning}.
+        \item \textbf{Estudio de algoritmos:} Evaluación comparativa entre métodos deterministas (A*) y estocásticos (RRT) sobre la variedad toroidal \parencite{choset2005principles}.
+        \item \textbf{Singularidades:} El \enquote{Gimbal-lock} se aborda como una inestabilidad topológica inevitable (Teorema de Farber) \parencite{Mosquera2017}.
+    \end{itemize}
+
+    \vspace{0.4cm}
+    \begin{block}{Comparativa de métricas de distancia}
+        \centering $L_1 = \sum_{i=1}^n |p_i - q_i| \quad \textbf{vs} \quad L_2 = \sqrt{\sum_{i=1}^n (p_i - q_i)^2}$
+    \end{block}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 12: Simulación C-Space Planificadores (Video)
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{A* y RRT en Espacios No Euclidianos}} \par
+    \vspace{-0.1cm}
+    \begin{center}
+        \movie[width=0.7\textwidth,height=0.4\textwidth,showcontrols,autostart,loop]{}{figuras/A_star-RRT.mp4}
+    \end{center}
+    
+    \vspace{-0.2cm}
+    {\footnotesize \color{PPTGrey} \textit{* Demostración conceptual algorítmica sobre métricas toroidales.}}
+\end{frame}
+}
+
+% ---------------------------------------------------
+\section{Avance técnico}
+% Lámina 13: Avance Técnico - Infraestructura en ROS2 y Docker
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Infraestructura en ROS2 y Docker}} \par
+    \vspace{0.4cm}
+    \begin{columns}[T]
+        \column{0.6\textwidth}
+        \begin{itemize}
+            \item \textbf{Entorno de Trabajo:} Despliegue de la infraestructura mediante contenedores Docker para reproducibilidad del sistema \parencite{macenski2022robot}.
+            \item \textbf{Integración del Hardware:} Importación del modelo físico (URDF y mallas) al ecosistema ROS2.
+            \item \textbf{Visualización (RViz2):} Interfaz lista para recibir tópicos (\texttt{joint\_states}) y validar geométricamente las trayectorias \parencite{rviz2_software}.
+        \end{itemize}
+        
+        \column{0.4\textwidth}
+        \begin{center}
+            \includegraphics[width=0.7\textwidth]{figuras/Robot-Arm.png} \\
+            \vspace{0.1cm}
+            \textit{\tiny Brazo Robótico Comunitario \parencite{community_robot_arm_20sffactory, grabcad_robot_arm_2026}}
+        \end{center}
+    \end{columns}
+\end{frame}
+}
+
+
+% ---------------------------------------------------
+\section{Conclusiones}
+% Lámina 14: Conclusiones Preliminares y Siguientes Pasos
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Conclusiones preliminares y próximos pasos}} \par
+    \vspace{0.4cm}
+    \begin{itemize}
+        \item \textbf{Conclusión preliminar:} La fundamentación topológica demuestra ser analíticamente superior al álgebra clásica, garantizando la continuidad del espacio y evitando falsas colisiones.
+        \item \textbf{Próximos pasos (Implementación ROS2):}
+        \begin{itemize}
+            \item \small \textbf{Variedad toroidal:} Lógica de "Gesto de Frontera" y funciones de métrica matemática en Python.
+            \item \small \textbf{Voxelización:} Mapeo de $\mathcal{C}_{free}$ mediante cinemática directa sobre el URDF.
+            \item \small \textbf{Navegación:} Desarrollo de A* y RRT para el análisis comparativo experimental.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 15: Referencias
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\setbeamertemplate{frametitle}{
+    \vspace*{1.2cm} % Mismo margen exacto que el resto de las láminas
+    \hspace*{1cm} {\Large \color{PPTSteel} \textbf{\insertframetitle}} \par
+}
+% Redefinimos el entorno de la bibliografía para empujar todo (bullets y texto) a la derecha
+\defbibenvironment{bibliography}
+  {\list{}
+     {\setlength{\leftmargin}{\bibhang}%
+      \addtolength{\leftmargin}{1.5cm} % Empuja el texto completo a la derecha
+      \setlength{\itemindent}{-\bibhang} % Mantiene la sangría francesa pero respecto a este nuevo margen
+      \setlength{\itemsep}{\bibitemsep}%
+      \setlength{\parsep}{\bibparsep}%
+     }
+  }
+  {\endlist}
+  {\item}
+\begin{frame}[allowframebreaks]
+    \frametitle{Referencias}
+    \vspace{0.2cm}
+    \printbibliography
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina 16: Cierre
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/End_thanks_v1.jpg}}
+\begin{frame}
+    \centering
+    \vspace{4.5cm} % Bajamos el texto para que quede debajo del logo de la imagen
+    {\Huge \color{PPTSteel} \textbf{¡Gracias por su atención!}} \\
+    \vspace{0.8cm}
+    {\Large \color{PPTGrey} ¿Preguntas?}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% LÁMINAS DE APOYO (ANEXOS)
+% ---------------------------------------------------
+
+% Lámina Anexo A: El motor de búsqueda A*
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Anexo: Funcionamiento intuitivo del A*}} \par
+    \vspace{0.3cm}
+    
+    \textbf{\color{PPTSteel} Analogía: El GPS calculador}
+    \begin{itemize}
+        \item A* divide el mundo en una cuadrícula. Revisa casilla por casilla para garantizar encontrar el camino más cortó.
+    \end{itemize}
+
+    \vspace{0.2cm}
+    \textbf{\color{PPTSteel} La matemática detrás ($f = g + h$)}
+    \begin{itemize}
+        \item \textbf{El Pasado ($g$):} Memoria de los pasos exactos que costó llegar al punto actual.
+        \item \textbf{La Intuición ($h$):} El cálculo en línea recta de cuánta distancia falta a la meta.
+        \item \textbf{El Veredicto ($f$):} La suma final. A* siempre avanza hacia la casilla más "barata".
+    \end{itemize}
+
+    \begin{block}{Conclusión}
+        Es \textbf{garantizadamente perfecto}, pero puede ser muy lento y consumir mucha memoria si el laberinto está dividido en millones de casillas.
+    \end{block}
+\end{frame}
+}
+
+% Lámina Anexo B: El motor de búsqueda RRT
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Anexo: Funcionamiento intuitivo del RRT}} \par
+    \vspace{0.3cm}
+    
+    \textbf{\color{PPTSteel} Analogía: Raíces explorando el subsuelo}
+    \begin{itemize}
+        \item El RRT es libre, no usa cuadrículas. Crece de forma orgánica tirando ramas al azar, priorizando explorar nuevos territorios a gran velocidad.
+    \end{itemize}
+
+    \vspace{0.2cm}
+    \textbf{\color{PPTSteel} El trío de búsqueda}
+    \begin{enumerate}
+        \item \textbf{El dardo:} Lanza un punto sorpresa ($q_{rand}$) completamente al azar en el mapa.
+        \item \textbf{El imán:} Localiza qué trozo del árbol existente quedó más cerca de ese dardo.
+        \item \textbf{El tallo:} Hace crecer una nueva distancia hacia el dardo, de la misma forma que una raíz crece hacia donde intuye humedad.
+    \end{enumerate}
+
+    \begin{block}{Conclusión}
+        Es \textbf{rápido} para resolver laberintos tridimensionales difíciles, aunque la ruta final puede ser más accidentada y no la más corta.
+    \end{block}
+\end{frame}
+}
+
+% Lámina Anexo B: Métricas de Distancia en el Toro
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Anexo: Métricas Manhattan vs Euclidiana}} \par
+    \vspace{0.4cm}
+    
+    \begin{columns}[T]
+        \column{0.5\textwidth}
+        \textbf{\color{PPTSteel} L1 (Manhattan)}
+        \begin{itemize}
+            \item \textbf{Cálculo:} Suma de diferencias absolutas. $|x_1 - x_2| + |y_1 - y_2|$.
+            \item \textbf{Ventaja:} Operación ultra-rápida (solo sumas).
+            \item \textbf{Visual:} Moverse en forma de escalera o "tablero de ajedrez".
+        \end{itemize}
+        
+        \column{0.5\textwidth}
+        \textbf{\color{PPTSteel} L2 (Euclidiana)}
+        \begin{itemize}
+            \item \textbf{Cálculo:} $\sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$.
+            \item \textbf{Ventaja:} Distancia geodésica real (línea recta).
+            \item \textbf{Desventaja:} Alto costo de cómputo por raíz cuadrada y potencias.
+        \end{itemize}
+    \end{columns}
+    \vspace{0.2cm}
+    \centering \textit{\scriptsize * En el Toro, ambas incluyen la lógica \textbf{wrap-around} para cruzar fronteras.}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina Extra: Cinemática (Apoyo Q&A)
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.1cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Anexo: Cinemática en brazo 3-GDL}} \par
+    \vspace{0.1cm}
+    
+    \begin{columns}[T]
+        \column{0.45\textwidth}
+        \textbf{\color{PPTSteel} Cinemática Directa (FK)} \\
+        \small ¿Dónde está la pinza dados los ángulos?
+        \vspace{0.05cm}
+        {\scriptsize
+        \begin{itemize}
+            \item Las variables articulares ($\theta_1, \theta_2, \theta_3$) y las longitudes ($L_1, L_2, L_3$) determinan la pose final trigonométricamente:
+            \item $x = L_1 \cos(\theta_1) + L_2 \cos(\theta_1{+}\theta_2) + L_3 \cos(\theta_1{+}\theta_2{+}\theta_3)$
+            \item $y = L_1 \sin(\theta_1) + L_2 \sin(\theta_1{+}\theta_2) + L_3 \sin(\theta_1{+}\theta_2{+}\theta_3)$
+            \item $\phi = \theta_1 + \theta_2 + \theta_3$
+        \end{itemize}
+        }
+        
+        \vspace{0.15cm}
+        \textbf{\color{PPTSteel} Cinemática Inversa (IK)} \\
+        \small Dada la meta $(x, y, \phi)$, hallar los $\theta_i$.
+        \vspace{0.05cm}
+        {\scriptsize
+        \begin{itemize}
+            \item Es un problema algebraico no lineal complejo.
+            \item \textbf{Analítico:} Soluciones mediante la Ley de Cosenos (genera ambigüedad codo-arriba/codo-abajo).
+            \item \textbf{En nuestro proyecto:} Solo aplicamos IK para el cálculo de la meta; la navegación en sí se deslinda de esta complejidad, resolviéndose puramente en el espacio $\mathcal{C}$ angular.
+        \end{itemize}
+        }
+        
+        \column{0.55\textwidth}
+        \begin{center}
+            \vspace{0.2cm}
+            \includegraphics[width=0.9\textwidth]{figuras/kinematics_3dof.pdf}
+            
+            \vspace{0.1cm}
+            \textit{\scriptsize \textbf{Fig.} Modelo Matemático de un brazo 3R plano.}
+        \end{center}
+    \end{columns}
+\end{frame}
+}
+
+% ---------------------------------------------------
+% Lámina Extra: Metodología y Cronograma (Apoyo)
+{
+\usebackgroundtemplate{\includegraphics[width=\paperwidth,height=\paperheight]{figuras/pptx_images/Information_1.jpg}}
+\begin{frame}[t]
+    \vspace{1.2cm}
+    \hspace{1cm} {\Large \color{PPTSteel} \textbf{Anexo: Metodología y cronograma}} \par
+    \vspace{0.4cm}
+    El proyecto contempla 5 fases (aprox. 500 horas de marzo a octubre 2026):
+    
+    \vspace{0.3cm}
+    \begin{enumerate}
+        \item \textbf{Fase 1: Fundamentación} $\checkmark$ (Protocolo y planteamiento)
+        \item \textbf{Fase 2: Modelado topológico} $\checkmark$ (Estado del arte y bases matemáticas)
+        \item \textbf{Fase 3: Desarrollo en Python / ROS2} $\rightarrow$ \textit{(En curso: Infraestructura Docker/ROS2 montada. Próximo paso: Algoritmos A* y RRT)}
+        \item \textbf{Fase 4: Experimentación y análisis estadístico}
+        \item \textbf{Fase 5: Consolidación y redacción final}
+    \end{enumerate}
+\end{frame}
+}
+
+\end{document}
