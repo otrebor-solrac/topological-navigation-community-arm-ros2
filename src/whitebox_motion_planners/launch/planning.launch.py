@@ -35,10 +35,28 @@ def generate_launch_description():
         output='screen',
         parameters=[config]
     )
+
+    # 4. Rosbridge Server (for the Web Dashboard)
+    rosbridge_node = Node(
+        package='rosbridge_server',
+        executable='rosbridge_websocket',
+        name='rosbridge_websocket',
+        output='screen',
+        parameters=[{'port': 9090}]
+    )
+
+    # 5. C-Space Voxelizer (for the Web Dashboard)
+    voxelizer_node = Node(
+        package='whitebox_motion_planners',
+        executable='voxelizer',
+        name='cspace_voxelizer',
+        output='screen',
+        parameters=[config]
+    )
     
-    # 4. Final Orchestration
+    # 6. Final Orchestration
     return LaunchDescription([
-        # 4.1 Robot Layer: Reuse the existing display launch for RViz and TF.
+        # 6.1 Robot Layer: Reuse the existing display launch for RViz and TF.
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(robot_launch_dir, 'display.launch.py')
@@ -47,6 +65,12 @@ def generate_launch_description():
             launch_arguments={'spherized': 'true'}.items()
         ),
         
-        # 4.2 Planning Layer: Launch the White-Box Planner agent with YAML params.
-        planner_node
+        # 6.2 Planning Layer: Launch the White-Box Planner agent with YAML params.
+        planner_node,
+
+        # 6.3 Communication Layer: Open WebSockets bridge.
+        rosbridge_node,
+
+        # 6.4 Visualization Layer: Calculate C-Space obstacles.
+        voxelizer_node
     ])

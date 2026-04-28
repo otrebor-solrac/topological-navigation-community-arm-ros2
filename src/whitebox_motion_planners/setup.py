@@ -26,7 +26,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'planificador = whitebox_motion_planners.ros2.planning_node:main'
+            'planificador = whitebox_motion_planners.ros2.planning_node:main',
+            'voxelizer = whitebox_motion_planners.ros2.cspace_publisher:main',
         ],
     },
+
 )

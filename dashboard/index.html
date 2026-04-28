@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>White-Box Dashboard | Topología T3</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
+    <style>
+        body { margin: 0; background: #010103; color: #00ff9d; font-family: 'Courier New', monospace; overflow: hidden; display: flex; }
+        
+        #canvas-container { flex-grow: 1; position: relative; height: 100vh; }
+        #sidebar { width: 320px; background: rgba(5, 5, 10, 0.98); border-left: 1px solid #333; padding: 20px; overflow-y: auto; }
+
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 10; pointer-events: none; }
+        .stat { margin-bottom: 8px; background: rgba(0, 255, 157, 0.05); padding: 8px 12px; border-left: 3px solid #00ff9d; font-size: 0.9em; }
+        
+        #btn-container { position: absolute; top: 20px; right: 20px; z-index: 100; }
+        button { 
+            background: #111; color: #ffff00; border: 2px solid #ffff00; 
+            padding: 10px 20px; cursor: pointer; font-family: monospace; font-weight: bold;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.1);
+        }
+        button:hover { background: #ffff00; color: #000; }
+
+        .axis-label { position: absolute; font-weight: bold; font-size: 1.1em; pointer-events: none; text-shadow: 2px 2px 4px #000; }
+        #label-th1 { color: #ff5555; }
+        #label-th2 { color: #55ff55; }
+        #label-th3 { color: #5555ff; }
+
+        h3 { color: #fff; border-bottom: 1px solid #00ff9d; padding-bottom: 5px; margin-top: 0; font-size: 1.1em; letter-spacing: 1px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; color: #ccc; margin-top: 10px; }
+        th { text-align: left; color: #00ff9d; padding: 10px 5px; border-bottom: 1px solid #333; }
+        td { padding: 8px 5px; border-bottom: 1px solid #1a1a1a; }
+        .current-row td { color: #ffff00; font-weight: bold; background: rgba(255, 255, 0, 0.05); }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div id="ui">
+            <h2 style="margin: 0; color: #fff; letter-spacing: 2px;">T³ MANIFOLD VISUALIZER</h2>
+            <div id="connection" class="stat" style="color: #ff4d4d; border-color: #ff4d4d;">ROS: DISCONNECTED</div>
+        </div>
+
+        <div id="btn-container">
+            <button onclick="clearTrajectory()">CLEAR PATH</button>
+        </div>
+
+        <div id="label-th1" class="axis-label">revolute_1_0</div>
+        <div id="label-th2" class="axis-label">revolute_9_0</div>
+        <div id="label-th3" class="axis-label">revolute_10_0</div>
+    </div>
+
+    <div id="sidebar">
+        <h3>TRACEABILITY</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>θ₁</th>
+                    <th>θ₉</th>
+                    <th>θ₁₀</th>
+                </tr>
+            </thead>
+            <tbody id="trace-table"></tbody>
+        </table>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
