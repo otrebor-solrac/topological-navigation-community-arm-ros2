@@ -13,9 +13,10 @@ RUN apt-get update && apt-get install -y \
     ros-humble-xacro \
     ros-humble-robot-state-publisher \
     ros-humble-joint-state-publisher-gui \
+    ros-humble-rosbridge-suite \
     git \
     python3-pip \
-    && pip3 install pudb \
+    && pip3 install pudb flask \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up workspace directory

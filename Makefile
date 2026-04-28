@@ -1,6 +1,7 @@
 # --- Configurations ---
 CONTAINER_NAME = ros2_thesis_env
 WS_PATH = /home/ros_ws
+# Solo compilamos los paquetes críticos del robot y el planificador
 PKGS = community_robot_arm whitebox_motion_planners
 
 # --- Default Goal ---
@@ -8,13 +9,14 @@ PKGS = community_robot_arm whitebox_motion_planners
 
 # --- Targets ---
 
-.PHONY: build run shell debug-env clean help
+.PHONY: build run restart shell debug-env clean help
 
 help:
 	@echo "🦾 White-Box Motion Planning - Command Center"
 	@echo "--------------------------------------------"
 	@echo "make build     - Compile the ROS 2 packages"
 	@echo "make run       - Build and launch the full project (Master Launch)"
+	@echo "make restart   - Quick restart of all Docker containers"
 	@echo "make shell     - Open an interactive terminal inside the Docker container"
 	@echo "make debug-env - Launch ONLY the robot and RViz (ready for manual planner debug)"
 	@echo "make clean     - Delete build, install, and log directories"
@@ -22,12 +24,16 @@ help:
 
 # 1. Compile the project
 build:
-	docker compose up -d
+	docker compose up -d --build
 	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && colcon build --symlink-install --packages-select $(PKGS)"
 
 # 2. Build and Launch everything
 run: build
 	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && source install/setup.bash && ros2 launch whitebox_motion_planners planning.launch.py"
+
+# 3. Quick restart
+restart:
+	docker compose down && docker compose up -d
 
 # 3. Enter the container shell
 shell:
