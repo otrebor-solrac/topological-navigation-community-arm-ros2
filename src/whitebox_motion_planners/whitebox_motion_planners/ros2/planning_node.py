@@ -26,6 +26,7 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('link_radius', 0.04)
         self.declare_parameter('planner_type', 'astar')
         self.declare_parameter('heuristic_type', 'L2')
+        self.declare_parameter('use_horizontal_constraint', False)
         
         # Internal State
         self.is_animating = False
@@ -36,10 +37,12 @@ class TopologicalPlannerNode(Node):
         self.final_planned_q = None     # Holds final position after animation
 
         # 2. Mathematical Components (White-Box)
-        self.kinematics = CommunityArmKinematics()
+        use_horizontal = self.get_parameter('use_horizontal_constraint').value
+        self.kinematics = CommunityArmKinematics(use_horizontal_constraint=use_horizontal)
+        
         self.grid = GridDiscretizer(
             step_size_deg=self.get_parameter('step_size_deg').value,
-            num_dof=3
+            num_dof=self.kinematics.get_dof()
         )
         self.collider = FoamCollider(
             link_radius=self.get_parameter('link_radius').value
@@ -128,7 +131,12 @@ class TopologicalPlannerNode(Node):
             # Check if any of the 3 master joints changed significantly in the GUI
             # (threshold of 0.01 rad to ignore noise)
             master_indices = []
-            for name in ['revolute_1_0', 'revolute_9_0', 'revolute_10_0']:
+            master_names = (
+                ['revolute_1_0', 'revolute_9_0'] 
+                if self.kinematics.use_horizontal_constraint 
+                else ['revolute_1_0', 'revolute_9_0', 'revolute_10_0']
+            )
+            for name in master_names:
                 if name in msg.name:
                     master_indices.append(list(msg.name).index(name))
             
@@ -157,7 +165,6 @@ class TopologicalPlannerNode(Node):
                 self.joint_pub.publish(msg)
 
     def click_callback(self, msg: PointStamped):
-        import pudb; pudb.set_trace()
         """
         Triggered when the user clicks in RViz2 with the 'Publish Point' tool.
         The click coordinates are ignored; the click itself is the trigger.
@@ -208,20 +215,27 @@ class TopologicalPlannerNode(Node):
         # Clear previous final position so we plan from actual GUI state
         self.final_planned_q = None
 
-        # Read only the 3 joints we care about from current state
+        # Read only the master joints we care about
         if self.master_joint_names and self.current_q:
             joint_map = dict(zip(self.master_joint_names, self.current_q))
-            start_q = (
-                joint_map.get('revolute_1_0', 0.0),
-                joint_map.get('revolute_9_0', 0.0),
-                joint_map.get('revolute_10_0', 0.0)
-            )
+            if self.kinematics.use_horizontal_constraint:
+                start_q = (
+                    joint_map.get('revolute_1_0', 0.0),
+                    joint_map.get('revolute_9_0', 0.0)
+                )
+            else:
+                start_q = (
+                    joint_map.get('revolute_1_0', 0.0),
+                    joint_map.get('revolute_9_0', 0.0),
+                    joint_map.get('revolute_10_0', 0.0)
+                )
         else:
-            start_q = self.current_q[:3] if self.current_q else (0.0, 0.0, 0.0)
+            dof = self.kinematics.get_dof()
+            start_q = self.current_q[:dof] if self.current_q else tuple([0.0]*dof)
 
-        # Read goal from ROS parameter (3 DOF)
+        # Read goal from ROS parameter
         goal_list = self.get_parameter('goal').get_parameter_value().double_array_value
-        goal_q = tuple(goal_list[:3])
+        goal_q = tuple(goal_list[:self.kinematics.get_dof()])
 
         self.get_logger().info(f"Point A (current): {tuple(round(x, 3) for x in start_q)}")
         self.get_logger().info(f"Point B (goal):    {tuple(round(x, 3) for x in goal_q)}")
@@ -244,14 +258,14 @@ class TopologicalPlannerNode(Node):
         return (True, msg)
 
 
-    def _build_full_msg(self, q_3dof: tuple) -> JointState:
+    def _build_full_msg(self, q_planned: tuple) -> JointState:
         """
         Takes the last full GUI message (all XX joints) and overrides
         only the 3 master joints with the planned values.
         This ensures parallelogram_kinematics.py receives ALL joint data.
 
         Args:
-            q_3dof (tuple): The planned 3 DOF configuration.
+            q_planned (tuple): The planned configuration (2-DOF or 3-DOF).
 
         Returns:
             JointState: The full joint state message.
@@ -265,15 +279,20 @@ class TopologicalPlannerNode(Node):
             names = list(self.last_gui_msg.name)
             positions = list(self.last_gui_msg.position)
 
-            # Override only the 3 master joints with normalized angles (-pi to pi)
+            # Reconstruct full 3D master configuration if constrained
+            if self.kinematics.use_horizontal_constraint:
+                q_full = (q_planned[0], q_planned[1], 0.0)
+            else:
+                q_full = q_planned
+
+            # Override master joints
             master_map = {
-                'revolute_1_0': q_3dof[0],
-                'revolute_9_0': q_3dof[1],
-                'revolute_10_0': q_3dof[2],
+                'revolute_1_0': q_full[0],
+                'revolute_9_0': q_full[1],
+                'revolute_10_0': q_full[2],
             }
             for i, name in enumerate(names):
                 if name in master_map:
-                    # Normalize to [-pi, pi]
                     val = master_map[name]
                     normalized_val = (val + math.pi) % (2 * math.pi) - math.pi
                     positions[i] = float(normalized_val)

@@ -20,36 +20,38 @@ class CommunityArmKinematics(BaseKinematics):
     LOWER_SHANK = 0.140   # Lower shank length (140mm)
     UPPER_SHANK = 0.140   # Upper shank length (140mm)
 
-    def __init__(self):
-        pass
+    def __init__(self, use_horizontal_constraint: bool = False):
+        self.use_horizontal_constraint = use_horizontal_constraint
 
     def get_dof(self) -> int:
         """
         Returns the number of independent Degrees of Freedom (DOF).
 
-        The Community Arm is treated as a 3-DOF system (T^3) because it has
-        three master joints that define its configuration:
-
+        The Community Arm is normally treated as a 3-DOF system (T^3):
         1. Base Rotation (revolute_1_0)
         2. Shoulder Pitch (revolute_9_0)
         3. Elbow/Lever Pitch (revolute_10_0)
         
-        All other moving joints are kinematically dependent on these three
-        via the parallelogram linkage logic.
+        If use_horizontal_constraint is True, the Elbow (q3) becomes dependent 
+        on the Shoulder (q2), reducing the planning space to 2-DOF.
         """
-        return 3
+        return 2 if self.use_horizontal_constraint else 3
 
     def compute_forward_kinematics(self, q: tuple) -> List[np.ndarray]:
         """
-        Computes joint positions in R^3 for the 3-DOF serial approximation.
+        Computes joint positions in R^3 for the serial approximation.
 
         Args:
-            q: Tuple of 3 joint angles (q1, q2, q3) in radians.
+            q: Tuple of joint angles. (q1, q2) if horizontal, (q1, q2, q3) otherwise.
 
         Returns:
             List of 4 position vectors [p_base, p_shoulder, p_elbow, p_end].
         """
-        q1, q2, q3 = q
+        if self.use_horizontal_constraint:
+            q1, q2 = q
+            q3 = 0.0  # Parallelogram keeps it horizontal if lever is at 0
+        else:
+            q1, q2, q3 = q
         c1, s1 = np.cos(q1), np.sin(q1)
         c2, s2 = np.cos(q2), np.sin(q2)
         c23, s23 = np.cos(q2 + q3), np.sin(q2 + q3)
