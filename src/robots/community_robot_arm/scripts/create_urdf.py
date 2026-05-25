@@ -18,16 +18,16 @@ class URDFMigrationTool:
         
         # Rutas dinámicas basadas en la ubicación del script
         self.script_dir = Path(__file__).resolve().parent
-        self.ws_dir = self.script_dir.parents[3] # /home/rc/workspace/ROS2
-        
         self.pkg_dir = self.script_dir.parent    # .../community_robot_arm
-        self.dst_urdf_dir = self.pkg_dir / "urdf"
+        
+        # La salida va a urdf/raw/
+        self.dst_urdf_dir = self.pkg_dir / "urdf" / "raw"
         self.dst_mesh_dir = self.pkg_dir / "meshes"
 
-        # Ruta del exportador original (Onshape)
-        self.onshape_dir = self.ws_dir / "robot-test/complete_robotic_arm_assembly_with_dual_manipulator_140mm_shank"
+        # Ruta del exportador original (ahora en oneshape-robot/robot)
+        self.onshape_dir = self.pkg_dir / "oneshape-robot" / "robot"
         self.src_meshes = self.onshape_dir / "meshes"
-        self.src_urdf = self.onshape_dir / "urdf/complete_robotic_arm_assembly_with_dual_manipulator_140mm_shank.urdf"
+        self.src_urdf = self.onshape_dir / "urdf" / "complete_robotic_arm_assembly_with_dual_manipulator_140mm_shank.urdf"
         
         # Filtros y Juntas
         self.hardware_keywords = ['NEMA', 'GT2']

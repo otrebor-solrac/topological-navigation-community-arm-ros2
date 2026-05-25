@@ -68,8 +68,8 @@ class RRTPlanner(BasePlanner):
         Returns a list of radian tuples representing the path.
         """
         # Convert grid indices to continuous radians for RRT
-        start_rad = self.space.to_radians(start_q)
-        goal_rad = self.space.to_radians(goal_q)
+        start_rad = self.space.get_radians(start_q)
+        goal_rad = self.space.get_radians(goal_q)
 
         # Initialize tree with start node
         self.nodes = [start_rad]

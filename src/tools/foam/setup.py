@@ -1,4 +1,4 @@
 from setuptools import setup
 
 if __name__ == "__main__":
-    setup(package_data = {'foam': ['external/*', 'external/spheretree/*']}, )
+    setup(package_data = {'foam': ['makeTreeMedial']}, )
