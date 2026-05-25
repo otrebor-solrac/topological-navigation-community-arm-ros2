@@ -6,10 +6,10 @@ source /opt/ros/humble/setup.bash
 
 # === 2. Build the Workspace (Only if needed) ===
 # This ensures that your custom packages are compiled on startup.
-if [ ! -d "build" ]; then
-    echo "🔨 Initial build of the workspace..."
-    colcon build --symlink-install
-fi
+# if [ ! -d "build" ]; then
+#     echo "🔨 Initial build of the workspace..."
+#     colcon build --symlink-install
+# fi
 
 # === 3. Source Local Workspace (Overlay) ===
 if [ -f "install/setup.bash" ]; then

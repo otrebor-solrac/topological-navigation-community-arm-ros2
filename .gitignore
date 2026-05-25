@@ -18,3 +18,12 @@ __pycache__/
 .ipynb_checkpoints/
 # Temporary/Private packages
 src/topological_motion_planners/
+Tesis/
+
+# Tesis y archivos personales
+Tesis/
+robot-test/
+
+# CAD y archivos temporales
+src/robots/community_robot_arm/oneshape-robot/
+src/tools/foam/foam/*.stl
