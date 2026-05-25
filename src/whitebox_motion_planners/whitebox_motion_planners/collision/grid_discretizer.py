@@ -1,4 +1,5 @@
 import math
+import itertools
 from typing import List
 from ..spaces.topological_math import TorusTopology
 
@@ -18,6 +19,7 @@ class GridDiscretizer:
 
         self.step_rad = math.radians(step_size_deg)
         self.num_dof = num_dof
+        self.steps_per_circle = int(round(2 * math.pi / self.step_rad))
 
     def discretize(self, q_continuous: tuple) -> tuple:
         """ 
@@ -34,11 +36,11 @@ class GridDiscretizer:
         for ang_rad in q_continuous:
             norm_ang = TorusTopology.normalize_angle(ang_rad)
             idx = int(round(norm_ang / self.step_rad))
-            indices.append(idx)
+            indices.append(idx % self.steps_per_circle)
 
         return tuple(indices)
 
-    def to_radians(self, q_indices: tuple) -> tuple:
+    def get_radians(self, q_indices: tuple) -> tuple:
         """
         Maps integer grid indices back to continuous radians.
 
@@ -68,13 +70,21 @@ class GridDiscretizer:
         """
         
         neighbors = []
-        # Calculate number of steps in a full 2pi circle
-        steps_per_circle = int(round(2 * math.pi / self.step_rad))
-        
         for i in range(self.num_dof):
             for direction in [-1, 1]:
                 neighbor = list(q_indices)
-                neighbor[i] = (neighbor[i] + direction) % steps_per_circle
+                neighbor[i] = (neighbor[i] + direction) % self.steps_per_circle
                 neighbors.append(tuple(neighbor))
                 
         return neighbors
+
+    def get_all_states(self) -> List[tuple]:
+        """
+        Generates all possible discrete states in the T^n grid.
+        WARNING: Grows exponentially with num_dof.
+        
+        Returns:
+            List of tuples of all possible integer grid indices.
+        """
+        ranges = [range(self.steps_per_circle) for _ in range(self.num_dof)]
+        return list(itertools.product(*ranges))

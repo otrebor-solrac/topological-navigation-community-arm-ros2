@@ -16,6 +16,7 @@ WORKDIR /build
 COPY . .
 
 # 1. Compilamos los binarios de C++
+# El CMakeLists.txt automáticamente copia los binarios a foam/external/ tras el build
 RUN cmake -Bbuild -GNinja . && \
     cmake --build build/
 
@@ -41,6 +42,7 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels /wheels/*.whl && 
     rm -rf /wheels
 
 # Copiamos el paquete foam y los scripts
+# Aseguramos que foam/external contenga los binarios copiados por CMake
 COPY --from=builder /build/foam ./foam
 COPY --from=builder /build/scripts ./scripts
 COPY --from=builder /build/setup.py .
@@ -48,6 +50,10 @@ COPY --from=builder /build/pyproject.toml .
 
 # Instalamos el paquete foam localmente
 RUN pip install --no-cache-dir .
+
+# CORRECCIÓN: Los binarios compilados por CMake están en ./foam/external/
+# pero el código de Python los busca en site-packages/foam/external/
+RUN cp foam/external/* /usr/local/lib/python3.11/site-packages/foam/external/
 
 # Definimos el punto de entrada
 ENTRYPOINT ["python3", "scripts/generate_sphere_urdf.py"]

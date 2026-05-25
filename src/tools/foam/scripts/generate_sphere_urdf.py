@@ -35,6 +35,7 @@ def main(
         simplification_ratio: float = 0.2,
         threads: int = 16,
         shrinkage: float = 1.,
+        ros_package: str = None,
         **kwargs: float
     ):
 
@@ -136,6 +137,24 @@ def main(
         }
 
     set_urdf_spheres(urdf, mesh_spheres | primitive_spheres)
+
+    # ROS 2 Path correction for visual meshes
+    if ros_package:
+        print(f"Applying ROS 2 path correction for package: {ros_package}")
+        for link in urdf['robot']['link']:
+            if 'visual' in link:
+                visuals = link['visual']
+                if not isinstance(visuals, list):
+                    visuals = [visuals]
+                
+                for visual in visuals:
+                    if 'geometry' in visual and 'mesh' in visual['geometry']:
+                        mesh = visual['geometry']['mesh']
+                        filename = mesh['@filename']
+                        # Remove relative paths and prepend package://
+                        basename = Path(filename).name
+                        mesh['@filename'] = f"package://{ros_package}/meshes/{basename}"
+
     save_urdf(urdf, Path(output))
 
 

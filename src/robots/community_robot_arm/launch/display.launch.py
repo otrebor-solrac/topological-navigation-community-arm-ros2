@@ -12,15 +12,15 @@ def launch_setup(context, *args, **kwargs):
     use_spherized = LaunchConfiguration('spherized').perform(context).lower() == 'true'
     
     if use_spherized:
-        urdf_file = os.path.join(pkg_share, 'urdf', 'community_robot_arm_slim_spherized_ROS2.urdf')
+        urdf_file = os.path.join(pkg_share, 'urdf', 'spherized', 'community_robot_arm_slim_spherized-v2.urdf')
         print("LOADING SPHERIZED MODEL (ROS 2 COMPATIBLE)...")
     else:
-        urdf_file = os.path.join(pkg_share, 'urdf', 'community_robot_arm_slim.urdf')
+        urdf_file = os.path.join(pkg_share, 'urdf', 'raw', 'community_robot_arm_slim.urdf')
         print("LOADING NORMAL MODEL...")
 
     if not os.path.exists(urdf_file):
         # Fallback al full si el slim no existe
-        urdf_file = os.path.join(pkg_share, 'urdf', 'community_robot_arm_full.urdf')
+        urdf_file = os.path.join(pkg_share, 'urdf', 'raw', 'community_robot_arm_full.urdf')
 
     with open(urdf_file, 'r') as infp:
         robot_desc = infp.read()

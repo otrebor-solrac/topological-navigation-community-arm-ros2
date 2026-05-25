@@ -46,6 +46,39 @@ make clean
 
 ---
 
+## 🏗️ Robot Asset Pipeline
+
+If you need to update the robot model from Onshape or regenerate the collision geometry, follow this pipeline:
+
+### 1. Onshape Migration
+The robot model is exported from Onshape in URDF format and stored in `src/robots/community_robot_arm/oneshape-robot/`. Use the professional migration tool to clean and optimize the model:
+
+```bash
+# Generates a cleaned, optimized SLIM model for planning
+python3 src/robots/community_robot_arm/scripts/create_urdf.py --mode slim
+```
+**Features:** Semantic mesh renaming, automatic binary STL conversion, and hardware filtering (removing motors/bolts).
+
+### 2. FOAM Spherization (Collision Approximation)
+To generate the "White-Box" collision balls used by the planner, you must process the URDF through the FOAM tool:
+
+1. **Prepare for FOAM:**
+   ```bash
+   python3 src/robots/community_robot_arm/scripts/add_collisions.py \
+       src/robots/community_robot_arm/urdf/raw/community_robot_arm_slim.urdf \
+       src/robots/community_robot_arm/urdf/processed/community_robot_arm_with_collisions.urdf
+   ```
+2. **Run Spherization:**
+   ```bash
+   docker run -it --rm -v "$(pwd)/src/robots/community_robot_arm:/robot_ws" foam-light \
+       --filename /robot_ws/urdf/processed/community_robot_arm_with_collisions.urdf \
+       --output /robot_ws/urdf/spherized/community_robot_arm_slim_spherized_v2.urdf
+   ```
+
+For more details on the spherization process, see the [FOAM Workflow README](src/tools/foam/README_WORKFLOW.md).
+
+---
+
 ## 📺 White-Box Dashboard
 
 Once the system is running (`make run`), you can access the topological monitor at:

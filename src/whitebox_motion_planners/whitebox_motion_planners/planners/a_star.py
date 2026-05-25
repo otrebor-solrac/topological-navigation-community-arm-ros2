@@ -32,10 +32,10 @@ class AStarPlanner(BasePlanner):
         g_score = {start_q: 0.0}
         
         # Pre-convert goal to radians for heuristic calculations
-        goal_rad = self.space.to_radians(goal_q)
+        goal_rad = self.space.get_radians(goal_q)
         goal_array = np.array(goal_rad)
         
-        start_rad = self.space.to_radians(start_q)
+        start_rad = self.space.get_radians(start_q)
         start_array = np.array(start_rad)
         
         f_score = {start_q: self.heuristic(start_array, goal_array)}
@@ -47,17 +47,17 @@ class AStarPlanner(BasePlanner):
             if current_q == goal_q:
                 # Return the path converted to radians
                 indices_path = self._reconstruct_path(came_from, current_q)
-                return [self.space.to_radians(idx) for idx in indices_path]
+                return [self.space.get_radians(idx) for idx in indices_path]
                 
             closed_set.add(current_q)
-            current_rad = self.space.to_radians(current_q)
+            current_rad = self.space.get_radians(current_q)
             current_array = np.array(current_rad)
             
             for neighbor_q in self.space.get_neighbors(current_q):
                 if neighbor_q in closed_set:
                     continue
                     
-                neighbor_rad = self.space.to_radians(neighbor_q)
+                neighbor_rad = self.space.get_radians(neighbor_q)
                 neighbor_array = np.array(neighbor_rad)
 
                 if not self.collider.is_state_valid(neighbor_rad, self.kinematics):
