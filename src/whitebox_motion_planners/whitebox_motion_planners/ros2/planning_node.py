@@ -229,9 +229,9 @@ class TopologicalPlannerNode(Node):
             # (threshold of 0.01 rad to ignore noise)
             master_indices = []
             master_names = (
-                ['revolute_1_0', 'revolute_9_0'] 
+                ['base_yaw_joint', 'shoulder_pitch_joint'] 
                 if getattr(self.kinematics, 'use_horizontal_constraint', False) 
-                else ['revolute_1_0', 'revolute_9_0', 'revolute_10_0']
+                else ['base_yaw_joint', 'shoulder_pitch_joint', 'elbow_pitch_joint']
             )
             for name in master_names:
                 if name in msg.name:
@@ -396,14 +396,14 @@ class TopologicalPlannerNode(Node):
                 joint_map = dict(zip(self.master_joint_names, self.current_q))
                 if getattr(self.kinematics, 'use_horizontal_constraint', False):
                     start_q = (
-                        joint_map.get('revolute_1_0', 0.0),
-                        joint_map.get('revolute_9_0', 0.0)
+                        joint_map.get('base_yaw_joint', 0.0),
+                        joint_map.get('shoulder_pitch_joint', 0.0)
                     )
                 else:
                     start_q = (
-                        joint_map.get('revolute_1_0', 0.0),
-                        joint_map.get('revolute_9_0', 0.0),
-                        joint_map.get('revolute_10_0', 0.0)
+                        joint_map.get('base_yaw_joint', 0.0),
+                        joint_map.get('shoulder_pitch_joint', 0.0),
+                        joint_map.get('elbow_pitch_joint', 0.0)
                     )
             else:
                 dof = self.kinematics.get_dof()
@@ -466,9 +466,9 @@ class TopologicalPlannerNode(Node):
 
             # Override master joints
             master_map = {
-                'revolute_1_0': q_full[0],
-                'revolute_9_0': q_full[1],
-                'revolute_10_0': q_full[2],
+                'base_yaw_joint': q_full[0],
+                'shoulder_pitch_joint': q_full[1],
+                'elbow_pitch_joint': q_full[2],
             }
             for i, name in enumerate(names):
                 if name in master_map:
@@ -480,7 +480,7 @@ class TopologicalPlannerNode(Node):
             msg.position = positions
         else:
             # Fallback if no GUI message received yet
-            msg.name = ['revolute_1_0', 'revolute_9_0', 'revolute_10_0']
+            msg.name = ['base_yaw_joint', 'shoulder_pitch_joint', 'elbow_pitch_joint']
             msg.position = [float(val) for val in q_3dof[:3]]
 
         msg.velocity = [0.0] * len(msg.name)

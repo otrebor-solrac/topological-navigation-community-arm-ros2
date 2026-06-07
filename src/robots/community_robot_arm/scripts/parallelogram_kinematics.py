@@ -26,9 +26,9 @@ class ParallelogramKinematics(Node):
         joints = dict(zip(msg.name, msg.position))
         
         # 1. Definimos los Motores Principales (Maestros)
-        q1 = joints.get('revolute_1_0', 0.0)
-        q2 = joints.get('revolute_9_0', 0.0)   # Motor 2 (Lower Shank)
-        q3 = joints.get('revolute_10_0', 0.0)  # Motor 3 (Lever / Palanca)
+        q1 = joints.get('base_yaw_joint', 0.0)
+        q2 = joints.get('shoulder_pitch_joint', 0.0)   # Motor 2 (Lower Shank)
+        q3 = joints.get('elbow_pitch_joint', 0.0)  # Motor 3 (Lever / Palanca)
         
         # 2. Resolvemos el Paralelogramo (Articulaciones dependientes)
         joints['revolute_16_0'] = -q3 - q2

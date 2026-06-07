@@ -149,9 +149,9 @@ class UrdfCollisionParser:
     def compute_transforms(self, q1: float, q2: float, q3: float) -> Dict[str, np.ndarray]:
         # Solve parallelogram kinematic coupling
         joint_angles = {
-            'revolute_1_0': q1,
-            'revolute_9_0': q2,
-            'revolute_10_0': q3,
+            'base_yaw_joint': q1,
+            'shoulder_pitch_joint': q2,
+            'elbow_pitch_joint': q3,
             'revolute_16_0': -q3 - q2,
             'revolute_12_0': q2 + q3,
             'revolute_32_0': q2,

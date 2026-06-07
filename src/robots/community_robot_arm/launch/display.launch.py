@@ -67,9 +67,9 @@ def _get_zeros_params(pkg_share_wb):
                 start = [float(x) * math.pi / 180.0 for x in start]
             
             return {
-                'zeros.revolute_1_0': float(start[0]),
-                'zeros.revolute_9_0': float(start[1]),
-                'zeros.revolute_10_0': float(start[2]),
+                'zeros.base_yaw_joint': float(start[0]),
+                'zeros.shoulder_pitch_joint': float(start[1]),
+                'zeros.elbow_pitch_joint': float(start[2]),
             }
     except Exception as e:
         print(f"Could not load start zeros from YAML: {e}")

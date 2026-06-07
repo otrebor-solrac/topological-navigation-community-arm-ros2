@@ -7,9 +7,9 @@ class CommunityArmKinematics(BaseKinematics):
     Forward Kinematics for the Community Robot Arm (T^3).
 
     Simplified 3-DOF serial model:
-        q1 = revolute_1_0  → Base rotation (yaw, around Z)
-        q2 = revolute_9_0  → Shoulder (lower shank pitch)
-        q3 = revolute_10_0 → Elbow (lever/palanca pitch)
+        q1 = base_yaw_joint  → Base rotation (yaw, around Z)
+        q2 = shoulder_pitch_joint  → Shoulder (lower shank pitch)
+        q3 = elbow_pitch_joint → Elbow (lever/palanca pitch)
 
     Link lengths are approximate values derived from the URDF geometry.
     These will be refined once precise DH parameters are extracted.
@@ -28,9 +28,9 @@ class CommunityArmKinematics(BaseKinematics):
         Returns the number of independent Degrees of Freedom (DOF).
 
         The Community Arm is normally treated as a 3-DOF system (T^3):
-        1. Base Rotation (revolute_1_0)
-        2. Shoulder Pitch (revolute_9_0)
-        3. Elbow/Lever Pitch (revolute_10_0)
+        1. Base Rotation (base_yaw_joint)
+        2. Shoulder Pitch (shoulder_pitch_joint)
+        3. Elbow/Lever Pitch (elbow_pitch_joint)
         
         If use_horizontal_constraint is True, the Elbow (q3) becomes dependent 
         on the Shoulder (q2), reducing the planning space to 2-DOF.
