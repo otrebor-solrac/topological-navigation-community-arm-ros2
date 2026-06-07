@@ -7,6 +7,7 @@ services:
       - ./src:/home/ros_ws/src
       - ./simulation_entrypoint.sh:/home/ros_ws/simulation_entrypoint.sh
       - ./dashboard:/home/ros_ws/dashboard # Compartir la carpeta de la web
+      - ./cspace_cache:/home/ros_ws/cspace_cache
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - $HOME/.Xauthority:/root/.Xauthority:rw
     environment:
