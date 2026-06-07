@@ -1,6 +1,5 @@
 services:
   ros2_dev:
-    # 1. BUILD & IDENTITY
     build: .
     container_name: ros2_thesis_env
     volumes:
@@ -13,18 +12,9 @@ services:
       - DISPLAY=${DISPLAY}
       - QT_X11_NO_MITSHM=1
       - XAUTHORITY=/root/.Xauthority
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=all
       - GAZEBO_MODEL_PATH=/home/ros_ws/src/robots
       - GAZEBO_RESOURCE_PATH=/usr/share/gazebo-11
       - GAZEBO_MODEL_DATABASE_URI=""
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
     network_mode: host
     ipc: host
     privileged: true

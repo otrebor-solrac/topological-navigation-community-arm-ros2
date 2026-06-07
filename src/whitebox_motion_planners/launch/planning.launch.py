@@ -4,7 +4,7 @@ Launch file for the White-Box Motion Planning Stack.
 This launch file orchestrates the execution of the entire simulation and planning environment:
 1. Robot Layer: Includes display.launch.py to launch RViz and joint state processing.
 2. Obstacles Layer: Publishes the box obstacle model and static TFs.
-3. Planning Layer: Launches the main planning_node (planificador) with YAML parameters.
+3. Planning Layer: Launches the main planning_node (planner) with YAML parameters.
 4. Communication Layer: Starts the Rosbridge WebSocket server for the Web Dashboard.
 5. Visualization Layer: Runs the C-Space voxelizer node to populate C-Space state validities.
 """
@@ -84,7 +84,7 @@ def generate_launch_description():
     # collision checks, pathfinding, and publishing path trails. Parameters are loaded from config/planner_params.yaml.
     planner_node = Node(
         package='whitebox_motion_planners',
-        executable='planificador',
+        executable='planner',
         name='whitebox_planner',
         output='screen',
         parameters=[config]

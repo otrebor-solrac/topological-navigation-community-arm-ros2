@@ -76,6 +76,14 @@ def _get_zeros_params(pkg_share_wb):
     return {}
 
 def launch_setup(context, *args, **kwargs):
+    """
+    Initialize the launch setup with the given context.
+
+    :param context: The launch context
+    :param args: The launch arguments
+    :param kwargs: The launch keyword arguments
+    :return: List of nodes to be launched
+    """
     pkg_share = get_package_share_directory('community_robot_arm')
     
     # Get the value of the argument
@@ -147,13 +155,15 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'spherized',
             default_value='true',
-            description='Usa "true" para ver las esferas'
+            description='Set to "true" to visualize the spherized robot collision primitives in RViz'
         ),
-        # Declare launch argument to specify the topic where the joint state publisher GUI publishes master states.
+        # Declare launch argument to specify the topic where the joint state publisher GUI publishes raw states.
+        # This prevents the GUI from publishing directly to '/joint_states', allowing the kinematics node to intercept 
+        # these raw states, solve the parallelogram linkage loop constraints, and publish the final synchronized joints.
         DeclareLaunchArgument(
             'gui_topic',
             default_value='/gui_master_states',
-            description='Topic where the GUI publishes master joint states'
+            description='Topic where the GUI publishes raw joint states before parallel kinematics validation'
         ),
         # OpaqueFunction executes the setup logic to dynamically resolve paths and configure node parameters before execution.
         OpaqueFunction(function=launch_setup)

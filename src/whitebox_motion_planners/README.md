@@ -13,7 +13,7 @@ The package follows the standard ROS 2 `ament_python` build system.
 
 ### `setup.py` & `setup.cfg`
 - **Discovery**: Automatically finds all submodules within the `whitebox_motion_planners` directory.
-- **Entry Points**: Defines the console script `planificador`, which maps to the main execution loop in `ros2/planning_node.py`.
+- **Entry Points**: Defines the console script `planner`, which maps to the main execution loop in `ros2/planning_node.py`.
 - **Installation**: Configures where scripts and metadata are placed in the `install/` directory of the workspace.
 
 ---
@@ -58,7 +58,7 @@ source install/setup.bash
 
 To run the planner:
 ```bash
-ros2 run whitebox_motion_planners planificador
+ros2 run whitebox_motion_planners planner
 ```
 
 ## 🎓 Academic Purpose

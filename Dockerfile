@@ -22,8 +22,4 @@ RUN apt-get update && apt-get install -y \
 # Set up workspace directory
 ENV ROS_WS=/home/ros_ws
 WORKDIR $ROS_WS
-
-# The simulation_entrypoint.sh is now handled via docker-compose volumes
-# to allow real-time edits without rebuilding the image.
-ENTRYPOINT ["/home/ros_ws/simulation_entrypoint.sh"]
 CMD ["bash"]
