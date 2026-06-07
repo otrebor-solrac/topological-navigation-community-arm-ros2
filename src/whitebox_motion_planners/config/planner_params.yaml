@@ -1,13 +1,34 @@
-whitebox_planner:
+/**:
   ros__parameters:
-    # Point B (Goal) - [revolute_1_0, revolute_9_0, revolute_10_0] in radians
-    goal: [5.14, 0.78, 0.78]
-    
+
+    # Robot type: "community_arm" or "open_manipulator"
+    robot_type: "community_arm"
+
+    # Set this to true to input start/goal in degrees, or false for radians
+    angles_in_degrees: true
+
+    # Set to true to use the static start configuration below.
+    # Set to false to read start dynamically from the GUI sliders.
+    use_static_start: true
+
+    # START CONFIGURATION (Point A) in DEGREES
+    start:
+      - 120.0      # revolute_1_0 (yaw)
+      - -45.0    # revolute_9_0 (shoulder pitch)
+      - 20.0     # revolute_10_0 (elbow pitch)
+
+    # GOAL CONFIGURATION (Point B) in DEGREES
+    goal:
+      - -40.0      # revolute_1_0 (yaw)
+      - -45.0     # revolute_9_0 (shoulder pitch)
+      - 90.0    # revolute_10_0 (elbow pitch)
+
+
     # Grid resolution (lower means more precision but slower planning)
     step_size_deg: 10.0
     
-    # Collision radius for the robot links
-    link_radius: 0.04
+    # Distance threshold in meters for URDF sphere thinning (e.g. 0.015 = 1.5 cm)
+    sphere_thinning_dist: 0.01
 
     # Algorithm: "astar" or "rrt"
     planner_type: "astar"
@@ -17,3 +38,6 @@ whitebox_planner:
 
     # End-effector behavior
     use_horizontal_constraint: false
+
+    # Environment obstacles
+    use_obstacles: true

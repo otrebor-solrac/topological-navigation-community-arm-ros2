@@ -77,7 +77,10 @@ function updateTraceTable(q) {
 
 // --- VOXELS ---
 let voxelMesh = null;
+let rawVoxelData = [];
+let cspaceMode = 'obs'; // 'obs' or 'free'
 const voxelMat = new THREE.MeshPhongMaterial({ color: 0xff3333, transparent: true, opacity: 0.4 });
+
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 const light = new THREE.PointLight(0xffffff, 1, 100);
@@ -124,6 +127,7 @@ const jointSub = new ROSLIB.Topic({
 
 let lastQ = null;
 let lastTableUpdateTime = 0;
+let firstPositionReceived = false;
 
 jointSub.subscribe((msg) => {
     const names = msg.name;
@@ -139,6 +143,13 @@ jointSub.subscribe((msg) => {
 
     if (found >= 2) {
         robotPoint.position.set(q[0], q[1], q[2]);
+
+        if (!firstPositionReceived) {
+            controls.target.set(q[0], q[1], q[2]);
+            camera.position.set(q[0] + 5, q[1] + 5, q[2] + 5);
+            controls.update();
+            firstPositionReceived = true;
+        }
 
         const now = Date.now();
         if (now - lastTableUpdateTime > 250) {
@@ -166,19 +177,87 @@ jointSub.subscribe((msg) => {
     }
 });
 
-const voxelSub = new ROSLIB.Topic({ ros : ros, name : '/cspace_voxels', messageType : 'std_msgs/String' });
-voxelSub.subscribe((msg) => {
-    const data = JSON.parse(msg.data);
+function computeComplement(data) {
+    if (!data || data.length === 0) return [];
+    
+    const u0 = new Set();
+    const u1 = new Set();
+    const u2 = new Set();
+    
+    data.forEach(p => {
+        u0.add(p[0].toFixed(4));
+        u1.add(p[1].toFixed(4));
+        u2.add(p[2].toFixed(4));
+    });
+    
+    const arr0 = Array.from(u0).map(Number).sort((a,b) => a-b);
+    const arr1 = Array.from(u1).map(Number).sort((a,b) => a-b);
+    const arr2 = Array.from(u2).map(Number).sort((a,b) => a-b);
+    
+    const forbiddenSet = new Set(data.map(p => `${p[0].toFixed(4)},${p[1].toFixed(4)},${p[2].toFixed(4)}`));
+    
+    const freePoints = [];
+    for (let x of arr0) {
+        for (let y of arr1) {
+            for (let z of arr2) {
+                const key = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`;
+                if (!forbiddenSet.has(key)) {
+                    freePoints.push([x, y, z]);
+                }
+            }
+        }
+    }
+    return freePoints;
+}
+
+function renderVoxels() {
     if (voxelMesh) scene.remove(voxelMesh);
+    
+    let pointsToRender = [];
+    if (cspaceMode === 'obs') {
+        pointsToRender = rawVoxelData;
+        voxelMat.color.setHex(0xff3333); // Red
+        voxelMat.opacity = 0.4;
+    } else {
+        pointsToRender = computeComplement(rawVoxelData);
+        voxelMat.color.setHex(0x00d4ff); // Cyan
+        voxelMat.opacity = 0.5;
+    }
+    
+    if (pointsToRender.length === 0) return;
+    
     const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-    voxelMesh = new THREE.InstancedMesh(geo, voxelMat, data.length);
+    voxelMesh = new THREE.InstancedMesh(geo, voxelMat, pointsToRender.length);
     const dummy = new THREE.Object3D();
-    for (let i = 0; i < data.length; i++) {
-        dummy.position.set(data[i][0], data[i][1], data[i][2]);
+    for (let i = 0; i < pointsToRender.length; i++) {
+        dummy.position.set(pointsToRender[i][0], pointsToRender[i][1], pointsToRender[i][2]);
         dummy.updateMatrix();
         voxelMesh.setMatrixAt(i, dummy.matrix);
     }
     scene.add(voxelMesh);
+}
+
+window.toggleCSpaceMode = function() {
+    cspaceMode = (cspaceMode === 'obs') ? 'free' : 'obs';
+    const btn = document.getElementById('btn-toggle-cspace');
+    if (cspaceMode === 'free') {
+        btn.innerText = "SHOW: C-OBS (OBSTACLES)";
+        btn.style.color = "#ff3333";
+        btn.style.borderColor = "#ff3333";
+        btn.style.boxShadow = "0 0 15px rgba(255, 51, 51, 0.1)";
+    } else {
+        btn.innerText = "SHOW: C-FREE (WORKSPACE)";
+        btn.style.color = "#00d4ff";
+        btn.style.borderColor = "#00d4ff";
+        btn.style.boxShadow = "0 0 15px rgba(0, 212, 255, 0.1)";
+    }
+    renderVoxels();
+};
+
+const voxelSub = new ROSLIB.Topic({ ros : ros, name : '/cspace_voxels', messageType : 'std_msgs/String' });
+voxelSub.subscribe((msg) => {
+    rawVoxelData = JSON.parse(msg.data);
+    renderVoxels();
 });
 
 function animate() {

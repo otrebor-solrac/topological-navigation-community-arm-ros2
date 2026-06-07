@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<robot name="box_obstacle">
+  <link name="world"/>
+  
+  <link name="obstacle_box_link">
+    <inertial>
+      <mass value="1.0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.15 0.3"/>
+      </geometry>
+      <material name="red">
+        <color rgba="0.8 0.1 0.1 0.6"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.15 0.3"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="obstacle_box_joint" type="fixed">
+    <parent link="world"/>
+    <child link="obstacle_box_link"/>
+    <origin xyz="0.3 0.15 0.2" rpy="0 0 0"/>
+  </joint>
+</robot>

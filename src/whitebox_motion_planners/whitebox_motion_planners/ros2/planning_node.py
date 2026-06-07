@@ -2,11 +2,16 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import PointStamped
+from visualization_msgs.msg import Marker, MarkerArray
 from std_srvs.srv import Trigger
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 import math
 import time
+import os
+import xml.etree.ElementTree as ET
+from ament_index_python.packages import get_package_share_directory
 
-from ..kinematics.community_arm import CommunityArmKinematics
+from ..kinematics import get_kinematics
 from ..collision.foam_collider import FoamCollider
 from ..collision.grid_discretizer import GridDiscretizer
 from ..planners.planner_factory import PlannerFactory
@@ -17,16 +22,21 @@ class TopologicalPlannerNode(Node):
     Uses Dependency Injection to handle Kinematics, Collision, and Search.
     """
     def __init__(self):
-        super().__init__('whitebox_planner')
+        super().__init__('topological_planner_node')
         self.get_logger().info("Initializing White-Box Planner Node...")
 
         # 1. ROS 2 Parameters (Truth comes from config/planner_params.yaml)
+        self.declare_parameter('robot_type', 'community_arm')
         self.declare_parameter('goal', [0.0, 0.0, 0.0])
+        self.declare_parameter('start', [0.0, 0.0, 0.0])
+        self.declare_parameter('use_static_start', False)
+        self.declare_parameter('angles_in_degrees', False)
         self.declare_parameter('step_size_deg', 10.0)
-        self.declare_parameter('link_radius', 0.04)
         self.declare_parameter('planner_type', 'astar')
         self.declare_parameter('heuristic_type', 'L2')
         self.declare_parameter('use_horizontal_constraint', False)
+        
+        self.declare_parameter('sphere_thinning_dist', 0.015)
         
         # Internal State
         self.is_animating = False
@@ -35,25 +45,103 @@ class TopologicalPlannerNode(Node):
         self.animation_timer = None
         self.last_gui_msg = None        # Full GUI JointState as template
         self.final_planned_q = None     # Holds final position after animation
-
+ 
         # 2. Mathematical Components (White-Box)
+        robot_type = self.get_parameter('robot_type').value
         use_horizontal = self.get_parameter('use_horizontal_constraint').value
-        self.kinematics = CommunityArmKinematics(use_horizontal_constraint=use_horizontal)
+        self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal)
+ 
+        # If using static start, initialize the robot's initial override to the start position
+        use_static = self.get_parameter('use_static_start').value
+        if use_static:
+            start_list = self.get_parameter('start').get_parameter_value().double_array_value
+            if self.get_parameter('angles_in_degrees').value:
+                start_list = [math.radians(x) for x in start_list]
+            self.final_planned_q = tuple(start_list[:self.kinematics.get_dof()])
         
         self.grid = GridDiscretizer(
             step_size_deg=self.get_parameter('step_size_deg').value,
             num_dof=self.kinematics.get_dof()
         )
-        self.collider = FoamCollider(
-            link_radius=self.get_parameter('link_radius').value
-        )
         
-        # To handle environment collisions, we can model the lab's obstacles 
-        # (e.g., tables, walls, or equipment) as a set of spherical primitives.
-        # Example: 
-        #   self.collider.add_obstacle(center=(0.5, 0.0, 0.2), radius=0.1)
-        # For this initial demo, we start with an empty (collision-free) space.
+        # Spherized URDF path for real robot collision checking
+        urdf_path = None
+        if robot_type == 'community_arm':
+            try:
+                pkg_share = get_package_share_directory('community_robot_arm')
+                urdf_path = os.path.join(pkg_share, 'urdf', 'spherized', 'community_robot_arm_slim_spherized.urdf')
+                if not os.path.exists(urdf_path):
+                    urdf_path = None
+            except Exception as e:
+                self.get_logger().warn(f"Could not resolve URDF path: {e}")
+                
+        self.collider = FoamCollider(
+            urdf_path=urdf_path,
+            sphere_thinning_dist=self.get_parameter('sphere_thinning_dist').value
+        )
+        # Declare and read parameter use_obstacles
+        self.declare_parameter('use_obstacles', True)
+        use_obstacles = self.get_parameter('use_obstacles').value
+        
+        if use_obstacles:
+            try:
+                pkg_share = get_package_share_directory('community_robot_arm')
+                urdf_path = os.path.join(pkg_share, 'urdf', 'obstacles', 'box_obstacle_spherized.urdf')
+                self.get_logger().info(f"Loading environment obstacles from: {urdf_path}")
+                if os.path.exists(urdf_path):
+                    obstacles = self._load_obstacles_from_urdf(urdf_path)
+                    for center, radius in obstacles:
+                        self.collider.add_obstacle(center, radius)
+                        self.get_logger().info(f"Added obstacle sphere: center={center}, radius={radius:.3f}")
+                else:
+                    self.get_logger().warn(f"Obstacles URDF file not found at: {urdf_path}")
+            except Exception as e:
+                self.get_logger().error(f"Failed to load obstacles: {e}")
 
+        # Try to load C-Space cache to enable O(1) set-based collision checks during path planning
+        try:
+            obstacles_hash = "no_obstacles"
+            if use_obstacles:
+                pkg_share = get_package_share_directory('community_robot_arm')
+                obstacles_urdf_path = os.path.join(pkg_share, 'urdf', 'obstacles', 'box_obstacle_spherized.urdf')
+                if os.path.exists(obstacles_urdf_path):
+                    import hashlib
+                    hash_md5 = hashlib.md5()
+                    with open(obstacles_urdf_path, "rb") as f:
+                        for chunk in iter(lambda: f.read(4096), b""):
+                            hash_md5.update(chunk)
+                    obstacles_hash = hash_md5.hexdigest()[:8]
+            
+            step_size = self.get_parameter('step_size_deg').value
+            thinning_dist = self.get_parameter('sphere_thinning_dist').value
+            src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if os.path.exists('/home/ros_ws/src/whitebox_motion_planners'):
+                cache_dir = '/home/ros_ws/src/whitebox_motion_planners/cspace_cache'
+            else:
+                cache_dir = os.path.join(src_dir, 'cspace_cache')
+            cache_filepath = os.path.join(cache_dir, f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json")
+            
+            if os.path.exists(cache_filepath):
+                self.get_logger().info(f"Loading C-Space cache for planner from: {cache_filepath}")
+                import json
+                with open(cache_filepath, 'r') as f:
+                    forbidden_list = json.load(f)
+                
+                # Convert radians coordinates list to a set of discrete tuples for O(1) lookup
+                forbidden_set = set()
+                for voxel in forbidden_list:
+                    # voxel is [q0_rad, q1_rad, q2_rad]
+                    # Map continuous coordinates back to discrete indices in the grid
+                    q_discrete = self.grid.discretize(tuple(voxel))
+                    forbidden_set.add(q_discrete)
+                
+                # Inject cache into FoamCollider
+                self.collider.set_cspace_cache(forbidden_set, self.grid)
+                self.get_logger().info(f"Loaded {len(forbidden_set)} forbidden voxels into collider cache!")
+            else:
+                self.get_logger().warn("No C-Space cache file found. Planning will fallback to real-time collision checking.")
+        except Exception as e:
+            self.get_logger().error(f"Failed to load C-Space cache for planning node: {e}")
 
         # --- 2. Planner via Factory ---
         # We read the algorithm and metric from parameters
@@ -89,6 +177,15 @@ class TopologicalPlannerNode(Node):
             self.create_publisher(
                 JointState, 
                 '/master_states', 
+                10
+            )
+        )
+
+        # [VISUALIZATION]: Publisher for thinned collision spheres in RViz2
+        self.marker_pub = (
+            self.create_publisher(
+                MarkerArray,
+                '/robot_collision_markers',
                 10
             )
         )
@@ -133,7 +230,7 @@ class TopologicalPlannerNode(Node):
             master_indices = []
             master_names = (
                 ['revolute_1_0', 'revolute_9_0'] 
-                if self.kinematics.use_horizontal_constraint 
+                if getattr(self.kinematics, 'use_horizontal_constraint', False) 
                 else ['revolute_1_0', 'revolute_9_0', 'revolute_10_0']
             )
             for name in master_names:
@@ -161,8 +258,10 @@ class TopologicalPlannerNode(Node):
             if self.final_planned_q is not None:
                 out = self._build_full_msg(self.final_planned_q)
                 self.joint_pub.publish(out)
+                self.publish_collision_markers(self.final_planned_q)
             else:
                 self.joint_pub.publish(msg)
+                self.publish_collision_markers(self.current_q)
 
     def click_callback(self, msg: PointStamped):
         """
@@ -215,27 +314,107 @@ class TopologicalPlannerNode(Node):
         # Clear previous final position so we plan from actual GUI state
         self.final_planned_q = None
 
-        # Read only the master joints we care about
-        if self.master_joint_names and self.current_q:
-            joint_map = dict(zip(self.master_joint_names, self.current_q))
-            if self.kinematics.use_horizontal_constraint:
-                start_q = (
-                    joint_map.get('revolute_1_0', 0.0),
-                    joint_map.get('revolute_9_0', 0.0)
-                )
-            else:
-                start_q = (
-                    joint_map.get('revolute_1_0', 0.0),
-                    joint_map.get('revolute_9_0', 0.0),
-                    joint_map.get('revolute_10_0', 0.0)
-                )
+        angles_in_degrees = self.get_parameter('angles_in_degrees').value
+
+        # Try to load waypoints from config/waypoints.yaml dynamically
+        waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
+        if not os.path.exists(waypoints_file):
+            try:
+                pkg_share = get_package_share_directory('whitebox_motion_planners')
+                waypoints_file = os.path.join(pkg_share, 'config', 'waypoints.yaml')
+            except Exception:
+                pass
+
+        import yaml
+        waypoints_list = []
+        if os.path.exists(waypoints_file):
+            try:
+                with open(waypoints_file, 'r') as f:
+                    data = yaml.safe_load(f)
+                    if data and 'waypoints' in data:
+                        waypoints_list = data['waypoints']
+            except Exception as e:
+                self.get_logger().error(f"Failed to parse waypoints file: {e}")
+
+        if len(waypoints_list) >= 2:
+            self.get_logger().info(f"Loaded {len(waypoints_list)} waypoints from {waypoints_file}. Planning sequential trajectory...")
+            path_segments = []
+            for i, pt in enumerate(waypoints_list):
+                if angles_in_degrees:
+                    pt_rad = tuple(math.radians(x) for x in pt[:self.kinematics.get_dof()])
+                else:
+                    pt_rad = tuple(pt[:self.kinematics.get_dof()])
+                path_segments.append(pt_rad)
+
+            full_path = []
+            for i in range(len(path_segments) - 1):
+                p_start = path_segments[i]
+                p_goal = path_segments[i+1]
+
+                if not self.collider.is_state_valid(p_start, self.kinematics):
+                    msg = f"TOPOLOGICAL ERROR: Waypoint #{i+1} {waypoints_list[i]} is in collision."
+                    self.get_logger().error(msg)
+                    return (False, msg)
+                if not self.collider.is_state_valid(p_goal, self.kinematics):
+                    msg = f"TOPOLOGICAL ERROR: Waypoint #{i+2} {waypoints_list[i+1]} is in collision."
+                    self.get_logger().error(msg)
+                    return (False, msg)
+
+                start_discrete = self.grid.discretize(p_start)
+                goal_discrete = self.grid.discretize(p_goal)
+
+                self.get_logger().info(f"Planning segment {i+1}/{len(path_segments)-1}: {waypoints_list[i]} -> {waypoints_list[i+1]}")
+                segment = self.planner.plan(start_discrete, goal_discrete)
+                if not segment:
+                    msg = f"TOPOLOGICAL ERROR: No collision-free path found for segment {i+1}: {waypoints_list[i]} -> {waypoints_list[i+1]}"
+                    self.get_logger().error(msg)
+                    return (False, msg)
+
+                if i > 0:
+                    full_path.extend(segment[1:])
+                else:
+                    full_path.extend(segment)
+
+            msg = f"Sequential path found! {len(full_path)} waypoints. Starting animation..."
+            self.get_logger().info(msg)
+            self.start_animation(full_path)
+            return (True, msg)
+
+        # Fallback to single start/goal from parameters
+        use_static_start = self.get_parameter('use_static_start').value
+        
+        # Determine start configuration (Point A)
+        if use_static_start:
+            start_list = self.get_parameter('start').get_parameter_value().double_array_value
+            if angles_in_degrees:
+                start_list = [math.radians(x) for x in start_list]
+            start_q = tuple(start_list[:self.kinematics.get_dof()])
+            self.get_logger().info(f"Using start configuration from parameters: {start_q}")
         else:
-            dof = self.kinematics.get_dof()
-            start_q = self.current_q[:dof] if self.current_q else tuple([0.0]*dof)
+            # Fallback to GUI joint states
+            if self.master_joint_names and self.current_q:
+                joint_map = dict(zip(self.master_joint_names, self.current_q))
+                if getattr(self.kinematics, 'use_horizontal_constraint', False):
+                    start_q = (
+                        joint_map.get('revolute_1_0', 0.0),
+                        joint_map.get('revolute_9_0', 0.0)
+                    )
+                else:
+                    start_q = (
+                        joint_map.get('revolute_1_0', 0.0),
+                        joint_map.get('revolute_9_0', 0.0),
+                        joint_map.get('revolute_10_0', 0.0)
+                    )
+            else:
+                dof = self.kinematics.get_dof()
+                start_q = self.current_q[:dof] if self.current_q else tuple([0.0]*dof)
 
         # Read goal from ROS parameter
         goal_list = self.get_parameter('goal').get_parameter_value().double_array_value
+        if angles_in_degrees:
+            goal_list = [math.radians(x) for x in goal_list]
         goal_q = tuple(goal_list[:self.kinematics.get_dof()])
+
 
         self.get_logger().info(f"Point A (current): {tuple(round(x, 3) for x in start_q)}")
         self.get_logger().info(f"Point B (goal):    {tuple(round(x, 3) for x in goal_q)}")
@@ -280,7 +459,7 @@ class TopologicalPlannerNode(Node):
             positions = list(self.last_gui_msg.position)
 
             # Reconstruct full 3D master configuration if constrained
-            if self.kinematics.use_horizontal_constraint:
+            if getattr(self.kinematics, 'use_horizontal_constraint', False):
                 q_full = (q_planned[0], q_planned[1], 0.0)
             else:
                 q_full = q_planned
@@ -335,7 +514,116 @@ class TopologicalPlannerNode(Node):
         q = self.animation_path[self.animation_index]
         out = self._build_full_msg(q)
         self.joint_pub.publish(out)
+        self.publish_collision_markers(q)
         self.animation_index += 1
+
+    def publish_collision_markers(self, q: tuple):
+        """
+        Publishes the thinned collision spheres as a MarkerArray for visualization in RViz2.
+        """
+        # If no URDF parser is active, we cannot publish thinned spheres
+        if getattr(self.collider, 'urdf_parser', None) is None:
+            return
+            
+        try:
+            centers, radii = self.collider.urdf_parser.get_transformed_spheres(q)
+            
+            marker_array = MarkerArray()
+            
+            # Create a delete marker to clear old ones
+            clear_marker = Marker()
+            clear_marker.action = Marker.DELETEALL
+            marker_array.markers.append(clear_marker)
+            
+            for i in range(len(centers)):
+                marker = Marker()
+                marker.header.frame_id = 'world'
+                marker.header.stamp = self.get_clock().now().to_msg()
+                marker.ns = 'thinned_collision_spheres'
+                marker.id = i
+                marker.type = Marker.SPHERE
+                marker.action = Marker.ADD
+                
+                # Position
+                marker.pose.position.x = float(centers[i][0])
+                marker.pose.position.y = float(centers[i][1])
+                marker.pose.position.z = float(centers[i][2])
+                marker.pose.orientation.w = 1.0
+                
+                # Scale (diameter)
+                diameter = float(radii[i] * 2.0)
+                marker.scale.x = diameter
+                marker.scale.y = diameter
+                marker.scale.z = diameter
+                
+                # Color (Translucent Green to represent safety spheres)
+                marker.color.r = 0.0
+                marker.color.g = 1.0
+                marker.color.b = 0.0
+                marker.color.a = 0.4
+                
+                marker_array.markers.append(marker)
+                
+            self.marker_pub.publish(marker_array)
+        except Exception as e:
+            self.get_logger().error(f"Failed to publish collision markers: {e}")
+
+    def _load_obstacles_from_urdf(self, urdf_path: str) -> list:
+        try:
+            tree = ET.parse(urdf_path)
+            root = tree.getroot()
+        except Exception as e:
+            self.get_logger().error(f"Failed to parse XML from URDF: {e}")
+            return []
+        
+        # Parse joints to get child link origins relative to world
+        link_positions = {'world': (0.0, 0.0, 0.0)}
+        for joint in root.findall('joint'):
+            parent_el = joint.find('parent')
+            child_el = joint.find('child')
+            if parent_el is None or child_el is None:
+                continue
+            parent = parent_el.get('link')
+            child = child_el.get('link')
+            origin = joint.find('origin')
+            xyz_str = origin.get('xyz') if origin is not None else "0 0 0"
+            xyz = [float(x) for x in xyz_str.split()]
+            
+            # If parent link position is known, accumulate
+            if parent in link_positions:
+                p_pos = link_positions[parent]
+                link_positions[child] = (
+                    p_pos[0] + xyz[0],
+                    p_pos[1] + xyz[1],
+                    p_pos[2] + xyz[2]
+                )
+            else:
+                link_positions[child] = tuple(xyz)
+                
+        obstacles = []
+        # Parse links for collision spheres
+        for link in root.findall('link'):
+            link_name = link.get('name')
+            link_pos = link_positions.get(link_name, (0.0, 0.0, 0.0))
+            
+            for collision in link.findall('collision'):
+                origin = collision.find('origin')
+                geometry = collision.find('geometry')
+                if geometry is not None:
+                    sphere = geometry.find('sphere')
+                    if sphere is not None:
+                        radius = float(sphere.get('radius'))
+                        xyz_str = origin.get('xyz') if origin is not None else "0 0 0"
+                        offset = [float(x) for x in xyz_str.split()]
+                        
+                        # Absolute center position
+                        abs_center = (
+                            link_pos[0] + offset[0],
+                            link_pos[1] + offset[1],
+                            link_pos[2] + offset[2]
+                        )
+                        obstacles.append((abs_center, radius))
+        return obstacles
 
 
 def main(args=None):

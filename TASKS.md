@@ -25,9 +25,14 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 
 - [x] **Muestreo de Bolas:** Definido en `FoamCollider` usando esferas.
 - [x] **C-Space Mapping (Voxelización):** Discretización funcional en `GridDiscretizer`.
-- [ ] **Gestión de Obstáculos Externos:** 
-    - [ ] Permitir cargar obstáculos (centros y radios) desde el `planner_params.yaml`.
-    - [ ] Integrar obstáculos estáticos en la validación del `FoamCollider`.
+- [x] **Gestión de Obstáculos Externos:** 
+    - [x] Permitir cargar obstáculos (centros y radios) desde el `planner_params.yaml`.
+    - [x] Integrar obstáculos estáticos en la validación del `FoamCollider`.
+- [x] **Optimización de Rendimiento:**
+    - [x] Implementar caché de cinemática directa (memoization cache) en `get_transformed_spheres(q)` para evitar repetir cálculos de matrices y trigonometría para estados $q$ ya evaluados.
+    - [x] Implementar optimización en `check_self_collision` reduciendo operaciones redundantes y usando aritmética rápida en los ciclos.
+    - [x] Diseñar un sistema de caché de C-Space persistente en archivos JSON (`cspace_cache/`) indexado por resolución, thinning, e invalidado mediante MD5 hash de los obstáculos.
+    - [x] Conectar la caché con el planificador (`planning_node.py`) para lograr un lookup de colisiones de complejidad O(1) en tiempo de ejecución.
 
 ---
 
@@ -50,7 +55,7 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 
 ## 📺 6. Visualización "Caja Blanca" en RViz2
 - [ ] **Publicador de Marcadores (`visualization_msgs`):**
-    - [ ] Dibujar las **bolas de colisión** como esferas semitransparentes sobre el brazo.
+    - [x] Dibujar las **bolas de colisión** como esferas semitransparentes sobre el brazo (con carga automática en RViz).
     - [ ] Visualizar los **voxels prohibidos** en el espacio de trabajo.
     - [ ] Dibujar el **Árbol de RRT** o la **Ruta de A*** como líneas de colores.
 
