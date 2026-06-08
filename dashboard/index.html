@@ -33,6 +33,13 @@
         th { text-align: left; color: #00ff9d; padding: 10px 5px; border-bottom: 1px solid #333; }
         td { padding: 8px 5px; border-bottom: 1px solid #1a1a1a; }
         .current-row td { color: #ffff00; font-weight: bold; background: rgba(255, 255, 0, 0.05); }
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; font-size: 0.85em; color: #888; margin-bottom: 5px; }
+        .control-group select { 
+            width: 100%; background: #111; color: #00ff9d; border: 1px solid #333; 
+            padding: 8px; font-family: monospace; font-size: 0.9em; outline: none;
+        }
+        .control-group select:focus { border-color: #00ff9d; }
     </style>
 </head>
 <body>
@@ -53,14 +60,57 @@
     </div>
 
     <div id="sidebar">
+        <h3>PLANNER CONTROL</h3>
+        <div class="control-group">
+            <label for="select-planner">Algorithm:</label>
+            <select id="select-planner" onchange="updatePlannerParams()">
+                <option value="astar">A* (Toroidal Grid)</option>
+                <option value="rrt">RRT (Continuous T^n)</option>
+            </select>
+        </div>
+
+        <div class="control-group" id="heuristic-group">
+            <label for="select-heuristic">Heuristic:</label>
+            <select id="select-heuristic" onchange="updatePlannerParams()">
+                <option value="L2">L2 (Euclidean)</option>
+                <option value="L1">L1 (Manhattan)</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <div class="control-group" style="margin-bottom: 10px;">
+                <label>Manual Target (θ₁, θ₂, θ₃) [rad]:</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="number" id="goal-th1" value="0.0" step="0.1" style="width: 30%; background: #111; color: #fff; border: 1px solid #333; padding: 5px; font-family: monospace;">
+                    <input type="number" id="goal-th2" value="0.0" step="0.1" style="width: 30%; background: #111; color: #fff; border: 1px solid #333; padding: 5px; font-family: monospace;">
+                    <input type="number" id="goal-th3" value="0.0" step="0.1" style="width: 30%; background: #111; color: #fff; border: 1px solid #333; padding: 5px; font-family: monospace;">
+                </div>
+            </div>
+            <button onclick="planToCurrentGoal()" style="width: 100%; color: #00ff9d; border-color: #00ff9d; padding: 8px; font-size: 0.85em;">PLAN & EXECUTE GOAL</button>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #222; margin: 15px 0;">
+
+        <h3>WAYPOINT SEQUENCER</h3>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <button onclick="addCurrentAsWaypoint()" style="flex-grow: 1; padding: 6px; font-size: 0.75em; border-color: #ffff00; color: #ffff00;">+ ADD CURRENT</button>
+            <button onclick="clearWaypointSequence()" style="flex-grow: 1; padding: 6px; font-size: 0.75em; border-color: #ff5555; color: #ff5555;">CLEAR ALL</button>
+        </div>
+        <div id="waypoint-list" style="max-height: 120px; overflow-y: auto; border: 1px solid #222; background: rgba(0,0,0,0.5); padding: 5px; font-size: 0.8em; margin-bottom: 10px; font-family: monospace;">
+            <div style="color: #666; text-align: center; padding: 10px;">No waypoints added</div>
+        </div>
+        <button id="btn-exec-seq" onclick="executeWaypointSequence()" style="width: 100%; color: #ffff00; border-color: #ffff00; padding: 8px; font-size: 0.85em; display: none;">EXECUTE SEQUENCE</button>
+
+        <hr style="border: 0; border-top: 1px solid #222; margin: 15px 0;">
+
         <h3>TRACEABILITY</h3>
         <table>
             <thead>
                 <tr>
                     <th>#</th>
                     <th>θ₁</th>
-                    <th>θ₉</th>
-                    <th>θ₁₀</th>
+                    <th>θ₂</th>
+                    <th>θ₃</th>
                 </tr>
             </thead>
             <tbody id="trace-table"></tbody>

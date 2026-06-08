@@ -20,7 +20,7 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 
 ---
 
-## 🧊 3. Voxelización y Detección de Colisiones (En Progreso)
+## ✅ 3. Voxelización y Detección de Colisiones (COMPLETADO)
 *Objetivo: Crear el mapa $\mathcal{C}_{free}$ usando el recubrimiento de bolas abiertas.*
 
 - [x] **Muestreo de Bolas:** Definido en `FoamCollider` usando esferas.
@@ -36,47 +36,90 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 
 ---
 
-## 🔍 4. Algoritmos de Búsqueda (Casi Completado)
+## ✅ 4. Algoritmos de Búsqueda (COMPLETADO)
 - [x] **A* Toroidal:** Heurística admisible con salto de frontera operativa.
 - [x] **RRT Estocástico:** 
     - [x] Muestreo Haar (uniformidad angular) implementado en `rrt.py`.
     - [x] Steering que respeta la topología circular.
-- [ ] **Refinamiento RRT:**
-    - [ ] Implementar la lógica de crecimiento del árbol (actualmente es un esqueleto funcional).
+- [x] **Refinamiento RRT:**
+    - [x] Implementar la lógica básica de crecimiento del árbol (Haar sampling, nearest, steering y reconstrucción de ruta).
+    - [x] Implementar la validación de colisiones a lo largo de los segmentos (`_is_edge_valid`) para evitar el efecto túnel.
 
 ---
 
-## ✨ 5. Tareas de Excelencia (NUEVAS)
-- [ ] **Refinamiento Cinemático:** Revisar matrices DH para que coincidan al 100% con el hardware real.
-- [ ] **Suavizado de Trayectoria (`PathSmoother`):** Algoritmo para eliminar el "zig-zag" del RRT mediante atajos (shortcuts).
-- [ ] **Benchmarking Suite:** Script para generar comparativas automáticas (A* vs RRT) de tiempo y distancia para los anexos de la tesis.
-
----
-
-## 📺 6. Visualización "Caja Blanca" en RViz2
-- [ ] **Publicador de Marcadores (`visualization_msgs`):**
+## ✅ 5. Visualización "Caja Blanca" en RViz2 (COMPLETADO)
+- [x] **Publicador de Marcadores (`visualization_msgs`):**
     - [x] Dibujar las **bolas de colisión** como esferas semitransparentes sobre el brazo (con carga automática en RViz).
-    - [ ] Visualizar los **voxels prohibidos** en el espacio de trabajo.
-    - [ ] Dibujar el **Árbol de RRT** o la **Ruta de A*** como líneas de colores.
+    - [x] Visualizar los **voxels prohibidos** (C-Space) en el Dashboard Web 3D (completado en la interfaz web).
+    - [x] Dibujar la **Ruta de A* o RRT** (estela del efector final) como una línea amarilla en RViz2.
 
-## 🌐 7. Fase 2: Dashboard Web "White-Box" (Control Remoto)
+---
+
+## ✅ 6. Fase 2: Dashboard Web "White-Box" (Control Remoto) (COMPLETADO)
 *Objetivo: Llevar la visualización y control del robot al navegador para una presentación más profesional y accesible.*
 
-- [ ] **Backend de Comunicación:**
-    - [ ] Instalar y configurar `rosbridge_suite` en el Dockerfile.
-    - [ ] Exponer los puertos necesarios (ej. 9090) en el `docker-compose.yml`.
-    - [ ] Actualizar el planificador para aceptar metas secuenciales ($A \to B \to C$).
-- [ ] **Frontend Web:**
-    - [ ] Crear la aplicación base en React/Vite.
-    - [ ] Integrar `roslibjs` para la comunicación por WebSockets con ROS 2.
-    - [ ] Implementar visualizador 3D usando `three.js` (o similar) para renderizar el URDF y las rutas.
-- [ ] **Interfaz de Usuario (UI/UX):**
-    - [ ] Secuenciador de Puntos (añadir/eliminar objetivos).
-    - [ ] Selector dinámico de Algoritmo (RRT / A*) y Métrica (L1 / L2).
-    - [ ] Panel de telemetría (ángulos actuales, estado de colisiones).
+- [x] **Backend de Comunicación:**
+    - [x] Instalar y configurar `rosbridge_suite` en el Dockerfile.
+    - [x] Exponer los puertos necesarios en el `docker-compose.yml` (se configuró en modo host).
+    - [x] Actualizar el planificador para aceptar metas secuenciales ($A \to B \to C$) (procesado vía comandos JSON de `/web_commands`).
+- [x] **Frontend Web:**
+    - [x] Crear la aplicación base en HTML + Three.js (`dashboard/index.html` y `dashboard/app.js`).
+    - [x] Integrar `roslibjs` para la comunicación por WebSockets con ROS 2.
+    - [x] Implementar visualizador 3D usando `three.js` para renderizar el C-Space (voxels) y la trayectoria del robot en el espacio de configuración.
+- [x] **Interfaz de Usuario (UI/UX):**
+    - [x] Secuenciador de Puntos (añadir/eliminar objetivos en tiempo real desde la web).
+    - [x] Selector dinámico de Algoritmo (RRT / A*) y Métrica (L1 / L2) desde la web.
+    - [x] Panel de telemetría (ángulos actuales visualizados en tabla y estado de conexión de ROS).
 
 ---
 
-## 📐 Notas de Seguridad Cinemática
-- [ ] Integración de la **Matriz Jacobiana** para detectar singularidades.
-- [ ] Penalización de los voxels que se acerquen a un determinante nulo (det(J) ≈ 0).
+## 📐 Notas de Seguridad Cinemática (COMPLETADO)
+- [x] Integración de la **Matriz Jacobiana** para detectar singularidades.
+- [x] Penalización de los voxels que se acerquen a un determinante nulo (det(J) ≈ 0).
+
+---
+
+## 🚀 7. Tareas Pendientes para los Objetivos de la Tesis (En Progreso)
+*Fase de desarrollo e integración final de los perfiles cinemáticos, la validación geométrica de singularidades y la suite de evaluación comparativa automatizada para los capítulos de la tesis.*
+
+### 📈 7.1. Perfiles de Trayectoria Cinemáticos (Velocidad, Aceleración y Parametrización Temporal)
+- [ ] **Generador de Perfiles de Trayectoria (`TrajectoryGenerator`):**
+  - Implementar interpolación mediante Splines Quínticas ($C^2$ continuas) o Trapezoidal (LSPB) para convertir la ruta geométrica discreta en una trayectoria de tiempo continuo.
+  - Definir y respetar los límites físicos de velocidad ($v_{max}$) y aceleración ($a_{max}$) para cada articulación.
+- [ ] **Herramienta de Graficado de Perfiles (`plot_trajectory.py`):**
+  - Crear script en Python para graficar Posición ($q_i$), Velocidad ($\dot{q}_i$) y Aceleración ($\ddot{q}_i$) vs Tiempo para cada una de las articulaciones.
+  - Guardar automáticamente las curvas en formato PNG en la carpeta de figuras de la tesis.
+- [ ] **Simulador de Trayectoria a Alta Frecuencia:**
+  - Modificar el publicador de la animación en `planning_node.py` para correr a 50Hz (muestreo cada 20ms) interpolando en tiempo real sobre la spline generada.
+
+### 📐 7.2. Análisis Diferencial y Evasión de Singularidades (Jacobiano)
+- [ ] **Cálculo de la Matriz Jacobiana ($J(q)$):**
+  - Implementar el cálculo de la matriz Jacobiana geométrica en la clase de cinemática del robot.
+  - Calcular el Determinante del Jacobiano ($\det(J)$) o la medida de manipulabilidad de Yoshikawa ($w = \sqrt{\det(J J^T)}$) a lo largo de la trayectoria.
+- [ ] **Filtro de Seguridad de Singularidades:**
+  - Penalizar estados en el planificador que se acerquen a singularidades ($\det(J) \approx 0$).
+  - Graficar el perfil de manipulabilidad a lo largo del tiempo para verificar la estabilidad de la trayectoria.
+
+### 📊 7.3. Suite de Evaluación Comparativa (Benchmarking)
+- [ ] **Script de Pruebas Automatizadas (`run_benchmarks.py`):**
+  - Diseñar suite que ejecute 100 pruebas aleatorias de planificación en la variedad toroidal $T^n$.
+  - Recopilar métricas de comparación para A* vs RRT:
+    - Tasa de éxito (%)
+    - Tiempo medio de ejecución (ms)
+    - Longitud media de la ruta (rad)
+    - Número de evaluaciones de colisión (FOAM)
+    - Suavidad de la trayectoria (métrica de aceleración acumulada / Jerk)
+  - Exportar tablas de resultados en código LaTeX directamente insertables en el Capítulo 4 (Resultados) de la tesis.
+
+---
+
+## ✨ 8. Mejoras de Calidad y Pulido Final (Opcionales)
+*Estas tareas no son requisitos para cumplir los objetivos de la tesis, pero elevan significativamente la calidad del sistema y la presentación ante el jurado. Se recomienda abordarlas después de completar la Sección 7.*
+
+- [ ] **Refinamiento Cinemático (Parámetros DH):**
+  - Actualmente las longitudes de los eslabones en `community_arm.py` son aproximaciones (`LOWER_SHANK = 0.140`, `UPPER_SHANK = 0.140`). Esta tarea consiste en medir el hardware físico del TESH y/o extraer las dimensiones exactas de los archivos CAD/URDF para que la cinemática directa sea fiel al 100%. Impacto: las gráficas de posición del efector final serán más precisas para la validación experimental del Capítulo 4.
+- [ ] **Suavizado de Trayectoria (`PathSmoother`):**
+  - El RRT genera rutas con "zig-zag" porque crece estocásticamente hacia muestras aleatorias. Un algoritmo de suavizado post-procesamiento recorre la ruta y prueba **atajos directos** entre nodos no consecutivos: si el segmento directo está libre de colisiones (reutilizando `_is_edge_valid`), se eliminan los nodos intermedios redundantes. Resultado: rutas visiblemente más cortas, suaves y naturales. Esto mejora tanto la animación en RViz como las métricas de longitud en el benchmarking.
+- [ ] **Optimización del Nearest Neighbor (KD-Tree Toroidal):**
+  - El `_nearest` actual del RRT es búsqueda lineal $O(N)$ sobre todos los nodos del árbol. Para árboles grandes ($N > 5000$), esto se convierte en el cuello de botella. Se podría implementar un KD-Tree adaptado a la topología circular de $T^n$ (o usar un KD-Tree estándar con distancia geodésica) para reducir la búsqueda a $O(\log N)$. Impacto: tiempos de planificación significativamente menores en el benchmarking.
+

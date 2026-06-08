@@ -1,13 +1,15 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, Point
 from visualization_msgs.msg import Marker, MarkerArray
 from std_srvs.srv import Trigger
+from std_msgs.msg import String
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 import math
 import time
 import os
+import json
 import xml.etree.ElementTree as ET
 from ament_index_python.packages import get_package_share_directory
 
@@ -47,6 +49,7 @@ class TopologicalPlannerNode(Node):
         self.animation_timer = None
         self.last_gui_msg = None        # Full GUI JointState as template
         self.final_planned_q = None     # Holds final position after animation
+        self.trail_points = []          # Accumulated end-effector positions for RViz trail
  
         # 2. Mathematical Components (White-Box)
         robot_type = self.get_parameter('robot_type').value
@@ -214,9 +217,18 @@ class TopologicalPlannerNode(Node):
             Trigger, '/execute_plan', self.service_callback
         )
 
+        # [INTERACTION]: Web command interface via JSON messages over WebSockets.
+        self.web_cmd_sub = self.create_subscription(
+            String,
+            '/web_commands',
+            self.web_command_callback,
+            10
+        )
+
         self.get_logger().info("Node ready. Waiting for trigger...")
         self.get_logger().info("  Option 1: Click in RViz2 using 'Publish Point' tool")
         self.get_logger().info("  Option 2: ros2 service call /execute_plan std_srvs/srv/Trigger")
+        self.get_logger().info("  Option 3: Publish JSON commands to /web_commands (dashboard interface)")
 
 
     def joint_callback(self, msg: JointState):
@@ -301,6 +313,63 @@ class TopologicalPlannerNode(Node):
         response.message = message
         return response
 
+    def web_command_callback(self, msg: String):
+        """
+        Receives JSON commands from the web dashboard.
+        
+        Expected JSON format:
+        {
+          "action": "plan" | "plan_sequential",
+          "planner_type": "astar" | "rrt",       (optional)
+          "heuristic_type": "L1" | "L2",        (optional)
+          "goal": [theta1, theta2, theta3],      (optional, for action="plan")
+          "waypoints": [[q1], [q2], ...]         (optional, for action="plan_sequential")
+        }
+        """
+        try:
+            data = json.loads(msg.data)
+            action = data.get("action")
+            
+            # 1. Update parameters dynamically if present
+            if "planner_type" in data:
+                self.set_parameters([rclpy.Parameter("planner_type", rclpy.Parameter.Type.STRING, data["planner_type"])])
+                self.get_logger().info(f"Updated planner_type via web to: {data['planner_type']}")
+            if "heuristic_type" in data:
+                self.set_parameters([rclpy.Parameter("heuristic_type", rclpy.Parameter.Type.STRING, data["heuristic_type"])])
+                self.get_logger().info(f"Updated heuristic_type via web to: {data['heuristic_type']}")
+            
+            if action == "plan":
+                # Clear sequential waypoints so we plan to the single goal parameter
+                waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
+                if os.path.exists(waypoints_file):
+                    try:
+                        with open(waypoints_file, 'w') as f:
+                            f.write("") # Clear file
+                    except Exception:
+                        pass
+                
+                if "goal" in data:
+                    self.set_parameters([rclpy.Parameter("goal", rclpy.Parameter.Type.DOUBLE_ARRAY, [float(x) for x in data["goal"]])])
+                
+                self.execute_plan()
+                
+            elif action == "plan_sequential":
+                waypoints = data.get("waypoints", [])
+                if len(waypoints) >= 2:
+                    waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
+                    import yaml
+                    try:
+                        with open(waypoints_file, 'w') as f:
+                            yaml.safe_dump({"waypoints": waypoints}, f)
+                        self.get_logger().info(f"Saved {len(waypoints)} web waypoints to {waypoints_file}")
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to write web waypoints to file: {e}")
+                    
+                    self.execute_plan()
+                    
+        except Exception as e:
+            self.get_logger().error(f"Failed to process web command: {e}")
+
     def execute_plan(self) -> tuple:
         """
         Core planning logic. Reads Point A, plans to Point B, and starts animation.
@@ -320,6 +389,17 @@ class TopologicalPlannerNode(Node):
 
         # Clear previous final position so we plan from actual GUI state
         self.final_planned_q = None
+
+        # Recreate planner dynamically based on current parameters
+        planner_type = self.get_parameter('planner_type').value
+        heuristic_type = self.get_parameter('heuristic_type').value
+        self.planner = PlannerFactory.create_planner(
+            planner_type=planner_type,
+            space=self.grid,
+            collider=self.collider,
+            kinematics=self.kinematics,
+            heuristic_type=heuristic_type
+        )
 
         angles_in_degrees = self.get_parameter('angles_in_degrees').value
 
@@ -502,6 +582,7 @@ class TopologicalPlannerNode(Node):
         self.is_animating = True
         self.animation_path = path
         self.animation_index = 0
+        self.trail_points = []  # Clear previous trail for new trajectory
 
         # Publish a waypoint every 150ms (smooth but visible)
         self.animation_timer = self.create_timer(0.15, self.animation_step)
@@ -526,54 +607,90 @@ class TopologicalPlannerNode(Node):
 
     def publish_collision_markers(self, q: tuple):
         """
-        Publishes the thinned collision spheres as a MarkerArray for visualization in RViz2.
+        Publishes the thinned collision spheres and the end-effector trajectory trail as a MarkerArray for RViz2.
         """
-        # If no URDF parser is active, we cannot publish thinned spheres
-        if getattr(self.collider, 'urdf_parser', None) is None:
-            return
-            
+        marker_array = MarkerArray()
+
+        # 1. Trajectory Trail (Yellow LINE_STRIP)
         try:
-            centers, radii = self.collider.urdf_parser.get_transformed_spheres(q)
-            
-            marker_array = MarkerArray()
-            
-            # Create a delete marker to clear old ones
-            clear_marker = Marker()
-            clear_marker.action = Marker.DELETEALL
-            marker_array.markers.append(clear_marker)
-            
-            for i in range(len(centers)):
-                marker = Marker()
-                marker.header.frame_id = 'world'
-                marker.header.stamp = self.get_clock().now().to_msg()
-                marker.ns = 'thinned_collision_spheres'
-                marker.id = i
-                marker.type = Marker.SPHERE
-                marker.action = Marker.ADD
-                
-                # Position
-                marker.pose.position.x = float(centers[i][0])
-                marker.pose.position.y = float(centers[i][1])
-                marker.pose.position.z = float(centers[i][2])
-                marker.pose.orientation.w = 1.0
-                
-                # Scale (diameter)
-                diameter = float(radii[i] * 2.0)
-                marker.scale.x = diameter
-                marker.scale.y = diameter
-                marker.scale.z = diameter
-                
-                # Color (Translucent Green to represent safety spheres)
-                marker.color.r = 0.0
-                marker.color.g = 1.0
-                marker.color.b = 0.0
-                marker.color.a = 0.4
-                
-                marker_array.markers.append(marker)
-                
-            self.marker_pub.publish(marker_array)
+            fk_positions = self.kinematics.compute_forward_kinematics(q)
+            end_effector_pos = fk_positions[-1]  # Last point = end-effector
+
+            # Accumulate the point
+            trail_pt = Point()
+            trail_pt.x = float(end_effector_pos[0])
+            trail_pt.y = float(end_effector_pos[1])
+            trail_pt.z = float(end_effector_pos[2])
+            self.trail_points.append(trail_pt)
+
+            # Publish the trail as a LINE_STRIP (needs at least 2 points)
+            if len(self.trail_points) >= 2:
+                trail_marker = Marker()
+                trail_marker.header.frame_id = 'world'
+                trail_marker.header.stamp = self.get_clock().now().to_msg()
+                trail_marker.ns = 'trajectory_trail'
+                trail_marker.id = 0
+                trail_marker.type = Marker.LINE_STRIP
+                trail_marker.action = Marker.ADD
+                trail_marker.pose.orientation.w = 1.0
+                trail_marker.scale.x = 0.005  # Line width (5mm)
+                # Yellow color
+                trail_marker.color.r = 1.0
+                trail_marker.color.g = 1.0
+                trail_marker.color.b = 0.0
+                trail_marker.color.a = 1.0
+                trail_marker.points = list(self.trail_points)
+                marker_array.markers.append(trail_marker)
         except Exception as e:
-            self.get_logger().error(f"Failed to publish collision markers: {e}")
+            self.get_logger().error(f"Failed to publish trajectory trail: {e}")
+
+        # 2. Collision Spheres
+        if getattr(self.collider, 'urdf_parser', None) is not None:
+            try:
+                centers, radii = self.collider.urdf_parser.get_transformed_spheres(q)
+                
+                # Clear only the collision sphere markers (not the trail)
+                clear_marker = Marker()
+                clear_marker.ns = 'thinned_collision_spheres'
+                clear_marker.action = Marker.DELETEALL
+                marker_array.markers.append(clear_marker)
+                
+                for i in range(len(centers)):
+                    marker = Marker()
+                    marker.header.frame_id = 'world'
+                    marker.header.stamp = self.get_clock().now().to_msg()
+                    marker.ns = 'thinned_collision_spheres'
+                    marker.id = i
+                    marker.type = Marker.SPHERE
+                    marker.action = Marker.ADD
+                    
+                    # Position
+                    marker.pose.position.x = float(centers[i][0])
+                    marker.pose.position.y = float(centers[i][1])
+                    marker.pose.position.z = float(centers[i][2])
+                    marker.pose.orientation.w = 1.0
+                    
+                    # Scale (diameter)
+                    diameter = float(radii[i] * 2.0)
+                    marker.scale.x = diameter
+                    marker.scale.y = diameter
+                    marker.scale.z = diameter
+                    
+                    # Color (Translucent Green to represent safety spheres)
+                    marker.color.r = 0.0
+                    marker.color.g = 1.0
+                    marker.color.b = 0.0
+                    marker.color.a = 0.4
+                    
+                    marker_array.markers.append(marker)
+            except Exception as e:
+                self.get_logger().error(f"Failed to publish collision markers: {e}")
+
+        if marker_array.markers:
+            try:
+                self.marker_pub.publish(marker_array)
+            except Exception as e:
+                self.get_logger().error(f"Failed to publish marker array: {e}")
 
     def _load_obstacles_from_urdf(self, urdf_path: str) -> list:
         try:
