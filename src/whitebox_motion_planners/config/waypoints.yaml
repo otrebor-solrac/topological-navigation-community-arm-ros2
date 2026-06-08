@@ -1,7 +1,9 @@
 # List of joint configurations in DEGREES for sequential path planning.
-# Format: [revolute_1_0, revolute_9_0, revolute_10_0]
+# Format: [base_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint]
 # You can add as many points as you want. When you call /execute_plan,
 # the planner will re-read this file dynamically and plan between them.
 waypoints:
   - [120.0, -45.0, 20.0]
-  - [-40.0, -45.0, 20.0]
+  - [-40.0, -45.0, 0.0]
+  - [-40.0, -35.0, 0.0]
+  - [120.0, -45.0, 20.0]

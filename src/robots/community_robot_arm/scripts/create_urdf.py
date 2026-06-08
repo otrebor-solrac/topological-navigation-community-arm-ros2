@@ -147,6 +147,17 @@ class URDFMigrationTool:
         for joint in root.findall('joint'):
             name = joint.get('name')
             
+            # Rename the three active joints to more descriptive academic names
+            if name == 'revolute_1_0':
+                joint.set('name', 'base_yaw_joint')
+                name = 'base_yaw_joint'
+            elif name == 'revolute_9_0':
+                joint.set('name', 'shoulder_pitch_joint')
+                name = 'shoulder_pitch_joint'
+            elif name == 'revolute_10_0':
+                joint.set('name', 'elbow_pitch_joint')
+                name = 'elbow_pitch_joint'
+            
             # Parche para error de asimetría en exportación desde Onshape (la 15 es la correcta, la 19 está mal)
             if name == 'revolute_19_0':
                 origin = joint.find('origin')

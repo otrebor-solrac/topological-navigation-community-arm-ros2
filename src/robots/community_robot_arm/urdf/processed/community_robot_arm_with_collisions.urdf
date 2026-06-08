@@ -2069,7 +2069,7 @@
         <parent link="parallel_3_0" />
         <child link="limit_switch_2" />
     </joint>
-    <joint name="revolute_10_0" type="continuous">
+    <joint name="elbow_pitch_joint" type="continuous">
         <origin xyz="3.8384e-08 0.0135 0.064" rpy="3.14159 0.232182 -1.3986e-15" />
         <axis xyz="0 1 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />
@@ -2123,7 +2123,7 @@
         <parent link="triplate_dual" />
         <child link="pleuel_bend_140_1" />
     </joint>
-    <joint name="revolute_1_0" type="continuous">
+    <joint name="base_yaw_joint" type="continuous">
         <origin xyz="4.85723e-17 -0.0336603 0.0257" rpy="2.02624e-16 -4.55524e-17 0.559643" />
         <axis xyz="0 0 -1" />
         <parent link="robot_belt_arm_socket_v2" />
@@ -2273,7 +2273,7 @@
         <parent link="pleuel_bend_140_1" />
         <child link="f624zz_73" />
     </joint>
-    <joint name="revolute_9_0" type="continuous">
+    <joint name="shoulder_pitch_joint" type="continuous">
         <origin xyz="3.53175e-08 -0.02 0.064" rpy="3.14159 -1.21288 -3.14159" />
         <axis xyz="0 1 0" />
         <parent link="robot_belt_arm_main_body_v2______mymod" />

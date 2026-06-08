@@ -1,0 +1,31 @@
+services:
+  ros2_dev:
+    build: .
+    container_name: ros2_thesis_env
+    volumes:
+      - ./src:/home/ros_ws/src
+      - ./dashboard:/home/ros_ws/dashboard
+      - ./cspace_cache:/home/ros_ws/cspace_cache
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - $HOME/.Xauthority:/root/.Xauthority:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - XAUTHORITY=/root/.Xauthority
+      - GAZEBO_MODEL_PATH=/home/ros_ws/src/robots
+      - GAZEBO_RESOURCE_PATH=/usr/share/gazebo-11
+      - GAZEBO_MODEL_DATABASE_URI=""
+    network_mode: host
+    ipc: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    command: tail -f /dev/null
+
+  dashboard:
+    build: ./dashboard
+    container_name: ros2_dashboard
+    volumes:
+      - ./dashboard:/usr/share/nginx/html
+    ports:
+      - "8080:80"

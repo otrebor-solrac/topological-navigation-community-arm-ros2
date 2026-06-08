@@ -36,7 +36,9 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('heuristic_type', 'L2')
         self.declare_parameter('use_horizontal_constraint', False)
         
+        self.declare_parameter('obstacles_urdf_path', '')
         self.declare_parameter('sphere_thinning_dist', 0.015)
+        self.declare_parameter('cache_dir', '')
         
         # Internal State
         self.is_animating = False
@@ -50,7 +52,7 @@ class TopologicalPlannerNode(Node):
         robot_type = self.get_parameter('robot_type').value
         use_horizontal = self.get_parameter('use_horizontal_constraint').value
         self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal)
- 
+  
         # If using static start, initialize the robot's initial override to the start position
         use_static = self.get_parameter('use_static_start').value
         if use_static:
@@ -82,19 +84,21 @@ class TopologicalPlannerNode(Node):
         # Declare and read parameter use_obstacles
         self.declare_parameter('use_obstacles', True)
         use_obstacles = self.get_parameter('use_obstacles').value
+        obstacles_urdf_path = self.get_parameter('obstacles_urdf_path').value
         
         if use_obstacles:
             try:
                 pkg_share = get_package_share_directory('community_robot_arm')
-                urdf_path = os.path.join(pkg_share, 'urdf', 'obstacles', 'box_obstacle_spherized.urdf')
-                self.get_logger().info(f"Loading environment obstacles from: {urdf_path}")
-                if os.path.exists(urdf_path):
-                    obstacles = self._load_obstacles_from_urdf(urdf_path)
+                if not obstacles_urdf_path:
+                    obstacles_urdf_path = os.path.join(pkg_share, 'urdf', 'spherized', 'obstacles', 'box_obstacle_spherized.urdf')
+                self.get_logger().info(f"Loading environment obstacles from: {obstacles_urdf_path}")
+                if os.path.exists(obstacles_urdf_path):
+                    obstacles = self._load_obstacles_from_urdf(obstacles_urdf_path)
                     for center, radius in obstacles:
                         self.collider.add_obstacle(center, radius)
                         self.get_logger().info(f"Added obstacle sphere: center={center}, radius={radius:.3f}")
                 else:
-                    self.get_logger().warn(f"Obstacles URDF file not found at: {urdf_path}")
+                    self.get_logger().warn(f"Obstacles URDF file not found at: {obstacles_urdf_path}")
             except Exception as e:
                 self.get_logger().error(f"Failed to load obstacles: {e}")
 
@@ -102,8 +106,6 @@ class TopologicalPlannerNode(Node):
         try:
             obstacles_hash = "no_obstacles"
             if use_obstacles:
-                pkg_share = get_package_share_directory('community_robot_arm')
-                obstacles_urdf_path = os.path.join(pkg_share, 'urdf', 'obstacles', 'box_obstacle_spherized.urdf')
                 if os.path.exists(obstacles_urdf_path):
                     import hashlib
                     hash_md5 = hashlib.md5()
@@ -115,10 +117,15 @@ class TopologicalPlannerNode(Node):
             step_size = self.get_parameter('step_size_deg').value
             thinning_dist = self.get_parameter('sphere_thinning_dist').value
             src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            if os.path.exists('/home/ros_ws/src/whitebox_motion_planners'):
-                cache_dir = '/home/ros_ws/src/whitebox_motion_planners/cspace_cache'
-            else:
-                cache_dir = os.path.join(src_dir, 'cspace_cache')
+            cache_dir = self.get_parameter('cache_dir').value
+            if not cache_dir:
+                if os.path.exists('/home/ros_ws/cspace_cache'):
+                    cache_dir = '/home/ros_ws/cspace_cache'
+                else:
+                    if os.path.exists('/home/ros_ws/src/whitebox_motion_planners'):
+                        cache_dir = '/home/ros_ws/src/whitebox_motion_planners/cspace_cache'
+                    else:
+                        cache_dir = os.path.join(src_dir, 'cspace_cache')
             cache_filepath = os.path.join(cache_dir, f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json")
             
             if os.path.exists(cache_filepath):
@@ -229,9 +236,9 @@ class TopologicalPlannerNode(Node):
             # (threshold of 0.01 rad to ignore noise)
             master_indices = []
             master_names = (
-                ['revolute_1_0', 'revolute_9_0'] 
+                ['base_yaw_joint', 'shoulder_pitch_joint'] 
                 if getattr(self.kinematics, 'use_horizontal_constraint', False) 
-                else ['revolute_1_0', 'revolute_9_0', 'revolute_10_0']
+                else ['base_yaw_joint', 'shoulder_pitch_joint', 'elbow_pitch_joint']
             )
             for name in master_names:
                 if name in msg.name:
@@ -396,14 +403,14 @@ class TopologicalPlannerNode(Node):
                 joint_map = dict(zip(self.master_joint_names, self.current_q))
                 if getattr(self.kinematics, 'use_horizontal_constraint', False):
                     start_q = (
-                        joint_map.get('revolute_1_0', 0.0),
-                        joint_map.get('revolute_9_0', 0.0)
+                        joint_map.get('base_yaw_joint', 0.0),
+                        joint_map.get('shoulder_pitch_joint', 0.0)
                     )
                 else:
                     start_q = (
-                        joint_map.get('revolute_1_0', 0.0),
-                        joint_map.get('revolute_9_0', 0.0),
-                        joint_map.get('revolute_10_0', 0.0)
+                        joint_map.get('base_yaw_joint', 0.0),
+                        joint_map.get('shoulder_pitch_joint', 0.0),
+                        joint_map.get('elbow_pitch_joint', 0.0)
                     )
             else:
                 dof = self.kinematics.get_dof()
@@ -466,9 +473,9 @@ class TopologicalPlannerNode(Node):
 
             # Override master joints
             master_map = {
-                'revolute_1_0': q_full[0],
-                'revolute_9_0': q_full[1],
-                'revolute_10_0': q_full[2],
+                'base_yaw_joint': q_full[0],
+                'shoulder_pitch_joint': q_full[1],
+                'elbow_pitch_joint': q_full[2],
             }
             for i, name in enumerate(names):
                 if name in master_map:
@@ -480,7 +487,7 @@ class TopologicalPlannerNode(Node):
             msg.position = positions
         else:
             # Fallback if no GUI message received yet
-            msg.name = ['revolute_1_0', 'revolute_9_0', 'revolute_10_0']
+            msg.name = ['base_yaw_joint', 'shoulder_pitch_joint', 'elbow_pitch_joint']
             msg.position = [float(val) for val in q_3dof[:3]]
 
         msg.velocity = [0.0] * len(msg.name)

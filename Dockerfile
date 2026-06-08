@@ -16,14 +16,12 @@ RUN apt-get update && apt-get install -y \
     ros-humble-rosbridge-suite \
     git \
     python3-pip \
+    cargo \
+    rustc \
     && pip3 install pudb flask \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up workspace directory
 ENV ROS_WS=/home/ros_ws
 WORKDIR $ROS_WS
-
-# The simulation_entrypoint.sh is now handled via docker-compose volumes
-# to allow real-time edits without rebuilding the image.
-ENTRYPOINT ["/home/ros_ws/simulation_entrypoint.sh"]
 CMD ["bash"]

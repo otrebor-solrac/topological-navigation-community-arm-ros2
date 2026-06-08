@@ -50,32 +50,43 @@ def _select_rviz_config(pkg_share, use_spherized):
 
 def _get_zeros_params(pkg_share_wb):
     """
-    Load start positions from whitebox_motion_planners config to initialize the GUI sliders
+    Load start positions from whitebox_motion_planners waypoints.yaml
+    to initialize the GUI sliders.
 
     :param pkg_share_wb: The package share directory
     :return: Dictionary of start positions
     """
 
-    yaml_path = os.path.join(pkg_share_wb, 'config', 'planner_params.yaml')
+    yaml_path = os.path.join(pkg_share_wb, 'config', 'waypoints.yaml')
     try:
         with open(yaml_path, 'r') as f:
-            params = yaml.safe_load(f)['/**']['ros__parameters']
+            data = yaml.safe_load(f)
+            waypoints = data.get('waypoints', [])
         
-        if params.get('use_static_start', False):
-            start = params.get('start', [])
-            if params.get('angles_in_degrees', False):
-                start = [float(x) * math.pi / 180.0 for x in start]
+        if waypoints:
+            # Take the first waypoint as the starting position
+            start = waypoints[0]
+            # Convert degrees to radians
+            start_rad = [float(x) * math.pi / 180.0 for x in start]
             
             return {
-                'zeros.revolute_1_0': float(start[0]),
-                'zeros.revolute_9_0': float(start[1]),
-                'zeros.revolute_10_0': float(start[2]),
+                'zeros.base_yaw_joint': start_rad[0],
+                'zeros.shoulder_pitch_joint': start_rad[1],
+                'zeros.elbow_pitch_joint': start_rad[2],
             }
     except Exception as e:
-        print(f"Could not load start zeros from YAML: {e}")
+        print(f"Could not load start zeros from waypoints.yaml: {e}")
     return {}
 
 def launch_setup(context, *args, **kwargs):
+    """
+    Initialize the launch setup with the given context.
+
+    :param context: The launch context
+    :param args: The launch arguments
+    :param kwargs: The launch keyword arguments
+    :return: List of nodes to be launched
+    """
     pkg_share = get_package_share_directory('community_robot_arm')
     
     # Get the value of the argument
@@ -111,7 +122,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{'robot_description': robot_desc}]
         ),
         # joint_state_publisher_gui: Spawns the interactive GUI sliders allowing manual control
-        # of the active (master) joint positions. Initialized with values from planner_params.yaml.
+        # of the active (master) joint positions. Initialized with values from waypoints.yaml.
         Node(
             package='joint_state_publisher_gui',
             executable='joint_state_publisher_gui',
@@ -120,8 +131,9 @@ def launch_setup(context, *args, **kwargs):
             remappings=[('/joint_states', LaunchConfiguration('gui_topic'))],
             parameters=[zeros_params] if zeros_params else []
         ),
-        # ExecuteProcess: Runs the parallelogram kinematics Python node. It translates active/master
-        # joint states to passive dependent links to maintain physical parallelogram constraints.
+        # ExecuteProcess: Runs the parallelogram kinematics Python script as a system process
+        # (which initializes a ROS 2 node). It translates active/master joint states to
+        # passive dependent links to maintain physical parallelogram constraints.
         ExecuteProcess(
             cmd=['python3', script_path],
             output='screen'
@@ -147,13 +159,15 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'spherized',
             default_value='true',
-            description='Usa "true" para ver las esferas'
+            description='Set to "true" to visualize the spherized robot collision primitives in RViz'
         ),
-        # Declare launch argument to specify the topic where the joint state publisher GUI publishes master states.
+        # Declare launch argument to specify the topic where the joint state publisher GUI publishes raw states.
+        # This prevents the GUI from publishing directly to '/joint_states', allowing the kinematics node to intercept 
+        # these raw states, solve the parallelogram linkage loop constraints, and publish the final synchronized joints.
         DeclareLaunchArgument(
             'gui_topic',
             default_value='/gui_master_states',
-            description='Topic where the GUI publishes master joint states'
+            description='Topic where the GUI publishes raw joint states before parallel kinematics validation'
         ),
         # OpaqueFunction executes the setup logic to dynamically resolve paths and configure node parameters before execution.
         OpaqueFunction(function=launch_setup)

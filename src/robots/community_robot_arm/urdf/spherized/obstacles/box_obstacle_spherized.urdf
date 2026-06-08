@@ -18,38 +18,20 @@
 		</visual>
 		<collision>
 			<geometry>
-				<sphere radius="0.106209"></sphere>
-			</geometry>
-			<origin xyz="0.021825 0.0 -0.096824" rpy="0 0 0"></origin>
-		</collision>
-		<collision>
-			<geometry>
-				<sphere radius="0.112245"></sphere>
-			</geometry>
-			<origin xyz="0.000736 -0.000736 -0.041403" rpy="0 0 0"></origin>
-		</collision>
-		<collision>
-			<geometry>
-				<sphere radius="0.127712"></sphere>
-			</geometry>
-			<origin xyz="-0.001451 0.001448 -0.075901" rpy="0 0 0"></origin>
-		</collision>
-		<collision>
-			<geometry>
-				<sphere radius="0.069048"></sphere>
-			</geometry>
-			<origin xyz="-0.038699 -0.028825 -0.1137" rpy="0 0 0"></origin>
-		</collision>
-		<collision>
-			<geometry>
 				<sphere radius="0.129903"></sphere>
 			</geometry>
 			<origin xyz="3e-06 2e-06 0.075007" rpy="0 0 0"></origin>
+		</collision>
+		<collision>
+			<geometry>
+				<sphere radius="0.12889"></sphere>
+			</geometry>
+			<origin xyz="0.00088 2e-06 -0.075882" rpy="0 0 0"></origin>
 		</collision>
 	</link>
 	<joint name="obstacle_box_joint" type="fixed">
 		<parent link="world"></parent>
 		<child link="obstacle_box_link"></child>
-		<origin xyz="0.3 0.15 0.2" rpy="0 0 0"></origin>
+		<origin xyz="0.3 0.0 0.15" rpy="0 0 0"></origin>
 	</joint>
 </robot>

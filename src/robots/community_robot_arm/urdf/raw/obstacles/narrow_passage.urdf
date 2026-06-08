@@ -1,0 +1,62 @@
+<?xml version="1.0" ?>
+<robot name="narrow_passage">
+  <link name="world"/>
+
+  <link name="left_wall_link">
+    <inertial>
+      <mass value="1.0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.3 0.18 0.2" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.06 0.16 0.4"/>
+      </geometry>
+      <material name="red">
+        <color rgba="0.8 0.1 0.1 0.6"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.3 0.18 0.2" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.06 0.16 0.4"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="right_wall_link">
+    <inertial>
+      <mass value="1.0"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.3 -0.12 0.2" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.06 0.16 0.4"/>
+      </geometry>
+      <material name="red">
+        <color rgba="0.8 0.1 0.1 0.6"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.3 -0.12 0.2" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.06 0.16 0.4"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="left_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="left_wall_link"/>
+    <origin xyz="0 -0.03 0" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="right_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="right_wall_link"/>
+    <origin xyz="0 -0.03 0" rpy="0 0 0"/>
+  </joint>
+</robot>

@@ -136,9 +136,9 @@ jointSub.subscribe((msg) => {
     let q = [0, 0, 0];
     let found = 0;
     for(let i=0; i<names.length; i++) {
-        if(names[i] === 'revolute_1_0') { q[0] = pos[i]; found++; }
-        if(names[i] === 'revolute_9_0') { q[1] = pos[i]; found++; }
-        if(names[i] === 'revolute_10_0') { q[2] = pos[i]; found++; }
+        if(names[i] === 'base_yaw_joint') { q[0] = pos[i]; found++; }
+        if(names[i] === 'shoulder_pitch_joint') { q[1] = pos[i]; found++; }
+        if(names[i] === 'elbow_pitch_joint') { q[2] = pos[i]; found++; }
     }
 
     if (found >= 2) {

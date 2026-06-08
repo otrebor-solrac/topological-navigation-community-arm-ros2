@@ -25,30 +25,30 @@ class ParallelogramKinematics(Node):
     def cb(self, msg: JointState):
         joints = dict(zip(msg.name, msg.position))
         
-        # 1. Definimos los Motores Principales (Maestros)
-        q1 = joints.get('revolute_1_0', 0.0)
-        q2 = joints.get('revolute_9_0', 0.0)   # Motor 2 (Lower Shank)
-        q3 = joints.get('revolute_10_0', 0.0)  # Motor 3 (Lever / Palanca)
+        # 1. Define the primary master motor states
+        q1 = joints.get('base_yaw_joint', 0.0)
+        q2 = joints.get('shoulder_pitch_joint', 0.0)   # Motor 2 (Lower Shank)
+        q3 = joints.get('elbow_pitch_joint', 0.0)      # Motor 3 (Lever / Palanca)
         
-        # 2. Resolvemos el Paralelogramo (Articulaciones dependientes)
+        # 2. Solve the parallelogram linkage constraint (dependent joints)
         joints['revolute_16_0'] = -q3 - q2
         joints['revolute_12_0'] = q2 + q3
 
-        # 3. Bielas Inferiores (Nuevos "Shanks" falsos anclados al cuerpo principal)
-        # El usuario modificó el URDF para que las bielas curvas cuelguen de main_body
-        # Deben imitar exactamente el ángulo de lower_shank (q2)
-        joints['revolute_32_0'] = q2   # Eje 0 1 0
-        joints['revolute_31_0'] = -q2  # Eje 0 -1 0
+        # 3. Lower shanks/linkages (imitating lower_shank pitch)
+        # The URDF has curved linkages hanging from the main_body.
+        # They must copy the lower_shank pitch angle (q2).
+        joints['revolute_32_0'] = q2   # Axis [0, 1, 0]
+        joints['revolute_31_0'] = -q2  # Axis [0, -1, 0]
 
-        # 4. Triplates colgando de las bielas inferiores
-        # Deben mantenerse nivelados compensando la rotación de sus padres (q2)
-        joints['revolute_13_0'] = -q2  # Eje 0 1 0 (inverso a revolute_32)
-        joints['revolute_18_0'] = q2   # Eje 0 -1 0 (inverso a revolute_31)
+        # 4. Triplates hanging from the lower linkages
+        # They must remain level by compensating for their parent rotation (q2)
+        joints['revolute_13_0'] = -q2  # Axis [0, 1, 0] (inverse to revolute_32)
+        joints['revolute_18_0'] = q2   # Axis [0, -1, 0] (inverse to revolute_31)
 
-        # 5. Bielas Superiores (colgando del triplate hacia el efector final)
-        # Invertimos el signo para que giren en la misma dirección que el upper_shank
-        joints['revolute_15_0'] = -q3   # Eje 0 -1 0
-        joints['revolute_19_0'] = q3    # Eje 0 1 0
+        # 5. Upper linkages hanging from the triplate towards the end-effector
+        # Invert signs to match upper_shank rotation directions
+        joints['revolute_15_0'] = -q3   # Axis [0, -1, 0]
+        joints['revolute_19_0'] = q3    # Axis [0, 1, 0]
 
 
         

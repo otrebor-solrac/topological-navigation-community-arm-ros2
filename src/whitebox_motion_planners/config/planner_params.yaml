@@ -13,19 +13,19 @@
 
     # START CONFIGURATION (Point A) in DEGREES
     start:
-      - 120.0      # revolute_1_0 (yaw)
-      - -45.0    # revolute_9_0 (shoulder pitch)
-      - 20.0     # revolute_10_0 (elbow pitch)
+      - 120.0      # base_yaw_joint (yaw)
+      - -45.0    # shoulder_pitch_joint (shoulder pitch)
+      - 20.0     # elbow_pitch_joint (elbow pitch)
 
     # GOAL CONFIGURATION (Point B) in DEGREES
     goal:
-      - -40.0      # revolute_1_0 (yaw)
-      - -45.0     # revolute_9_0 (shoulder pitch)
-      - 90.0    # revolute_10_0 (elbow pitch)
+      - -40.0      # base_yaw_joint (yaw)
+      - -45.0     # shoulder_pitch_joint (shoulder pitch)
+      - 90.0    # elbow_pitch_joint (elbow pitch)
 
 
     # Grid resolution (lower means more precision but slower planning)
-    step_size_deg: 10.0
+    step_size_deg: 8.0
     
     # Distance threshold in meters for URDF sphere thinning (e.g. 0.015 = 1.5 cm)
     sphere_thinning_dist: 0.01
@@ -41,3 +41,6 @@
 
     # Environment obstacles
     use_obstacles: true
+
+    # Obstacle type: "box_obstacle", "narrow_passage", "u_obstacle", "toroidal_wall"
+    obstacle_type: "box_obstacle"
