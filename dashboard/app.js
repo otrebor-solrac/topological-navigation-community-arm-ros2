@@ -119,6 +119,24 @@ ros.on('connection', () => {
     connTag.style.borderColor = "#00ff9d";
 });
 
+ros.on('error', (error) => {
+    connTag.innerText = "ROS: ERROR";
+    connTag.style.color = "#ff4d4d";
+    connTag.style.borderColor = "#ff4d4d";
+});
+
+ros.on('close', () => {
+    connTag.innerText = "ROS: DISCONNECTED";
+    connTag.style.color = "#ff4d4d";
+    connTag.style.borderColor = "#ff4d4d";
+});
+
+const webCmdPub = new ROSLIB.Topic({
+    ros : ros,
+    name : '/web_commands',
+    messageType : 'std_msgs/String'
+});
+
 const jointSub = new ROSLIB.Topic({
     ros : ros,
     name : '/joint_states',
@@ -259,6 +277,104 @@ voxelSub.subscribe((msg) => {
     rawVoxelData = JSON.parse(msg.data);
     renderVoxels();
 });
+
+// --- PLANNER CONTROL & SEQUENCER INTEGRATION ---
+let waypointsSequence = [];
+
+window.updatePlannerParams = function() {
+    const planner = document.getElementById('select-planner').value;
+    const heuristicGroup = document.getElementById('heuristic-group');
+    if (planner === 'rrt') {
+        heuristicGroup.style.display = 'none';
+    } else {
+        heuristicGroup.style.display = 'block';
+    }
+};
+
+window.planToCurrentGoal = function() {
+    const th1 = parseFloat(document.getElementById('goal-th1').value) || 0.0;
+    const th2 = parseFloat(document.getElementById('goal-th2').value) || 0.0;
+    const th3 = parseFloat(document.getElementById('goal-th3').value) || 0.0;
+
+    const planner = document.getElementById('select-planner').value;
+    const heuristic = document.getElementById('select-heuristic').value;
+
+    const payload = {
+        action: "plan",
+        planner_type: planner,
+        heuristic_type: heuristic,
+        goal: [th1, th2, th3]
+    };
+
+    const msg = new ROSLIB.Message({
+        data: JSON.stringify(payload)
+    });
+    webCmdPub.publish(msg);
+    console.log("Published plan command:", payload);
+};
+
+window.addCurrentAsWaypoint = function() {
+    if (!lastQ) {
+        alert("No joint state received yet. Is the robot visualization running?");
+        return;
+    }
+    const wp = [lastQ[0], lastQ[1], lastQ[2]];
+    waypointsSequence.push(wp);
+    renderWaypointsList();
+};
+
+window.clearWaypointSequence = function() {
+    waypointsSequence = [];
+    renderWaypointsList();
+};
+
+window.removeWaypoint = function(idx) {
+    waypointsSequence.splice(idx, 1);
+    renderWaypointsList();
+};
+
+function renderWaypointsList() {
+    const listDiv = document.getElementById('waypoint-list');
+    const execBtn = document.getElementById('btn-exec-seq');
+
+    if (waypointsSequence.length === 0) {
+        listDiv.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">No waypoints added</div>';
+        execBtn.style.display = 'none';
+        return;
+    }
+
+    listDiv.innerHTML = waypointsSequence.map((wp, idx) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; border-bottom: 1px solid #222;">
+            <span>WP #${idx + 1}: [${wp[0].toFixed(2)}, ${wp[1].toFixed(2)}, ${wp[2].toFixed(2)}]</span>
+            <span onclick="removeWaypoint(${idx})" style="color: #ff5555; cursor: pointer; font-weight: bold; padding: 0 6px; font-size: 1.1em;">&times;</span>
+        </div>
+    `).join('');
+
+    execBtn.style.display = 'block';
+}
+
+window.executeWaypointSequence = function() {
+    if (waypointsSequence.length < 2) {
+        alert("At least 2 waypoints are required to execute a sequential path.");
+        return;
+    }
+
+    const planner = document.getElementById('select-planner').value;
+    const heuristic = document.getElementById('select-heuristic').value;
+
+    const payload = {
+        action: "plan_sequential",
+        planner_type: planner,
+        heuristic_type: heuristic,
+        waypoints: waypointsSequence
+    };
+
+    const msg = new ROSLIB.Message({
+        data: JSON.stringify(payload)
+    });
+    webCmdPub.publish(msg);
+    console.log("Published sequential plan command:", payload);
+};
 
 function animate() {
     requestAnimationFrame(animate);

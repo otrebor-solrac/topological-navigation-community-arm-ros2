@@ -88,8 +88,10 @@ class RRTPlanner(BasePlanner):
             # 3. STEER: Extend towards sample by step_size
             q_new = self._steer(q_nearest, q_rand)
 
-            # 4. COLLISION CHECK: Validate the new configuration
+            # 4. COLLISION CHECK: Validate new node and the edge leading to it
             if not self.collider.is_state_valid(q_new, self.kinematics):
+                continue
+            if not self._is_edge_valid(q_nearest, q_new):
                 continue
 
             # 5. ADD to tree
@@ -173,6 +175,39 @@ class RRTPlanner(BasePlanner):
             result.append(new_angle)
 
         return tuple(result)
+
+    def _is_edge_valid(self, q_from: tuple, q_to: tuple, n_checks: int = 5) -> bool:
+        """
+        Validates the geodesic edge on T^n between q_from and q_to.
+
+        Interpolates `n_checks` intermediate configurations along the
+        shortest arc on each S^1 factor and checks each one for collisions
+        (both self-collision and external obstacles via is_state_valid).
+
+        This prevents the "tunneling" effect where a large step could
+        jump over a thin obstacle without detecting the collision.
+
+        Args:
+            q_from: Starting configuration (radians).
+            q_to: Target configuration (radians).
+            n_checks: Number of intermediate samples along the edge.
+
+        Returns:
+            True if the entire edge is collision-free, False otherwise.
+        """
+        for k in range(1, n_checks + 1):
+            t = k / (n_checks + 1)
+            q_interp = tuple(
+                TorusTopology.normalize_angle(
+                    theta_from + t * (
+                        (theta_to - theta_from + math.pi) % (2 * math.pi) - math.pi
+                    )
+                )
+                for theta_from, theta_to in zip(q_from, q_to)
+            )
+            if not self.collider.is_state_valid(q_interp, self.kinematics):
+                return False
+        return True
 
     def _reconstruct_path(self, goal_idx: int) -> List[tuple]:
         """
