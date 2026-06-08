@@ -12,9 +12,8 @@ class GridDiscretizer:
         """
         Initialize the grid discretizer.
 
-        Args:
-            step_size_deg: The size of each grid step in degrees.
-            num_dof: The number of degrees of freedom.
+        :param step_size_deg: The size of each grid step in degrees.
+        :param num_dof: The number of degrees of freedom.
         """
 
         self.step_rad = math.radians(step_size_deg)
@@ -25,11 +24,8 @@ class GridDiscretizer:
         """ 
         Maps continuous angles to integer grid indices. 
 
-        Args:
-            q_continuous: Tuple of continuous angles in radians.
-
-        Returns:
-            Tuple of integer grid indices.
+        :param q_continuous: Tuple of continuous angles in radians.
+        :return: Tuple of integer grid indices.
         """
 
         indices = []
@@ -44,11 +40,8 @@ class GridDiscretizer:
         """
         Maps integer grid indices back to continuous radians.
 
-        Args:
-            q_indices: Tuple of integer grid indices.
-
-        Returns:
-            Tuple of continuous angles in radians.
+        :param q_indices: Tuple of integer grid indices.
+        :return: Tuple of continuous angles in radians.
         """
 
         angles = []
@@ -62,11 +55,8 @@ class GridDiscretizer:
         """
         Returns adjacent integer indices in the grid.
 
-        Args:
-            q_indices: Tuple of integer grid indices.
-
-        Returns:
-            List of tuples of integer grid indices.
+        :param q_indices: Tuple of integer grid indices.
+        :return: List of tuples of integer grid indices.
         """
         
         neighbors = []
@@ -83,8 +73,7 @@ class GridDiscretizer:
         Generates all possible discrete states in the T^n grid.
         WARNING: Grows exponentially with num_dof.
         
-        Returns:
-            List of tuples of all possible integer grid indices.
+        :return: List of tuples of all possible integer grid indices.
         """
         ranges = [range(self.steps_per_circle) for _ in range(self.num_dof)]
         return list(itertools.product(*ranges))

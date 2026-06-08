@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     ros-humble-rosbridge-suite \
     git \
     python3-pip \
+    cargo \
+    rustc \
     && pip3 install pudb flask \
     && rm -rf /var/lib/apt/lists/*
 
