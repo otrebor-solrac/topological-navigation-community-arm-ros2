@@ -28,7 +28,7 @@
     step_size_deg: 8.0
     
     # Distance threshold in meters for URDF sphere thinning (e.g. 0.015 = 1.5 cm)
-    sphere_thinning_dist: 0.01
+    sphere_thinning_dist: 0.015
 
     # Algorithm: "astar" or "rrt"
     planner_type: "astar"

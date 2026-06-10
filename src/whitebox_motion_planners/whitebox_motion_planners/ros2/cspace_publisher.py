@@ -14,6 +14,9 @@ from ..kinematics import get_kinematics
 class CSpaceVoxelPublisher(Node):
     def __init__(self):
         super().__init__('cspace_voxel_publisher')
+        self.cached_voxels_msg = None
+        self.cache_dirty = True
+        self.last_sub_count = 0
         
         # 1. Initialize parameters
         (robot_type, step_size, use_horizontal, use_obstacles, 
@@ -172,6 +175,7 @@ class CSpaceVoxelPublisher(Node):
         self.cache_filepath = os.path.join(self.cache_dir, self.cache_filename)
         self.get_logger().info(f"Cache filepath: {self.cache_filepath}")
         
+        self.warned_no_cache = False
         self._load_cspace_if_exists()
 
     def _setup_ros_interfaces(self, step_size):
@@ -186,10 +190,17 @@ class CSpaceVoxelPublisher(Node):
         
         # Timer to publish voxels when there are active subscribers (e.g. web dashboard)
         self.timer = self.create_timer(2.0, self.publish_voxels)
-        self.cached_voxels_msg = None
 
         # Register service to generate the cache on demand
         self.srv = self.create_service(Trigger, 'generate_cspace', self.generate_cspace_callback)
+
+        # Dashboard control interface
+        self.web_cmd_sub = self.create_subscription(
+            String,
+            '/web_commands',
+            self.web_command_callback,
+            10
+        )
 
         self.get_logger().info(f"C-Space Voxelizer started (Resolution: {step_size} deg)")
 
@@ -205,12 +216,20 @@ class CSpaceVoxelPublisher(Node):
                 with open(self.cache_filepath, 'r') as f:
                     cached_json = f.read()
                 
-                # Validate JSON syntax
-                json.loads(cached_json)
+                # Validate JSON syntax and structure
+                raw_data = json.loads(cached_json)
                 
-                msg = String()
-                msg.data = cached_json
-                self.cached_voxels_msg = msg
+                if isinstance(raw_data, dict) and "self_collision_voxels" in raw_data and "obstacle_voxels" in raw_data:
+                    msg = String()
+                    msg.data = cached_json
+                    self.cached_voxels_msg = msg
+                else:
+                    # Old cache format! Auto-regenerate using the new Rust solver
+                    self.get_logger().info("Old cache format detected (missing segregated layers). Auto-regenerating in segregated dictionary format...")
+                    cspace_data = self._compute_cspace_voxels()
+                    self._save_cspace_cache(cspace_data)
+                
+                self.cache_dirty = True
                 self.get_logger().info("C-Space loaded from cache successfully!")
                 
                 return True
@@ -295,9 +314,8 @@ class CSpaceVoxelPublisher(Node):
                 
                 if process.returncode == 0:
                     output_data = json.loads(stdout)
-                    forbidden_voxels = output_data.get('forbidden_voxels', [])
-                    self.get_logger().info(f"Rust C-Space solver success! Found {len(forbidden_voxels)}/{total_states} forbidden states.")
-                    return forbidden_voxels
+                    self.get_logger().info(f"Rust C-Space solver success! Found {len(output_data.get('forbidden_voxels', []))}/{total_states} forbidden states.")
+                    return output_data
                 else:
                     self.get_logger().error(f"Rust solver failed (exit code {process.returncode}): {stderr}")
             except Exception as e:
@@ -306,33 +324,51 @@ class CSpaceVoxelPublisher(Node):
         # 2. Fallback to Python sequential computation
         self.get_logger().warn("Falling back to Python sequential C-Space computation...")
         forbidden_voxels = []
+        self_collision_voxels = []
+        obstacle_voxels = []
         for idx, q_discrete in enumerate(states):
             if idx % 10000 == 0 and idx > 0:
                 self.get_logger().info(f"Progress: {idx}/{total_states} states processed...")
                 
             q_radians = self.grid.get_radians(q_discrete)
-            if not self.collider.is_state_valid(q_radians, self.kinematics):
-                q0 = (q_radians[0] + np.pi) % (2 * np.pi) - np.pi
-                q1 = (q_radians[1] + np.pi) % (2 * np.pi) - np.pi
-                q2 = (q_radians[2] + np.pi) % (2 * np.pi) - np.pi if len(q_radians) > 2 else 0.0
+            
+            is_self_collision = False
+            if self.collider.urdf_parser is not None:
+                is_self_collision = self.collider.urdf_parser.check_self_collision(q_radians)
+            
+            q0 = (q_radians[0] + np.pi) % (2 * np.pi) - np.pi
+            q1 = (q_radians[1] + np.pi) % (2 * np.pi) - np.pi
+            q2 = (q_radians[2] + np.pi) % (2 * np.pi) - np.pi if len(q_radians) > 2 else 0.0
+            voxel = [round(float(q0), 3), round(float(q1), 3), round(float(q2), 3)]
+            
+            if is_self_collision:
+                forbidden_voxels.append(voxel)
+                self_collision_voxels.append(voxel)
+            else:
+                is_obs_collision = False
+                obstacles_tuples = [(obs.center, obs.radius) for obs in self.collider.spherical_obstacles]
+                if self.collider.urdf_parser is not None:
+                    is_obs_collision = self.collider.urdf_parser.check_obstacle_collision(q_radians, obstacles_tuples)
                 
-                forbidden_voxels.append([
-                    round(float(q0), 3),
-                    round(float(q1), 3),
-                    round(float(q2), 3)
-                ])
+                if is_obs_collision:
+                    forbidden_voxels.append(voxel)
+                    obstacle_voxels.append(voxel)
                 
         self.get_logger().info(f"Finished processing C-Space. Found {len(forbidden_voxels)} forbidden states.")
-        return forbidden_voxels
+        return {
+            "forbidden_voxels": forbidden_voxels,
+            "self_collision_voxels": self_collision_voxels,
+            "obstacle_voxels": obstacle_voxels
+        }
 
-    def _save_cspace_cache(self, forbidden_voxels: list) -> bool:
+    def _save_cspace_cache(self, cspace_data: dict) -> bool:
         """
-        Serialize forbidden voxels and save them to the persistent cache file.
+        Serialize C-space data dictionary and save it to the persistent cache file.
 
-        :param forbidden_voxels: List of forbidden configuration coordinates.
+        :param cspace_data: Dictionary containing forbidden, self_collision and obstacle voxels.
         :return: True if cache saved successfully, False otherwise.
         """
-        serialized_data = json.dumps(forbidden_voxels)
+        serialized_data = json.dumps(cspace_data)
         try:
             with open(self.cache_filepath, 'w') as f:
                 f.write(serialized_data)
@@ -341,6 +377,7 @@ class CSpaceVoxelPublisher(Node):
             msg = String()
             msg.data = serialized_data
             self.cached_voxels_msg = msg
+            self.cache_dirty = True
             return True
         except Exception as e:
             self.get_logger().error(f"Error writing cache to disk: {e}")
@@ -356,12 +393,12 @@ class CSpaceVoxelPublisher(Node):
         """
         self.get_logger().info("Starting C-Space cache generation...")
         
-        forbidden_voxels = self._compute_cspace_voxels()
-        success = self._save_cspace_cache(forbidden_voxels)
+        cspace_data = self._compute_cspace_voxels()
+        success = self._save_cspace_cache(cspace_data)
         
         if success:
             response.success = True
-            response.message = f"C-Space generated successfully. {len(forbidden_voxels)} voxels saved in {self.cache_filepath}."
+            response.message = f"C-Space generated successfully. Saved in {self.cache_filepath}."
         else:
             response.success = False
             response.message = f"Failed to save C-Space cache to disk: {self.cache_filepath}"
@@ -372,8 +409,28 @@ class CSpaceVoxelPublisher(Node):
         """
         Publish voxels to the topic only when there are active subscribers.
         """
-        if self.cached_voxels_msg is not None and self.publisher_.get_subscription_count() > 0:
+        sub_count = self.publisher_.get_subscription_count()
+        msg_is_set = self.cached_voxels_msg is not None
+        
+        should_publish = False
+        if msg_is_set:
+            if sub_count > 0:
+                if sub_count > self.last_sub_count:
+                    should_publish = True
+                if self.cache_dirty:
+                    should_publish = True
+                self.last_sub_count = sub_count
+            else:
+                self.last_sub_count = 0
+                
+        if should_publish:
             self.publisher_.publish(self.cached_voxels_msg)
+            self.cache_dirty = False
+            self.get_logger().info(f"Published C-space voxels to {sub_count} subscribers (size: {len(self.cached_voxels_msg.data)} chars)")
+        elif not msg_is_set:
+            if not getattr(self, 'warned_no_cache', False):
+                self.get_logger().warn("publish_voxels: self.cached_voxels_msg is None, cannot publish.")
+                self.warned_no_cache = True
 
     def _load_obstacles_from_urdf(self, urdf_path: str) -> list:
         """
@@ -440,6 +497,53 @@ class CSpaceVoxelPublisher(Node):
                         )
                         obstacles.append((abs_center, radius))
         return obstacles
+
+    def web_command_callback(self, msg: String):
+        """
+        Processes commands received from the web dashboard.
+        """
+        try:
+            data = json.loads(msg.data)
+            action = data.get("action")
+            if action == "change_cspace":
+                obstacle_type = data.get("obstacle_type")
+                step_size = float(data.get("step_size_deg"))
+                
+                self.get_logger().info(f"Changing C-space dynamically to: {obstacle_type} at {step_size}deg")
+                
+                # 1. Update grid step size
+                self.grid = GridDiscretizer(step_size_deg=step_size, num_dof=self.kinematics.get_dof())
+                
+                # 2. Update obstacles
+                self.collider.spherical_obstacles = []
+                obstacles_hash = "no_obstacles"
+                if obstacle_type != "no_obstacles":
+                    try:
+                        pkg_share = get_package_share_directory('community_robot_arm')
+                        obstacles_urdf = os.path.join(pkg_share, 'urdf', 'spherized', 'obstacles', f"{obstacle_type}_spherized.urdf")
+                        if os.path.exists(obstacles_urdf):
+                            obstacles = self._load_obstacles_from_urdf(obstacles_urdf)
+                            for center, radius in obstacles:
+                                self.collider.add_obstacle(center, radius)
+                            
+                            import hashlib
+                            hash_md5 = hashlib.md5()
+                            with open(obstacles_urdf, "rb") as f:
+                                for chunk in iter(lambda: f.read(4096), b""):
+                                    hash_md5.update(chunk)
+                            obstacles_hash = hash_md5.hexdigest()[:8]
+                        else:
+                            self.get_logger().error(f"Obstacle URDF not found: {obstacles_urdf}")
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to load obstacles dynamically: {e}")
+                
+                # 3. Reload cache
+                self._setup_cache(step_size, self.collider.urdf_parser.min_dist, obstacles_hash, self.cache_dir)
+                
+                # 4. Force republishing
+                self.publish_voxels()
+        except Exception as e:
+            self.get_logger().error(f"Failed to process web command in voxelizer: {e}")
 
 def main(args=None):
     rclpy.init(args=args)

@@ -1,0 +1,33 @@
+# Workspace relative paths (resolved relative to the workspace root)
+paths:
+  robot_urdf: "src/robots/community_robot_arm/urdf/spherized/community_robot_arm_slim_spherized.urdf"
+  rust_binary: "src/tools/cspace_solver/target/release/cspace_solver"
+  cache_dir: "cspace_cache"
+  obstacles_dir: "src/robots/community_robot_arm/urdf/spherized/obstacles"
+
+# Scenario configurations to evaluate resolutions and obstacles
+scenarios:
+  - name: "no_obstacles"
+    obstacle_type: "no_obstacles"
+    resolutions: [15.0, 12.0, 10.0, 8.0, 6.0]
+    thinning: 0.015
+
+  - name: "box_obstacle"
+    obstacle_type: "box_obstacle"
+    resolutions: [15.0, 12.0, 10.0, 8.0, 6.0]
+    thinning: 0.015
+
+  - name: "narrow_passage"
+    obstacle_type: "narrow_passage"
+    resolutions: [15.0, 12.0, 10.0, 8.0, 6.0]
+    thinning: 0.015
+
+  - name: "toroidal_wall"
+    obstacle_type: "toroidal_wall"
+    resolutions: [15.0, 12.0, 10.0, 8.0, 6.0]
+    thinning: 0.015
+
+  - name: "u_obstacle"
+    obstacle_type: "u_obstacle"
+    resolutions: [15.0, 12.0, 10.0, 8.0, 6.0]
+    thinning: 0.015
