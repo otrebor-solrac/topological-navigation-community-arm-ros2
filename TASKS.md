@@ -79,10 +79,17 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 
 ---
 
-## 🚀 7. Tareas Pendientes para los Objetivos de la Tesis (En Progreso)
+## 📦 7. Generación de C-Space por Lotes (Automatización en Serie) (COMPLETADO)
+- [x] **Configuración por Lotes (`cspace_generation.yaml`):** Definir resoluciones, thinning y lista de obstáculos (W-spaces).
+- [x] **Script Automatizado (`generate_all_caches.py`):** Procesar cada combinación llamando al solver en Rust en serie.
+- [x] **Comando Makefile (`make generate-caches`):** Integrar la ejecución automatizada dentro del Docker.
+
+---
+
+## 🚀 8. Tareas Pendientes para los Objetivos de la Tesis (Pendiente)
 *Fase de desarrollo e integración final de los perfiles cinemáticos, la validación geométrica de singularidades y la suite de evaluación comparativa automatizada para los capítulos de la tesis.*
 
-### 📈 7.1. Perfiles de Trayectoria Cinemáticos (Velocidad, Aceleración y Parametrización Temporal)
+### 📈 8.1. Perfiles de Trayectoria Cinemáticos (Velocidad, Aceleración y Parametrización Temporal)
 - [ ] **Generador de Perfiles de Trayectoria (`TrajectoryGenerator`):**
   - Implementar interpolación mediante Splines Quínticas ($C^2$ continuas) o Trapezoidal (LSPB) para convertir la ruta geométrica discreta en una trayectoria de tiempo continuo.
   - Definir y respetar los límites físicos de velocidad ($v_{max}$) y aceleración ($a_{max}$) para cada articulación.
@@ -92,7 +99,7 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 - [ ] **Simulador de Trayectoria a Alta Frecuencia:**
   - Modificar el publicador de la animación en `planning_node.py` para correr a 50Hz (muestreo cada 20ms) interpolando en tiempo real sobre la spline generada.
 
-### 📐 7.2. Análisis Diferencial y Evasión de Singularidades (Jacobiano)
+### 📐 8.2. Análisis Diferencial y Evasión de Singularidades (Jacobiano)
 - [ ] **Cálculo de la Matriz Jacobiana ($J(q)$):**
   - Implementar el cálculo de la matriz Jacobiana geométrica en la clase de cinemática del robot.
   - Calcular el Determinante del Jacobiano ($\det(J)$) o la medida de manipulabilidad de Yoshikawa ($w = \sqrt{\det(J J^T)}$) a lo largo de la trayectoria.
@@ -100,7 +107,7 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
   - Penalizar estados en el planificador que se acerquen a singularidades ($\det(J) \approx 0$).
   - Graficar el perfil de manipulabilidad a lo largo del tiempo para verificar la estabilidad de la trayectoria.
 
-### 📊 7.3. Suite de Evaluación Comparativa (Benchmarking)
+### 📊 8.3. Suite de Evaluación Comparativa (Benchmarking)
 - [ ] **Script de Pruebas Automatizadas (`run_benchmarks.py`):**
   - Diseñar suite que ejecute 100 pruebas aleatorias de planificación en la variedad toroidal $T^n$.
   - Recopilar métricas de comparación para A* vs RRT:
@@ -113,8 +120,8 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 
 ---
 
-## ✨ 8. Mejoras de Calidad y Pulido Final (Opcionales)
-*Estas tareas no son requisitos para cumplir los objetivos de la tesis, pero elevan significativamente la calidad del sistema y la presentación ante el jurado. Se recomienda abordarlas después de completar la Sección 7.*
+## ✨ 9. Mejoras de Calidad y Pulido Final (Opcionales)
+*Estas tareas no son requisitos para cumplir los objetivos de la tesis, pero elevan significativamente la calidad del sistema y la presentación ante el jurado. Se recomienda abordarlas después de completar la Sección 8.*
 
 - [ ] **Refinamiento Cinemático (Parámetros DH):**
   - Actualmente las longitudes de los eslabones en `community_arm.py` son aproximaciones (`LOWER_SHANK = 0.140`, `UPPER_SHANK = 0.140`). Esta tarea consiste en medir el hardware físico del TESH y/o extraer las dimensiones exactas de los archivos CAD/URDF para que la cinemática directa sea fiel al 100%. Impacto: las gráficas de posición del efector final serán más precisas para la validación experimental del Capítulo 4.
