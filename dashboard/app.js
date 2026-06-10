@@ -1,7 +1,7 @@
-// --- CONFIGURACIÓN DE ESCENA ---
+// --- THREE.JS SCENE CONFIGURATION ---
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x010103);
+scene.background = new THREE.Color(0x030307);
 
 const camera = new THREE.PerspectiveCamera(75, container.clientWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -12,7 +12,7 @@ container.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// --- EL CUBO FUNDAMENTAL (T³) ---
+// --- THE FUNDAMENTAL CUBE BOUNDARY (T³) ---
 const PI = Math.PI;
 const size = PI * 2; 
 
@@ -24,14 +24,15 @@ scene.add(cubeLine);
 const axesHelper = new THREE.AxesHelper(PI + 0.3);
 scene.add(axesHelper);
 
-// --- EL PUNTO DEL ROBOT ---
+// --- ROBOT POSITION INDICATOR (POINT IN T³) ---
 const robotGeom = new THREE.SphereGeometry(0.18, 32, 32);
-const robotMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1.0 });
+const robotMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 });
 const robotPoint = new THREE.Mesh(robotGeom, robotMat);
 scene.add(robotPoint);
 
-// --- LA ESTELA AMARILLA ---
+// --- TRAJECTORY TRAIL ---
 let pathSegments = [];
+let showTrail = true;
 const trailMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2.5 });
 
 function createNewPathSegment() {
@@ -39,6 +40,7 @@ function createNewPathSegment() {
     const positions = new Float32Array(5000 * 3);
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const line = new THREE.Line(geo, trailMaterial);
+    line.visible = showTrail;
     scene.add(line);
     pathSegments.push(line);
     return { line, array: positions, count: 0 };
@@ -47,21 +49,30 @@ function createNewPathSegment() {
 let activePath = createNewPathSegment();
 
 window.clearTrajectory = function() {
-    console.log("Limpiando trayectoria...");
+    console.log("Clearing trajectory path...");
     pathSegments.forEach(s => scene.remove(s));
     pathSegments = [];
     activePath = createNewPathSegment();
-    // Limpiar tabla
+    // Clear live trace table
     tracePoints = [];
     document.getElementById('trace-table').innerHTML = '';
 };
 
-// --- TRAZABILIDAD (TABLA) ---
+window.toggleTrailVisibility = function(visible) {
+    showTrail = visible;
+    pathSegments.forEach(s => s.visible = showTrail);
+    if (activePath && activePath.line) {
+        activePath.line.visible = showTrail;
+    }
+};
+
+// --- LIVE TRACEABILITY TABLE ---
 const tableBody = document.getElementById('trace-table');
 let tracePoints = [];
 const MAX_TRACE_LOG = 30;
 
 function updateTraceTable(q) {
+    if (!tableBody) return;
     tracePoints.unshift([...q]);
     if (tracePoints.length > MAX_TRACE_LOG) tracePoints.pop();
 
@@ -75,21 +86,28 @@ function updateTraceTable(q) {
     `).join('');
 }
 
-// --- VOXELS ---
-let voxelMesh = null;
+// --- C-SPACE VOXELS RENDERER ---
+let selfCollisionMesh = null;
+let obstacleCollisionMesh = null;
+let freeCollisionMesh = null;
+
 let rawVoxelData = [];
+let rawObstacleData = [];
+let rawSelfCollisionData = [];
+
+let showSelfCollision = true;
+let showObstacleCollision = true;
+
 let cspaceMode = 'obs'; // 'obs' or 'free'
-const voxelMat = new THREE.MeshPhongMaterial({ color: 0xff3333, transparent: true, opacity: 0.4 });
 
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-const light = new THREE.PointLight(0xffffff, 1, 100);
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const light = new THREE.PointLight(0xffffff, 1.0, 100);
 light.position.set(5, 5, 5);
 scene.add(light);
 
 camera.position.set(6, 6, 6);
 
-// --- ETIQUETAS ---
+// --- 3D LABELS ---
 const labels = {
     th1: document.getElementById('label-th1'),
     th2: document.getElementById('label-th2'),
@@ -103,13 +121,36 @@ function updateLabels() {
         th3: new THREE.Vector3(0, 0, PI + 0.5)
     };
     for (let key in vectors) {
-        const v = vectors[key].clone().project(camera);
-        labels[key].style.left = (v.x + 1) / 2 * container.clientWidth + 'px';
-        labels[key].style.top = -(v.y - 1) / 2 * window.innerHeight + 'px';
+        if (labels[key]) {
+            const v = vectors[key].clone().project(camera);
+            labels[key].style.left = (v.x + 1) / 2 * container.clientWidth + 'px';
+            labels[key].style.top = -(v.y - 1) / 2 * window.innerHeight + 'px';
+        }
     }
 }
 
-// --- CONEXIÓN ROS2 ---
+// --- TAB NAVIGATION SWITCHING ---
+window.switchTab = function(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    const targetTab = document.getElementById(`tab-${tabName}`);
+    const targetBtn = document.getElementById(`tab-btn-${tabName}`);
+    
+    if (targetTab) targetTab.classList.add('active');
+    if (targetBtn) targetBtn.classList.add('active');
+
+    const tracePanel = document.getElementById('panel-traceability');
+    if (tracePanel) {
+        if (tabName === 'explorer') {
+            tracePanel.style.display = 'none';
+        } else {
+            tracePanel.style.display = 'flex';
+        }
+    }
+};
+
+// --- ROS2 BRIDGE CONNECTION ---
 const ros = new ROSLIB.Ros({ url : 'ws://localhost:9090' });
 const connTag = document.getElementById('connection');
 
@@ -117,20 +158,24 @@ ros.on('connection', () => {
     connTag.innerText = "ROS: CONNECTED";
     connTag.style.color = "#00ff9d";
     connTag.style.borderColor = "#00ff9d";
+    connTag.style.background = "rgba(0, 255, 157, 0.04)";
 });
 
 ros.on('error', (error) => {
     connTag.innerText = "ROS: ERROR";
     connTag.style.color = "#ff4d4d";
     connTag.style.borderColor = "#ff4d4d";
+    connTag.style.background = "rgba(255, 77, 77, 0.04)";
 });
 
 ros.on('close', () => {
     connTag.innerText = "ROS: DISCONNECTED";
     connTag.style.color = "#ff4d4d";
     connTag.style.borderColor = "#ff4d4d";
+    connTag.style.background = "rgba(255, 77, 77, 0.04)";
 });
 
+// ROS Topics
 const webCmdPub = new ROSLIB.Topic({
     ros : ros,
     name : '/web_commands',
@@ -228,57 +273,119 @@ function computeComplement(data) {
     return freePoints;
 }
 
+window.toggleCSpaceLayers = function() {
+    showSelfCollision = document.getElementById('chk-show-self-collision').checked;
+    showObstacleCollision = document.getElementById('chk-show-obstacle-collision').checked;
+    renderVoxels();
+};
+
 function renderVoxels() {
-    if (voxelMesh) scene.remove(voxelMesh);
+    if (selfCollisionMesh) { scene.remove(selfCollisionMesh); selfCollisionMesh = null; }
+    if (obstacleCollisionMesh) { scene.remove(obstacleCollisionMesh); obstacleCollisionMesh = null; }
+    if (freeCollisionMesh) { scene.remove(freeCollisionMesh); freeCollisionMesh = null; }
     
-    let pointsToRender = [];
     if (cspaceMode === 'obs') {
-        pointsToRender = rawVoxelData;
-        voxelMat.color.setHex(0xff3333); // Red
-        voxelMat.opacity = 0.4;
+        const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        
+        // 1. Render self-collisions (C-Self)
+        if (showSelfCollision && rawSelfCollisionData.length > 0) {
+            const selfMat = new THREE.MeshPhongMaterial({ 
+                color: 0x5d4778, 
+                transparent: true, 
+                opacity: 0.22 
+            });
+            selfCollisionMesh = new THREE.InstancedMesh(geo, selfMat, rawSelfCollisionData.length);
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < rawSelfCollisionData.length; i++) {
+                dummy.position.set(rawSelfCollisionData[i][0], rawSelfCollisionData[i][1], rawSelfCollisionData[i][2]);
+                dummy.updateMatrix();
+                selfCollisionMesh.setMatrixAt(i, dummy.matrix);
+            }
+            scene.add(selfCollisionMesh);
+        }
+        
+        // 2. Render obstacle-collisions (C-Obs)
+        const activeObstacles = (rawObstacleData.length > 0) ? rawObstacleData : rawVoxelData;
+        const renderObstacleLayer = showObstacleCollision && (rawObstacleData.length > 0 || (rawObstacleData.length === 0 && !rawSelfCollisionData.length));
+        
+        if (renderObstacleLayer && activeObstacles.length > 0) {
+            const obsMat = new THREE.MeshPhongMaterial({ 
+                color: 0xff3333, 
+                transparent: true, 
+                opacity: 0.5 
+            });
+            obstacleCollisionMesh = new THREE.InstancedMesh(geo, obsMat, activeObstacles.length);
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < activeObstacles.length; i++) {
+                dummy.position.set(activeObstacles[i][0], activeObstacles[i][1], activeObstacles[i][2]);
+                dummy.updateMatrix();
+                obstacleCollisionMesh.setMatrixAt(i, dummy.matrix);
+            }
+            scene.add(obstacleCollisionMesh);
+        }
     } else {
-        pointsToRender = computeComplement(rawVoxelData);
-        voxelMat.color.setHex(0x00d4ff); // Cyan
-        voxelMat.opacity = 0.5;
+        // C-Free space rendering
+        const freePoints = computeComplement(rawVoxelData);
+        if (freePoints.length > 0) {
+            const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+            const freeMat = new THREE.MeshPhongMaterial({ 
+                color: 0x00d4ff, 
+                transparent: true, 
+                opacity: 0.5 
+            });
+            freeCollisionMesh = new THREE.InstancedMesh(geo, freeMat, freePoints.length);
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < freePoints.length; i++) {
+                dummy.position.set(freePoints[i][0], freePoints[i][1], freePoints[i][2]);
+                dummy.updateMatrix();
+                freeCollisionMesh.setMatrixAt(i, dummy.matrix);
+            }
+            scene.add(freeCollisionMesh);
+        }
     }
-    
-    if (pointsToRender.length === 0) return;
-    
-    const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-    voxelMesh = new THREE.InstancedMesh(geo, voxelMat, pointsToRender.length);
-    const dummy = new THREE.Object3D();
-    for (let i = 0; i < pointsToRender.length; i++) {
-        dummy.position.set(pointsToRender[i][0], pointsToRender[i][1], pointsToRender[i][2]);
-        dummy.updateMatrix();
-        voxelMesh.setMatrixAt(i, dummy.matrix);
-    }
-    scene.add(voxelMesh);
 }
 
 window.toggleCSpaceMode = function() {
     cspaceMode = (cspaceMode === 'obs') ? 'free' : 'obs';
     const btn = document.getElementById('btn-toggle-cspace');
-    if (cspaceMode === 'free') {
-        btn.innerText = "SHOW: C-OBS (OBSTACLES)";
-        btn.style.color = "#ff3333";
-        btn.style.borderColor = "#ff3333";
-        btn.style.boxShadow = "0 0 15px rgba(255, 51, 51, 0.1)";
+    if (cspaceMode === 'obs') {
+        btn.innerText = "CURRENT: C-OBS (OBSTACLES)";
+        btn.style.color = "var(--accent-red)";
+        btn.style.borderColor = "var(--accent-red)";
+        btn.style.backgroundColor = "rgba(255, 51, 51, 0.05)";
     } else {
-        btn.innerText = "SHOW: C-FREE (WORKSPACE)";
-        btn.style.color = "#00d4ff";
-        btn.style.borderColor = "#00d4ff";
-        btn.style.boxShadow = "0 0 15px rgba(0, 212, 255, 0.1)";
+        btn.innerText = "CURRENT: C-FREE (WORKSPACE)";
+        btn.style.color = "var(--accent-blue)";
+        btn.style.borderColor = "var(--accent-blue)";
+        btn.style.backgroundColor = "rgba(0, 212, 255, 0.05)";
     }
     renderVoxels();
 };
 
 const voxelSub = new ROSLIB.Topic({ ros : ros, name : '/cspace_voxels', messageType : 'std_msgs/String' });
 voxelSub.subscribe((msg) => {
-    rawVoxelData = JSON.parse(msg.data);
+    try {
+        const parsed = JSON.parse(msg.data);
+        if (parsed && !Array.isArray(parsed) && parsed.forbidden_voxels) {
+            rawVoxelData = parsed.forbidden_voxels;
+            rawObstacleData = parsed.obstacle_voxels || [];
+            rawSelfCollisionData = parsed.self_collision_voxels || [];
+        } else {
+            rawVoxelData = parsed || [];
+            rawObstacleData = [];
+            rawSelfCollisionData = [];
+        }
+        console.log(`Loaded ${rawVoxelData.length} voxels (Self: ${rawSelfCollisionData.length}, Obstacles: ${rawObstacleData.length}) from ROS topic.`);
+    } catch(e) {
+        console.error("Error parsing voxel data:", e);
+        rawVoxelData = [];
+        rawObstacleData = [];
+        rawSelfCollisionData = [];
+    }
     renderVoxels();
 });
 
-// --- PLANNER CONTROL & SEQUENCER INTEGRATION ---
+// --- PLANNER CONTROL & WAYPOINT SEQUENCE ---
 let waypointsSequence = [];
 
 window.updatePlannerParams = function() {
@@ -338,15 +445,15 @@ function renderWaypointsList() {
     const execBtn = document.getElementById('btn-exec-seq');
 
     if (waypointsSequence.length === 0) {
-        listDiv.innerHTML = '<div style="color: #666; text-align: center; padding: 10px;">No waypoints added</div>';
+        listDiv.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 10px;">No waypoints added</div>';
         execBtn.style.display = 'none';
         return;
     }
 
     listDiv.innerHTML = waypointsSequence.map((wp, idx) => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; border-bottom: 1px solid #222;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--glass-border);">
             <span>WP #${idx + 1}: [${wp[0].toFixed(2)}, ${wp[1].toFixed(2)}, ${wp[2].toFixed(2)}]</span>
-            <span onclick="removeWaypoint(${idx})" style="color: #ff5555; cursor: pointer; font-weight: bold; padding: 0 6px; font-size: 1.1em;">&times;</span>
+            <span onclick="removeWaypoint(${idx})" style="color: var(--accent-red); cursor: pointer; font-weight: bold; padding: 0 6px; font-size: 1.1em;">&times;</span>
         </div>
     `).join('');
 
@@ -376,6 +483,24 @@ window.executeWaypointSequence = function() {
     console.log("Published sequential plan command:", payload);
 };
 
+window.changeCSpaceEnv = function() {
+    const obstacle = document.getElementById('select-obstacle').value;
+    const resolution = document.getElementById('select-resolution').value;
+    console.log(`Requesting C-space environment change to: ${obstacle} at ${resolution}deg`);
+    
+    const cmd = {
+        action: "change_cspace",
+        obstacle_type: obstacle,
+        step_size_deg: parseFloat(resolution)
+    };
+    
+    const msg = new ROSLIB.Message({
+        data: JSON.stringify(cmd)
+    });
+    webCmdPub.publish(msg);
+};
+
+// --- ANIMATION LOOP ---
 function animate() {
     requestAnimationFrame(animate);
     controls.update();

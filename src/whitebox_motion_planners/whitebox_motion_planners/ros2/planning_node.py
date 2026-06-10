@@ -135,7 +135,12 @@ class TopologicalPlannerNode(Node):
                 self.get_logger().info(f"Loading C-Space cache for planner from: {cache_filepath}")
                 import json
                 with open(cache_filepath, 'r') as f:
-                    forbidden_list = json.load(f)
+                    cache_data = json.load(f)
+                
+                if isinstance(cache_data, dict):
+                    forbidden_list = cache_data.get('forbidden_voxels', [])
+                else:
+                    forbidden_list = cache_data
                 
                 # Convert radians coordinates list to a set of discrete tuples for O(1) lookup
                 forbidden_set = set()
@@ -366,6 +371,76 @@ class TopologicalPlannerNode(Node):
                         self.get_logger().error(f"Failed to write web waypoints to file: {e}")
                     
                     self.execute_plan()
+                    
+            elif action == "change_cspace":
+                obstacle_type = data.get("obstacle_type")
+                step_size = float(data.get("step_size_deg"))
+                
+                self.get_logger().info(f"Changing planner C-space dynamically to: {obstacle_type} at {step_size}deg")
+                
+                # 1. Update grid step size
+                self.grid = GridDiscretizer(step_size_deg=step_size, num_dof=self.kinematics.get_dof())
+                
+                # 2. Update obstacles
+                self.collider.spherical_obstacles = []
+                obstacles_hash = "no_obstacles"
+                if obstacle_type != "no_obstacles":
+                    try:
+                        pkg_share = get_package_share_directory('community_robot_arm')
+                        obstacles_urdf = os.path.join(pkg_share, 'urdf', 'spherized', 'obstacles', f"{obstacle_type}_spherized.urdf")
+                        if os.path.exists(obstacles_urdf):
+                            obstacles = self._load_obstacles_from_urdf(obstacles_urdf)
+                            for center, radius in obstacles:
+                                self.collider.add_obstacle(center, radius)
+                            
+                            import hashlib
+                            hash_md5 = hashlib.md5()
+                            with open(obstacles_urdf, "rb") as f:
+                                hash_md5.update(f.read())
+                            obstacles_hash = hash_md5.hexdigest()[:8]
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to load obstacles dynamically: {e}")
+                
+                # 3. Reload cache
+                cache_dir = self.get_parameter('cache_dir').value
+                if not cache_dir:
+                    if os.path.exists('/home/ros_ws/cspace_cache'):
+                        cache_dir = '/home/ros_ws/cspace_cache'
+                    else:
+                        try:
+                            pkg_share_wb = get_package_share_directory('whitebox_motion_planners')
+                            cache_dir = os.path.join(pkg_share_wb, 'cspace_cache')
+                        except Exception:
+                            src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                            cache_dir = os.path.join(src_dir, 'cspace_cache')
+                
+                thinning_dist = self.get_parameter('sphere_thinning_dist').value
+                cache_filepath = os.path.join(cache_dir, f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json")
+                
+                if os.path.exists(cache_filepath):
+                    self.get_logger().info(f"Loading C-space cache from: {cache_filepath}")
+                    try:
+                        with open(cache_filepath, 'r') as f:
+                            cache_data = json.load(f)
+                        
+                        if isinstance(cache_data, dict):
+                            forbidden_list = cache_data.get('forbidden_voxels', [])
+                        else:
+                            forbidden_list = cache_data
+                            
+                        forbidden_set = set()
+                        for voxel in forbidden_list:
+                            q_discrete = self.grid.discretize(tuple(voxel))
+                            forbidden_set.add(q_discrete)
+                            
+                        self.collider.set_cspace_cache(forbidden_set, self.grid)
+                        self.get_logger().info(f"Loaded {len(forbidden_set)} forbidden voxels into planner!")
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to load cache: {e}")
+                        self.collider.set_cspace_cache(None, self.grid)
+                else:
+                    self.get_logger().warn(f"No C-space cache found at {cache_filepath}. Planning will run in real-time mode.")
+                    self.collider.set_cspace_cache(None, self.grid)
                     
         except Exception as e:
             self.get_logger().error(f"Failed to process web command: {e}")
@@ -652,6 +727,7 @@ class TopologicalPlannerNode(Node):
                 # Clear only the collision sphere markers (not the trail)
                 clear_marker = Marker()
                 clear_marker.ns = 'thinned_collision_spheres'
+                clear_marker.id = 9999
                 clear_marker.action = Marker.DELETEALL
                 marker_array.markers.append(clear_marker)
                 

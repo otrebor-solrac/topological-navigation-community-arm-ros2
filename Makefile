@@ -65,3 +65,7 @@ visualize-obstacles: build
 # 6. Clean Workspace
 clean:
 	docker exec -it $(CONTAINER_NAME) bash -c "cd $(WS_PATH) && rm -rf build/ install/ log/"
+
+# 7. Generate all C-space caches in batch
+generate-caches:
+	docker exec -it $(CONTAINER_NAME) bash -c "PYTHONPATH=$(WS_PATH)/src/whitebox_motion_planners python3 $(WS_PATH)/src/tools/cspace_solver/generate_all_caches.py"

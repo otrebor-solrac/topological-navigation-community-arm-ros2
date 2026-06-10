@@ -43,6 +43,8 @@ struct InputData {
 #[derive(Serialize)]
 struct OutputData {
     forbidden_voxels: Vec<[f32; 3]>,
+    self_collision_voxels: Vec<[f32; 3]>,
+    obstacle_voxels: Vec<[f32; 3]>,
 }
 
 fn mul_m4_m4(a: &Matrix4, b: &Matrix4) -> Matrix4 {
@@ -207,6 +209,8 @@ fn main() {
         
         handles.push(thread::spawn(move || {
             let mut thread_forbidden = Vec::new();
+            let mut thread_self = Vec::new();
+            let mut thread_obstacle = Vec::new();
             for idx in start_idx..end_idx {
                 let (i, j, k) = states[idx];
                 let q1 = (i as f32) * step_rad;
@@ -232,7 +236,7 @@ fn main() {
                     continue;
                 }
                 
-                let mut is_collision = false;
+                let mut is_self_collision = false;
                 
                 // 1. Self-collision checks
                 for &(pair_i, pair_j) in active_pairs.iter() {
@@ -247,13 +251,23 @@ fn main() {
                     let dist_sq = dx*dx + dy*dy + dz*dz;
                     let limit = r_i + r_j;
                     if dist_sq < limit * limit {
-                        is_collision = true;
+                        is_self_collision = true;
                         break;
                     }
                 }
                 
-                // 2. Obstacle collision checks
-                if !is_collision {
+                let voxel = [
+                    (wrap_to_pi(q1) * 1000.0).round() / 1000.0,
+                    (wrap_to_pi(q2) * 1000.0).round() / 1000.0,
+                    (wrap_to_pi(q3) * 1000.0).round() / 1000.0,
+                ];
+
+                if is_self_collision {
+                    thread_forbidden.push(voxel);
+                    thread_self.push(voxel);
+                } else {
+                    // 2. Obstacle collision checks
+                    let mut is_obstacle_collision = false;
                     for obs in obstacles.iter() {
                         for &(c_w, r_w) in world_spheres.iter() {
                             let dx = c_w[0] - obs.center[0];
@@ -262,37 +276,39 @@ fn main() {
                             let dist_sq = dx*dx + dy*dy + dz*dz;
                             let limit = r_w + obs.radius;
                             if dist_sq < limit * limit {
-                                is_collision = true;
+                                is_obstacle_collision = true;
                                 break;
                             }
                         }
-                        if is_collision {
+                        if is_obstacle_collision {
                             break;
                         }
                     }
-                }
-                
-                if is_collision {
-                    thread_forbidden.push([
-                        (wrap_to_pi(q1) * 1000.0).round() / 1000.0,
-                        (wrap_to_pi(q2) * 1000.0).round() / 1000.0,
-                        (wrap_to_pi(q3) * 1000.0).round() / 1000.0,
-                    ]);
+                    if is_obstacle_collision {
+                        thread_forbidden.push(voxel);
+                        thread_obstacle.push(voxel);
+                    }
                 }
             }
-            thread_forbidden
+            (thread_forbidden, thread_self, thread_obstacle)
         }));
     }
     
     let mut all_forbidden = Vec::new();
+    let mut all_self = Vec::new();
+    let mut all_obstacle = Vec::new();
     for h in handles {
-        if let Ok(mut tf) = h.join() {
+        if let Ok((mut tf, mut ts, mut to)) = h.join() {
             all_forbidden.append(&mut tf);
+            all_self.append(&mut ts);
+            all_obstacle.append(&mut to);
         }
     }
     
     let output = OutputData {
         forbidden_voxels: all_forbidden,
+        self_collision_voxels: all_self,
+        obstacle_voxels: all_obstacle,
     };
     
     if let Ok(serialized) = serde_json::to_string(&output) {
