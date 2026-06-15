@@ -33,9 +33,12 @@ services:
     command: tail -f /dev/null
 
   dashboard:
-    build: ./dashboard
+    build:
+      context: ./dashboard
+      target: development
     container_name: ros2_dashboard
     volumes:
-      - ./dashboard:/usr/share/nginx/html
+      - ./dashboard:/app
+      - /app/node_modules
     ports:
       - "8080:80"

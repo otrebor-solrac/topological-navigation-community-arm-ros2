@@ -121,15 +121,19 @@ def launch_setup(context, *args, **kwargs):
             output='screen',
             parameters=[{'robot_description': robot_desc}]
         ),
-        # joint_state_publisher_gui: Spawns the interactive GUI sliders allowing manual control
-        # of the active (master) joint positions. Initialized with values from waypoints.yaml.
+        # joint_state_publisher: Background node that parses the URDF and publishes all joint states.
+        # It subscribes to '/web_gui_master_states' (from the web dashboard) to update the 3 controlled joints
+        # and merges them with the default values for the remaining 30+ joints.
         Node(
-            package='joint_state_publisher_gui',
-            executable='joint_state_publisher_gui',
-            name='joint_state_publisher_gui',
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            name='joint_state_publisher',
             output='screen',
-            remappings=[('/joint_states', LaunchConfiguration('gui_topic'))],
-            parameters=[zeros_params] if zeros_params else []
+            parameters=[
+                {'source_list': ['/web_gui_master_states']},
+                zeros_params
+            ] if zeros_params else [{'source_list': ['/web_gui_master_states']}],
+            remappings=[('/joint_states', LaunchConfiguration('gui_topic'))]
         ),
         # ExecuteProcess: Runs the parallelogram kinematics Python script as a system process
         # (which initializes a ROS 2 node). It translates active/master joint states to
