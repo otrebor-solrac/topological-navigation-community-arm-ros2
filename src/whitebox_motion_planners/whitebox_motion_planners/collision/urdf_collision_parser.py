@@ -48,9 +48,15 @@ def make_homogeneous_matrix(xyz: List[float], rpy: List[float]) -> np.ndarray:
     return T
 
 class UrdfCollisionParser:
-    def __init__(self, urdf_path: str, min_dist: float = 0.015):
+    def __init__(self, urdf_path: str, min_dist: float = 0.015,
+                 offset_base_yaw: float = 0.559643,
+                 offset_shoulder_pitch: float = 1.57079632679,
+                 offset_elbow_pitch: float = 0.0):
         self.urdf_path = urdf_path
         self.min_dist = min_dist
+        self.offset_base_yaw = offset_base_yaw
+        self.offset_shoulder_pitch = offset_shoulder_pitch
+        self.offset_elbow_pitch = offset_elbow_pitch
         
         self.joints = {}
         self.links_with_spheres = {}
@@ -67,8 +73,11 @@ class UrdfCollisionParser:
         # 3. Preclassify Base vs Moving groups and precompute active checking pairs
         self.base_indices = []
         self.moving_indices = []
-        base_keywords = ['basering', 'socket', 'leg', 'main_body', 'stepper_motor', 'rotategear', 'stabilizer', 'limit_switch', 'endstop']
-        moving_keywords = ['shank', 'gripper', 'finger', 'wire', 'pleuel', 'triplate', 'manipulator']
+        base_keywords = ['main_body', 'stepper_motor', 'stabilizer', 'limit_switch', 'endstop']
+        # Only check the extended arm segments against the base.
+        # The parallelogram mechanism (pleuel, lower_shank, triplate) is mechanically
+        # integrated with the base and generates false positives from sphere approximation.
+        moving_keywords = ['upper_shank', 'gripper', 'finger', 'manipulator']
         
         for i, s in enumerate(self.thinned_spheres):
             lname = s['link'].lower()
@@ -198,8 +207,8 @@ class UrdfCollisionParser:
         return transforms
 
     def _initialize_thinned_spheres(self):
-        # 1. Compute positions of all spheres at home pose q = (0, 0, 0)
-        tfs = self.compute_transforms(0.0, 0.0, 0.0)
+        # 1. Compute positions of all spheres at home pose using offsets
+        tfs = self.compute_transforms(self.offset_base_yaw, self.offset_shoulder_pitch, self.offset_elbow_pitch)
         
         all_spheres = []
         for lname, spheres in self.links_with_spheres.items():
@@ -329,3 +338,32 @@ class UrdfCollisionParser:
             return True
             
         return False
+
+    def update_home_pose(self, offset_base_yaw: float, offset_shoulder_pitch: float, offset_elbow_pitch: float):
+        self.offset_base_yaw = offset_base_yaw
+        self.offset_shoulder_pitch = offset_shoulder_pitch
+        self.offset_elbow_pitch = offset_elbow_pitch
+        self.allowed_pairs = set()
+        self._initialize_thinned_spheres()
+        
+        # Reclassify Base vs Moving groups
+        self.base_indices = []
+        self.moving_indices = []
+        base_keywords = ['main_body', 'stepper_motor', 'stabilizer', 'limit_switch', 'endstop']
+        moving_keywords = ['upper_shank', 'gripper', 'finger', 'manipulator']
+        for i, s in enumerate(self.thinned_spheres):
+            lname = s['link'].lower()
+            if any(k in lname for k in base_keywords):
+                self.base_indices.append(i)
+            elif any(k in lname for k in moving_keywords):
+                self.moving_indices.append(i)
+                
+        # Recompute active checking pairs
+        self.active_checking_pairs = []
+        for i in self.base_indices:
+            for j in self.moving_indices:
+                if (i, j) not in self.allowed_pairs and (j, i) not in self.allowed_pairs:
+                    self.active_checking_pairs.append((i, j))
+                    
+        # Clear cache since link sphere positions changed
+        self._cache = {}

@@ -20,7 +20,16 @@ class CSpaceVoxelPublisher(Node):
         
         # 1. Initialize parameters
         (robot_type, step_size, use_horizontal, use_obstacles, 
-         thinning_dist, robot_urdf, obstacles_urdf, cache_dir) = self._init_parameters()
+         thinning_dist, robot_urdf, obstacles_urdf, cache_dir,
+         base_yaw_offset, shoulder_pitch_offset, elbow_pitch_offset,
+         base_yaw_dir, shoulder_pitch_dir, elbow_pitch_dir) = self._init_parameters()
+        
+        self.base_yaw_offset = base_yaw_offset
+        self.shoulder_pitch_offset = shoulder_pitch_offset
+        self.elbow_pitch_offset = elbow_pitch_offset
+        self.base_yaw_dir = base_yaw_dir
+        self.shoulder_pitch_dir = shoulder_pitch_dir
+        self.elbow_pitch_dir = elbow_pitch_dir
         
         # 2. Get kinematics model
         self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal)
@@ -62,6 +71,15 @@ class CSpaceVoxelPublisher(Node):
         # Optional override directory path to save/load persistent cache
         self.declare_parameter('cache_dir', '')
         
+        # Configurable joint mapping to global world frame
+        self.declare_parameter('joint_offsets.base_yaw', 0.0)
+        self.declare_parameter('joint_offsets.shoulder_pitch', 0.0)
+        self.declare_parameter('joint_offsets.elbow_pitch', 0.0)
+        self.declare_parameter('joint_directions.base_yaw', 1)
+        self.declare_parameter('joint_directions.shoulder_pitch', 1)
+        self.declare_parameter('joint_directions.elbow_pitch', 1)
+        
+        import math
         return (
             self.get_parameter('robot_type').value,
             self.get_parameter('step_size_deg').value,
@@ -70,7 +88,13 @@ class CSpaceVoxelPublisher(Node):
             self.get_parameter('sphere_thinning_dist').value,
             self.get_parameter('robot_urdf_path').value,
             self.get_parameter('obstacles_urdf_path').value,
-            self.get_parameter('cache_dir').value
+            self.get_parameter('cache_dir').value,
+            math.radians(self.get_parameter('joint_offsets.base_yaw').value),
+            math.radians(self.get_parameter('joint_offsets.shoulder_pitch').value),
+            math.radians(self.get_parameter('joint_offsets.elbow_pitch').value),
+            float(self.get_parameter('joint_directions.base_yaw').value),
+            float(self.get_parameter('joint_directions.shoulder_pitch').value),
+            float(self.get_parameter('joint_directions.elbow_pitch').value)
         )
 
     def _setup_collider_and_obstacles(
@@ -104,6 +128,14 @@ class CSpaceVoxelPublisher(Node):
         self.collider = FoamCollider(
             urdf_path=robot_urdf,
             sphere_thinning_dist=thinning_dist
+        )
+        self.collider.set_joint_transforms(
+            offset_base_yaw=self.base_yaw_offset,
+            offset_shoulder_pitch=self.shoulder_pitch_offset,
+            offset_elbow_pitch=self.elbow_pitch_offset,
+            dir_base_yaw=self.base_yaw_dir,
+            dir_shoulder_pitch=self.shoulder_pitch_dir,
+            dir_elbow_pitch=self.elbow_pitch_dir
         )
         
         obstacles_hash = "no_obstacles"
@@ -189,7 +221,7 @@ class CSpaceVoxelPublisher(Node):
         self.publisher_ = self.create_publisher(String, '/cspace_voxels', 10)
         
         # Timer to publish voxels when there are active subscribers (e.g. web dashboard)
-        self.timer = self.create_timer(2.0, self.publish_voxels)
+        self.timer = self.create_timer(0.5, self.publish_voxels)
 
         # Register service to generate the cache on demand
         self.srv = self.create_service(Trigger, 'generate_cspace', self.generate_cspace_callback)
@@ -298,6 +330,12 @@ class CSpaceVoxelPublisher(Node):
                     'steps_per_circle': int(self.grid.steps_per_circle),
                     'num_dof': int(self.grid.num_dof),
                     'step_rad': float(self.grid.step_rad),
+                    'offset_base_yaw': float(self.base_yaw_offset),
+                    'offset_shoulder_pitch': float(self.shoulder_pitch_offset),
+                    'offset_elbow_pitch': float(self.elbow_pitch_offset),
+                    'dir_base_yaw': float(self.base_yaw_dir),
+                    'dir_shoulder_pitch': float(self.shoulder_pitch_dir),
+                    'dir_elbow_pitch': float(self.elbow_pitch_dir),
                 }
                 
                 json_input = json.dumps(input_data)
@@ -332,9 +370,16 @@ class CSpaceVoxelPublisher(Node):
                 
             q_radians = self.grid.get_radians(q_discrete)
             
+            # Convert q_radians (World) to URDF joint coordinates
+            yaw_w, pitch1_w, pitch2_w = q_radians[:3] if len(q_radians) >= 3 else (q_radians[0], q_radians[1], 0.0)
+            base_yaw = self.base_yaw_offset + self.base_yaw_dir * yaw_w
+            shoulder_pitch = self.shoulder_pitch_offset + self.shoulder_pitch_dir * pitch1_w
+            elbow_pitch = self.elbow_pitch_offset + self.elbow_pitch_dir * pitch2_w
+            q_urdf = (base_yaw, shoulder_pitch, elbow_pitch)
+            
             is_self_collision = False
             if self.collider.urdf_parser is not None:
-                is_self_collision = self.collider.urdf_parser.check_self_collision(q_radians)
+                is_self_collision = self.collider.urdf_parser.check_self_collision(q_urdf)
             
             q0 = (q_radians[0] + np.pi) % (2 * np.pi) - np.pi
             q1 = (q_radians[1] + np.pi) % (2 * np.pi) - np.pi
@@ -348,7 +393,7 @@ class CSpaceVoxelPublisher(Node):
                 is_obs_collision = False
                 obstacles_tuples = [(obs.center, obs.radius) for obs in self.collider.spherical_obstacles]
                 if self.collider.urdf_parser is not None:
-                    is_obs_collision = self.collider.urdf_parser.check_obstacle_collision(q_radians, obstacles_tuples)
+                    is_obs_collision = self.collider.urdf_parser.check_obstacle_collision(q_urdf, obstacles_tuples)
                 
                 if is_obs_collision:
                     forbidden_voxels.append(voxel)

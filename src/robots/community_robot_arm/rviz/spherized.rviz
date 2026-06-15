@@ -48,6 +48,13 @@ Visualization Manager:
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
+    - Class: rviz_default_plugins/Axes
+      Name: World Axes
+      Enabled: true
+      Value: true
+      Length: 0.3
+      Radius: 0.003
+      Reference Frame: world
   Global Options:
     Background Color: 48; 48; 48
     Fixed Frame: root

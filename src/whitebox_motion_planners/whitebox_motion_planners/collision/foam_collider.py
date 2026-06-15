@@ -39,6 +39,14 @@ class FoamCollider(BaseCollider):
         self.forbidden_set = None
         self.grid_discretizer = None
 
+        # Default joint offset and direction configurations (relative to world axes)
+        self.offset_base_yaw = 0.0
+        self.offset_shoulder_pitch = 0.0
+        self.offset_elbow_pitch = 0.0
+        self.dir_base_yaw = 1.0
+        self.dir_shoulder_pitch = 1.0
+        self.dir_elbow_pitch = 1.0
+
     def set_cspace_cache(self, forbidden_set: set, grid_discretizer):
         """
         Injects a precomputed set of forbidden voxels (discrete coordinates)
@@ -72,6 +80,32 @@ class FoamCollider(BaseCollider):
             
         return link_spheres
 
+    def set_joint_transforms(
+        self,
+        offset_base_yaw: float = 0.559643,
+        offset_shoulder_pitch: float = 1.57079632679,
+        offset_elbow_pitch: float = 0.0,
+        dir_base_yaw: float = -1.0,
+        dir_shoulder_pitch: float = -1.0,
+        dir_elbow_pitch: float = 1.0
+    ):
+        """
+        Sets the joint offsets and directions dynamically.
+        """
+        self.offset_base_yaw = offset_base_yaw
+        self.offset_shoulder_pitch = offset_shoulder_pitch
+        self.offset_elbow_pitch = offset_elbow_pitch
+        self.dir_base_yaw = dir_base_yaw
+        self.dir_shoulder_pitch = dir_shoulder_pitch
+        self.dir_elbow_pitch = dir_elbow_pitch
+
+        if self.urdf_parser is not None:
+            self.urdf_parser.update_home_pose(
+                self.offset_base_yaw,
+                self.offset_shoulder_pitch,
+                self.offset_elbow_pitch
+            )
+
     def is_state_valid(self, q: tuple, kinematics: BaseKinematics) -> bool:
         """
         Determines if state q is safe (C_free) using the injected kinematic model.
@@ -85,13 +119,20 @@ class FoamCollider(BaseCollider):
             return True
 
         if self.urdf_parser is not None:
+            # Convert q from World coordinates to URDF coordinates using configured parameters
+            yaw_w, pitch1_w, pitch2_w = q[:3] if len(q) >= 3 else (q[0], q[1], 0.0)
+            base_yaw = self.offset_base_yaw + self.dir_base_yaw * yaw_w
+            shoulder_pitch = self.offset_shoulder_pitch + self.dir_shoulder_pitch * pitch1_w
+            elbow_pitch = self.offset_elbow_pitch + self.dir_elbow_pitch * pitch2_w
+            q_urdf = (base_yaw, shoulder_pitch, elbow_pitch)
+
             # 1. Self-Collision Detection
-            if self.urdf_parser.check_self_collision(q):
+            if self.urdf_parser.check_self_collision(q_urdf):
                 return False
                 
             # 2. External Collision Detection
             obstacles_tuples = [(obs.center, obs.radius) for obs in self.spherical_obstacles]
-            if self.urdf_parser.check_obstacle_collision(q, obstacles_tuples):
+            if self.urdf_parser.check_obstacle_collision(q_urdf, obstacles_tuples):
                 return False
                 
             return True

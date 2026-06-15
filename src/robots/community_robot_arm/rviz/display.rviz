@@ -24,6 +24,13 @@ Visualization Manager:
       Visual Enabled: true
       Collision Enabled: false
       Alpha: 1.0
+    - Class: rviz_default_plugins/Axes
+      Name: World Axes
+      Enabled: true
+      Value: true
+      Length: 0.3
+      Radius: 0.003
+      Reference Frame: world
   Global Options:
     Background Color: 48; 48; 48
     Fixed Frame: root

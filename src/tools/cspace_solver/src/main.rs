@@ -38,6 +38,12 @@ struct InputData {
     steps_per_circle: usize,
     num_dof: usize,
     step_rad: f32,
+    offset_base_yaw: f32,
+    offset_shoulder_pitch: f32,
+    offset_elbow_pitch: f32,
+    dir_base_yaw: f32,
+    dir_shoulder_pitch: f32,
+    dir_elbow_pitch: f32,
 }
 
 #[derive(Serialize)]
@@ -204,6 +210,13 @@ fn main() {
         let step_rad = data.step_rad;
         let num_dof = data.num_dof;
         
+        let offset_base_yaw = data.offset_base_yaw;
+        let offset_shoulder_pitch = data.offset_shoulder_pitch;
+        let offset_elbow_pitch = data.offset_elbow_pitch;
+        let dir_base_yaw = data.dir_base_yaw;
+        let dir_shoulder_pitch = data.dir_shoulder_pitch;
+        let dir_elbow_pitch = data.dir_elbow_pitch;
+        
         let start_idx = thread_idx * chunk_size;
         let end_idx = std::cmp::min(start_idx + chunk_size, states.len());
         
@@ -213,11 +226,15 @@ fn main() {
             let mut thread_obstacle = Vec::new();
             for idx in start_idx..end_idx {
                 let (i, j, k) = states[idx];
-                let q1 = (i as f32) * step_rad;
-                let q2 = (j as f32) * step_rad;
-                let q3 = if num_dof > 2 { (k as f32) * step_rad } else { 0.0 };
+                let q1_world = (i as f32) * step_rad;
+                let q2_world = (j as f32) * step_rad;
+                let q3_world = if num_dof > 2 { (k as f32) * step_rad } else { 0.0 };
                 
-                let tfs = compute_transforms(q1, q2, q3, &joints, &root_link);
+                let q1_urdf = offset_base_yaw + dir_base_yaw * q1_world;
+                let q2_urdf = offset_shoulder_pitch + dir_shoulder_pitch * q2_world;
+                let q3_urdf = offset_elbow_pitch + dir_elbow_pitch * q3_world;
+                
+                let tfs = compute_transforms(q1_urdf, q2_urdf, q3_urdf, &joints, &root_link);
                 
                 // Project robot spheres to world coordinates
                 let mut world_spheres = Vec::with_capacity(thinned_spheres.len());
@@ -257,9 +274,9 @@ fn main() {
                 }
                 
                 let voxel = [
-                    (wrap_to_pi(q1) * 1000.0).round() / 1000.0,
-                    (wrap_to_pi(q2) * 1000.0).round() / 1000.0,
-                    (wrap_to_pi(q3) * 1000.0).round() / 1000.0,
+                    (wrap_to_pi(q1_world) * 1000.0).round() / 1000.0,
+                    (wrap_to_pi(q2_world) * 1000.0).round() / 1000.0,
+                    (wrap_to_pi(q3_world) * 1000.0).round() / 1000.0,
                 ];
 
                 if is_self_collision {
