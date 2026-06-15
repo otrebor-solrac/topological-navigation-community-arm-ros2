@@ -88,6 +88,34 @@ def main():
     cache_dir = os.path.abspath(os.path.join(workspace_dir, paths_cfg.get('cache_dir', 'cspace_cache')))
     obstacles_dir = os.path.abspath(os.path.join(workspace_dir, paths_cfg.get('obstacles_dir', '')))
     
+    # Load joint offsets and directions from planner_params.yaml
+    params_path = os.path.abspath(os.path.join(workspace_dir, 'src/whitebox_motion_planners/config/planner_params.yaml'))
+    if os.path.exists(params_path):
+        with open(params_path, 'r') as f:
+            params_data = yaml.safe_load(f)
+        
+        # ROS 2 params are typically structured under /**/ros__parameters
+        ros_params = params_data.get('/**', {}).get('ros__parameters', {})
+        offsets_deg = ros_params.get('joint_offsets', {})
+        directions = ros_params.get('joint_directions', {})
+        
+        import math
+        offset_base_yaw = math.radians(offsets_deg.get('base_yaw', 0.0))
+        offset_shoulder_pitch = math.radians(offsets_deg.get('shoulder_pitch', 0.0))
+        offset_elbow_pitch = math.radians(offsets_deg.get('elbow_pitch', 0.0))
+        
+        dir_base_yaw = float(directions.get('base_yaw', 1.0))
+        dir_shoulder_pitch = float(directions.get('shoulder_pitch', 1.0))
+        dir_elbow_pitch = float(directions.get('elbow_pitch', 1.0))
+    else:
+        print(f"Warning: planner_params.yaml not found at {params_path}, using defaults (offset=0, dir=1)")
+        offset_base_yaw = 0.0
+        offset_shoulder_pitch = 0.0
+        offset_elbow_pitch = 0.0
+        dir_base_yaw = 1.0
+        dir_shoulder_pitch = 1.0
+        dir_elbow_pitch = 1.0
+    
     scenarios = config.get('scenarios', [])
     
     os.makedirs(cache_dir, exist_ok=True)
@@ -163,6 +191,12 @@ def main():
                 'steps_per_circle': int(grid.steps_per_circle),
                 'num_dof': int(grid.num_dof),
                 'step_rad': float(grid.step_rad),
+                'offset_base_yaw': float(offset_base_yaw),
+                'offset_shoulder_pitch': float(offset_shoulder_pitch),
+                'offset_elbow_pitch': float(offset_elbow_pitch),
+                'dir_base_yaw': float(dir_base_yaw),
+                'dir_shoulder_pitch': float(dir_shoulder_pitch),
+                'dir_elbow_pitch': float(dir_elbow_pitch),
             }
             
             print(f"Launching Rust parallel solver for {grid.steps_per_circle}^3 = {grid.steps_per_circle**3} configurations...")
