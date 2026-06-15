@@ -41,6 +41,24 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('obstacles_urdf_path', '')
         self.declare_parameter('sphere_thinning_dist', 0.015)
         self.declare_parameter('cache_dir', '')
+
+        # Configurable joint mapping to global world frame (defaults to neutral 0.0 offsets, 1 direction)
+        self.declare_parameter('joint_offsets.base_yaw', 0.0)
+        self.declare_parameter('joint_offsets.shoulder_pitch', 0.0)
+        self.declare_parameter('joint_offsets.elbow_pitch', 0.0)
+        self.declare_parameter('joint_directions.base_yaw', 1)
+        self.declare_parameter('joint_directions.shoulder_pitch', 1)
+        self.declare_parameter('joint_directions.elbow_pitch', 1)
+
+        # Parse joint offsets (convert degrees to radians)
+        self.base_yaw_offset = math.radians(self.get_parameter('joint_offsets.base_yaw').value)
+        self.shoulder_pitch_offset = math.radians(self.get_parameter('joint_offsets.shoulder_pitch').value)
+        self.elbow_pitch_offset = math.radians(self.get_parameter('joint_offsets.elbow_pitch').value)
+        
+        # Parse direction multipliers
+        self.base_yaw_dir = float(self.get_parameter('joint_directions.base_yaw').value)
+        self.shoulder_pitch_dir = float(self.get_parameter('joint_directions.shoulder_pitch').value)
+        self.elbow_pitch_dir = float(self.get_parameter('joint_directions.elbow_pitch').value)
         
         # Internal State
         self.is_animating = False
@@ -50,6 +68,7 @@ class TopologicalPlannerNode(Node):
         self.last_gui_msg = None        # Full GUI JointState as template
         self.final_planned_q = None     # Holds final position after animation
         self.trail_points = []          # Accumulated end-effector positions for RViz trail
+        self.show_path_trail = True     # Toggle to show/hide end-effector trail in RViz
  
         # 2. Mathematical Components (White-Box)
         robot_type = self.get_parameter('robot_type').value
@@ -83,6 +102,15 @@ class TopologicalPlannerNode(Node):
         self.collider = FoamCollider(
             urdf_path=urdf_path,
             sphere_thinning_dist=self.get_parameter('sphere_thinning_dist').value
+        )
+        # Pass offsets and directions to collider
+        self.collider.set_joint_transforms(
+            offset_base_yaw=self.base_yaw_offset,
+            offset_shoulder_pitch=self.shoulder_pitch_offset,
+            offset_elbow_pitch=self.elbow_pitch_offset,
+            dir_base_yaw=self.base_yaw_dir,
+            dir_shoulder_pitch=self.shoulder_pitch_dir,
+            dir_elbow_pitch=self.elbow_pitch_dir
         )
         # Declare and read parameter use_obstacles
         self.declare_parameter('use_obstacles', True)
@@ -175,7 +203,8 @@ class TopologicalPlannerNode(Node):
         
         # [SENSE]: Monitor the robot's current state via the GUI feedback.
         # This allows the planner to perceive the starting configuration (Point A).
-        self.current_q = None
+        self.current_q = None      # Robot's actual World position (used as planning start)
+        self.last_gui_q = None     # Last GUI command received (used for manual change detection)
         self.master_joint_names = None
         self.joint_sub = (
             self.create_subscription(
@@ -192,6 +221,15 @@ class TopologicalPlannerNode(Node):
             self.create_publisher(
                 JointState, 
                 '/master_states', 
+                10
+            )
+        )
+
+        # [STATUS]: Publish status messages (success/failure) for the dashboard
+        self.status_pub = (
+            self.create_publisher(
+                String,
+                '/planner_status',
                 10
             )
         )
@@ -236,6 +274,55 @@ class TopologicalPlannerNode(Node):
         self.get_logger().info("  Option 3: Publish JSON commands to /web_commands (dashboard interface)")
 
 
+    def world_to_urdf(self, q_world: tuple) -> tuple:
+        """
+        Converts world-frame coordinates (yaw_w, pitch1_w, pitch2_w) in radians
+        to URDF joint values (base_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint) in radians
+        using configurable offset parameters.
+        """
+        if len(q_world) == 2:
+            yaw_w, pitch1_w = q_world
+            pitch2_w = 0.0
+        else:
+            yaw_w, pitch1_w, pitch2_w = q_world
+
+        base_yaw = self.base_yaw_offset + self.base_yaw_dir * yaw_w
+        shoulder_pitch = self.shoulder_pitch_offset + self.shoulder_pitch_dir * pitch1_w
+        elbow_pitch = self.elbow_pitch_offset + self.elbow_pitch_dir * pitch2_w
+
+        return (base_yaw, shoulder_pitch, elbow_pitch)
+
+    def wrap_to_pi(self, val: float) -> float:
+        return (val + math.pi) % (2 * math.pi) - math.pi
+
+    def urdf_to_world(self, q_urdf: tuple) -> tuple:
+        """
+        Converts URDF joint values (base_yaw_joint, shoulder_pitch_joint, elbow_pitch_joint) in radians
+        to world-frame coordinates (yaw_w, pitch1_w, pitch2_w) in radians
+        using configurable offset parameters.
+        """
+        if len(q_urdf) == 2:
+            base_yaw, shoulder_pitch = q_urdf
+            elbow_pitch = 0.0
+        else:
+            base_yaw, shoulder_pitch, elbow_pitch = q_urdf
+
+        yaw_w = self.wrap_to_pi((base_yaw - self.base_yaw_offset) / self.base_yaw_dir)
+        pitch1_w = self.wrap_to_pi((shoulder_pitch - self.shoulder_pitch_offset) / self.shoulder_pitch_dir)
+        pitch2_w = self.wrap_to_pi((elbow_pitch - self.elbow_pitch_offset) / self.elbow_pitch_dir)
+
+        return (yaw_w, pitch1_w, pitch2_w)
+
+    def publish_status(self, success: bool, msg: str) -> tuple:
+        """
+        Publishes planning status (success and details message) as a JSON string to /planner_status
+        and returns the (success, msg) tuple for convenience.
+        """
+        status_msg = String()
+        status_msg.data = json.dumps({"success": success, "message": msg})
+        self.status_pub.publish(status_msg)
+        return (success, msg)
+
     def joint_callback(self, msg: JointState):
         """
         Captures the current robot configuration from the GUI sliders.
@@ -248,44 +335,46 @@ class TopologicalPlannerNode(Node):
         Returns:
             None
         """
-        if self.current_q is not None:
-            # Check if any of the 3 master joints changed significantly in the GUI
-            # (threshold of 0.01 rad to ignore noise)
-            master_indices = []
-            master_names = (
-                ['base_yaw_joint', 'shoulder_pitch_joint'] 
-                if getattr(self.kinematics, 'use_horizontal_constraint', False) 
-                else ['base_yaw_joint', 'shoulder_pitch_joint', 'elbow_pitch_joint']
-            )
-            for name in master_names:
-                if name in msg.name:
-                    master_indices.append(list(msg.name).index(name))
+        # Extract master joints from msg (msg contains URDF coordinates for master joints)
+        joint_map = {}
+        for name, pos in zip(msg.name, msg.position):
+            joint_map[name] = pos
             
-            # Detect manual change
-            manual_change = False
-            for idx in master_indices:
-                if abs(msg.position[idx] - self.current_q[idx]) > 0.01:
-                    manual_change = True
-                    break
-            
-            if manual_change:
-                # Release override
-                self.final_planned_q = None 
+        q_urdf = (
+            joint_map.get('base_yaw_joint', 0.0),
+            joint_map.get('shoulder_pitch_joint', 0.0),
+            joint_map.get('elbow_pitch_joint', 0.0)
+        )
+        
+        new_q_world = self.urdf_to_world(q_urdf)
 
-        # Update internal state
+        # Detect manual change by comparing INCOMING GUI command against the LAST GUI command.
+        # This avoids false positives when the GUI passively re-sends its old position
+        # (e.g., after animation ends and robot is at goal but GUI is still at start).
+        if self.last_gui_q is not None:
+            manual_change = any(
+                abs(a - b) > 0.01
+                for a, b in zip(new_q_world, self.last_gui_q)
+            )
+            if manual_change:
+                self.final_planned_q = None
+                self.current_q = new_q_world  # Follow new GUI command
+
+        # Track last GUI command (separate from robot actual position)
+        self.last_gui_q = new_q_world
         self.last_gui_msg = msg
         self.master_joint_names = list(msg.name)
-        self.current_q = tuple(msg.position)
 
-        # Publish the current state or the final planned state if animating
+        # Initialize current_q on first message
+        if self.current_q is None:
+            self.current_q = new_q_world
+
+        # Publish to /master_states (always in URDF coordinates)
         if not self.is_animating:
-            if self.final_planned_q is not None:
-                out = self._build_full_msg(self.final_planned_q)
-                self.joint_pub.publish(out)
-                self.publish_collision_markers(self.final_planned_q)
-            else:
-                self.joint_pub.publish(msg)
-                self.publish_collision_markers(self.current_q)
+            q_to_publish = self.final_planned_q if self.final_planned_q is not None else self.current_q
+            out = self._build_full_msg(q_to_publish)
+            self.joint_pub.publish(out)
+            self.publish_collision_markers(q_to_publish)
 
     def click_callback(self, msg: PointStamped):
         """
@@ -354,23 +443,19 @@ class TopologicalPlannerNode(Node):
                         pass
                 
                 if "goal" in data:
-                    self.set_parameters([rclpy.Parameter("goal", rclpy.Parameter.Type.DOUBLE_ARRAY, [float(x) for x in data["goal"]])])
+                    goal_val = [float(x) for x in data["goal"]]
+                    if self.get_parameter('angles_in_degrees').value:
+                        goal_val = [math.degrees(x) for x in goal_val]
+                    self.set_parameters([rclpy.Parameter("goal", rclpy.Parameter.Type.DOUBLE_ARRAY, goal_val)])
                 
                 self.execute_plan()
                 
             elif action == "plan_sequential":
                 waypoints = data.get("waypoints", [])
                 if len(waypoints) >= 2:
-                    waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
-                    import yaml
-                    try:
-                        with open(waypoints_file, 'w') as f:
-                            yaml.safe_dump({"waypoints": waypoints}, f)
-                        self.get_logger().info(f"Saved {len(waypoints)} web waypoints to {waypoints_file}")
-                    except Exception as e:
-                        self.get_logger().error(f"Failed to write web waypoints to file: {e}")
-                    
-                    self.execute_plan()
+                    if self.get_parameter('angles_in_degrees').value:
+                        waypoints = [[math.degrees(coord) for coord in pt] for pt in waypoints]
+                    self.execute_plan(waypoints=waypoints)
                     
             elif action == "change_cspace":
                 obstacle_type = data.get("obstacle_type")
@@ -441,6 +526,56 @@ class TopologicalPlannerNode(Node):
                 else:
                     self.get_logger().warn(f"No C-space cache found at {cache_filepath}. Planning will run in real-time mode.")
                     self.collider.set_cspace_cache(None, self.grid)
+            
+            elif action == "clear_trail":
+                self.trail_points = []
+                clear_trail_marker = Marker()
+                clear_trail_marker.header.frame_id = 'world'
+                clear_trail_marker.header.stamp = self.get_clock().now().to_msg()
+                clear_trail_marker.ns = 'trajectory_trail'
+                clear_trail_marker.id = 0
+                clear_trail_marker.action = Marker.DELETE
+                
+                marker_array = MarkerArray()
+                marker_array.markers.append(clear_trail_marker)
+                self.marker_pub.publish(marker_array)
+                self.get_logger().info("Cleared trajectory trail in RViz!")
+                
+            elif action == "go_to_position":
+                # Explicit move command from the dashboard (e.g. Reset to Home).
+                # Works even when moving to the same position the GUI was already at.
+                angles_in_degrees = self.get_parameter('angles_in_degrees').value
+                q_vals = data.get("q", [])
+                if len(q_vals) >= self.kinematics.get_dof():
+                    if angles_in_degrees:
+                        q_world = tuple(math.radians(x) for x in q_vals[:self.kinematics.get_dof()])
+                    else:
+                        q_world = tuple(float(x) for x in q_vals[:self.kinematics.get_dof()])
+                    self.final_planned_q = None
+                    self.current_q = q_world
+                    self.last_gui_q = q_world  # Sync GUI tracking to avoid re-trigger
+                    if not self.is_animating:
+                        out = self._build_full_msg(q_world)
+                        self.joint_pub.publish(out)
+                        self.publish_collision_markers(q_world)
+                    self.get_logger().info(f"Explicit go_to_position: {tuple(round(math.degrees(x),1) for x in q_world)}°")
+
+            elif action == "toggle_trail":
+                show_val = bool(data.get("show", True))
+                self.show_path_trail = show_val
+                self.get_logger().info(f"Updated show_path_trail via web to: {show_val}")
+                if not show_val:
+                    self.trail_points = []
+                    clear_trail_marker = Marker()
+                    clear_trail_marker.header.frame_id = 'world'
+                    clear_trail_marker.header.stamp = self.get_clock().now().to_msg()
+                    clear_trail_marker.ns = 'trajectory_trail'
+                    clear_trail_marker.id = 0
+                    clear_trail_marker.action = Marker.DELETE
+                    
+                    marker_array = MarkerArray()
+                    marker_array.markers.append(clear_trail_marker)
+                    self.marker_pub.publish(marker_array)
                     
         except Exception as e:
             self.get_logger().error(f"Failed to process web command: {e}")
@@ -455,12 +590,12 @@ class TopologicalPlannerNode(Node):
         if self.is_animating:
             msg = "Already animating a trajectory. Please wait."
             self.get_logger().warn(msg)
-            return (False, msg)
+            return self.publish_status(False, msg)
 
         if self.current_q is None:
             msg = "No joint state received yet. Is the robot visualization running?"
             self.get_logger().error(msg)
-            return (False, msg)
+            return self.publish_status(False, msg)
 
         # Clear previous final position so we plan from actual GUI state
         self.final_planned_q = None
@@ -516,11 +651,11 @@ class TopologicalPlannerNode(Node):
                 if not self.collider.is_state_valid(p_start, self.kinematics):
                     msg = f"TOPOLOGICAL ERROR: Waypoint #{i+1} {waypoints_list[i]} is in collision."
                     self.get_logger().error(msg)
-                    return (False, msg)
+                    return self.publish_status(False, msg)
                 if not self.collider.is_state_valid(p_goal, self.kinematics):
                     msg = f"TOPOLOGICAL ERROR: Waypoint #{i+2} {waypoints_list[i+1]} is in collision."
                     self.get_logger().error(msg)
-                    return (False, msg)
+                    return self.publish_status(False, msg)
 
                 start_discrete = self.grid.discretize(p_start)
                 goal_discrete = self.grid.discretize(p_goal)
@@ -530,7 +665,7 @@ class TopologicalPlannerNode(Node):
                 if not segment:
                     msg = f"TOPOLOGICAL ERROR: No collision-free path found for segment {i+1}: {waypoints_list[i]} -> {waypoints_list[i+1]}"
                     self.get_logger().error(msg)
-                    return (False, msg)
+                    return self.publish_status(False, msg)
 
                 if i > 0:
                     full_path.extend(segment[1:])
@@ -540,7 +675,7 @@ class TopologicalPlannerNode(Node):
             msg = f"Sequential path found! {len(full_path)} waypoints. Starting animation..."
             self.get_logger().info(msg)
             self.start_animation(full_path)
-            return (True, msg)
+            return self.publish_status(True, msg)
 
         # Fallback to single start/goal from parameters
         use_static_start = self.get_parameter('use_static_start').value
@@ -553,23 +688,13 @@ class TopologicalPlannerNode(Node):
             start_q = tuple(start_list[:self.kinematics.get_dof()])
             self.get_logger().info(f"Using start configuration from parameters: {start_q}")
         else:
-            # Fallback to GUI joint states
-            if self.master_joint_names and self.current_q:
-                joint_map = dict(zip(self.master_joint_names, self.current_q))
-                if getattr(self.kinematics, 'use_horizontal_constraint', False):
-                    start_q = (
-                        joint_map.get('base_yaw_joint', 0.0),
-                        joint_map.get('shoulder_pitch_joint', 0.0)
-                    )
-                else:
-                    start_q = (
-                        joint_map.get('base_yaw_joint', 0.0),
-                        joint_map.get('shoulder_pitch_joint', 0.0),
-                        joint_map.get('elbow_pitch_joint', 0.0)
-                    )
+            # Use current GUI position (already stored in World coordinates)
+            dof = self.kinematics.get_dof()
+            if self.current_q is not None:
+                start_q = self.current_q[:dof]
             else:
-                dof = self.kinematics.get_dof()
-                start_q = self.current_q[:dof] if self.current_q else tuple([0.0]*dof)
+                start_q = tuple([0.0]*dof)
+                self.get_logger().warn("No GUI position received yet, defaulting start to (0,0,...,0)")
 
         # Read goal from ROS parameter
         goal_list = self.get_parameter('goal').get_parameter_value().double_array_value
@@ -585,28 +710,51 @@ class TopologicalPlannerNode(Node):
         start_discrete = self.grid.discretize(start_q)
         goal_discrete = self.grid.discretize(goal_q)
 
+        # Check if start or goal is in collision
+        if not self.collider.is_state_valid(start_q, self.kinematics):
+            start_deg = tuple(round(math.degrees(x), 1) for x in start_q)
+            msg = f"TOPOLOGICAL ERROR: Start configuration (Point A) {start_deg} is in collision."
+            self.get_logger().error(msg)
+            return self.publish_status(False, msg)
+            
+        if not self.collider.is_state_valid(goal_q, self.kinematics):
+            goal_deg = tuple(round(math.degrees(x), 1) for x in goal_q)
+            msg = f"TOPOLOGICAL ERROR: Goal configuration (Point B) {goal_deg} is in collision."
+            self.get_logger().error(msg)
+            return self.publish_status(False, msg)
+
         self.get_logger().info(f"Computing {self.get_parameter('planner_type').value.upper()} on toroidal manifold T^n...")
         path = self.planner.plan(start_discrete, goal_discrete)
 
         if not path:
             msg = "TOPOLOGICAL ERROR: No collision-free path found in C_free."
             self.get_logger().error(msg)
-            return (False, msg)
+            return self.publish_status(False, msg)
 
         msg = f"Path found! {len(path)} waypoints. Starting animation..."
         self.get_logger().info(msg)
+
+        # Log planned waypoints in degrees for debugging
+        path_rad = [self.grid.get_radians(wp) for wp in path]
+        for i, wp_rad in enumerate(path_rad):
+            wp_deg = tuple(round(math.degrees(x), 1) for x in wp_rad)
+            if i < 5 or i >= len(path_rad) - 3:
+                self.get_logger().info(f"  Waypoint [{i}]: {wp_deg}°")
+            elif i == 5:
+                self.get_logger().info(f"  ... ({len(path_rad) - 8} waypoints omitted) ...")
+
         self.start_animation(path)
-        return (True, msg)
+        return self.publish_status(True, msg)
 
 
     def _build_full_msg(self, q_planned: tuple) -> JointState:
         """
         Takes the last full GUI message (all XX joints) and overrides
-        only the 3 master joints with the planned values.
+        only the 3 master joints with the planned values (converted to URDF coordinates).
         This ensures parallelogram_kinematics.py receives ALL joint data.
 
         Args:
-            q_planned (tuple): The planned configuration (2-DOF or 3-DOF).
+            q_planned (tuple): The planned configuration (2-DOF or 3-DOF) in World coordinates.
 
         Returns:
             JointState: The full joint state message.
@@ -626,11 +774,14 @@ class TopologicalPlannerNode(Node):
             else:
                 q_full = q_planned
 
+            # Convert q_full (World coordinates) to URDF coordinates
+            q_urdf = self.world_to_urdf(q_full)
+
             # Override master joints
             master_map = {
-                'base_yaw_joint': q_full[0],
-                'shoulder_pitch_joint': q_full[1],
-                'elbow_pitch_joint': q_full[2],
+                'base_yaw_joint': q_urdf[0],
+                'shoulder_pitch_joint': q_urdf[1],
+                'elbow_pitch_joint': q_urdf[2],
             }
             for i, name in enumerate(names):
                 if name in master_map:
@@ -643,7 +794,8 @@ class TopologicalPlannerNode(Node):
         else:
             # Fallback if no GUI message received yet
             msg.name = ['base_yaw_joint', 'shoulder_pitch_joint', 'elbow_pitch_joint']
-            msg.position = [float(val) for val in q_3dof[:3]]
+            q_urdf = self.world_to_urdf(q_planned)
+            msg.position = [float(val) for val in q_urdf[:3]]
 
         msg.velocity = [0.0] * len(msg.name)
         msg.effort = [0.0] * len(msg.name)
@@ -671,6 +823,11 @@ class TopologicalPlannerNode(Node):
             self.is_animating = False
             # Store the final position so the robot stays there
             self.final_planned_q = self.animation_path[-1]
+            # Sync current_q to the actual robot position (World coords).
+            # This ensures that if the user sends a GUI command from the same position
+            # they were at before planning, it is still detected as a manual change
+            # relative to the robot's actual end position (the goal).
+            self.current_q = self.grid.get_radians(self.animation_path[-1])
             self.get_logger().info("Trajectory execution complete ✅")
             return
 
@@ -687,42 +844,73 @@ class TopologicalPlannerNode(Node):
         marker_array = MarkerArray()
 
         # 1. Trajectory Trail (Yellow LINE_STRIP)
-        try:
-            fk_positions = self.kinematics.compute_forward_kinematics(q)
-            end_effector_pos = fk_positions[-1]  # Last point = end-effector
+        if self.show_path_trail:
+            try:
+                # Try to get the exact end-effector position from URDF transforms
+                end_effector_pos = None
+                if getattr(self.collider, 'urdf_parser', None) is not None:
+                    if len(q) == 2:
+                        q1, q2 = q
+                        q3 = 0.0
+                    else:
+                        q1, q2, q3 = q
+                    
+                    # Convert World coordinates to URDF coordinates for compute_transforms
+                    q_urdf = self.world_to_urdf((q1, q2, q3))
+                    transforms = self.collider.urdf_parser.compute_transforms(q_urdf[0], q_urdf[1], q_urdf[2])
+                    
+                    # Check for standard end-effector link names
+                    for link_name in ['manipulator_dual', 'gripperbase_by_ftobler']:
+                        if link_name in transforms:
+                            end_effector_pos = transforms[link_name][:3, 3]
+                            break
+                    
+                    # Fallback to the last active sphere link if standard names aren't found
+                    if end_effector_pos is None:
+                        for lname in reversed(list(self.collider.urdf_parser.links_with_spheres.keys())):
+                            if lname in transforms:
+                                end_effector_pos = transforms[lname][:3, 3]
+                                break
+                
+                # Fallback to simplified serial forward kinematics if URDF not loaded
+                if end_effector_pos is None:
+                    fk_positions = self.kinematics.compute_forward_kinematics(q)
+                    end_effector_pos = fk_positions[-1]
 
-            # Accumulate the point
-            trail_pt = Point()
-            trail_pt.x = float(end_effector_pos[0])
-            trail_pt.y = float(end_effector_pos[1])
-            trail_pt.z = float(end_effector_pos[2])
-            self.trail_points.append(trail_pt)
+                # Accumulate the point
+                trail_pt = Point()
+                trail_pt.x = float(end_effector_pos[0])
+                trail_pt.y = float(end_effector_pos[1])
+                trail_pt.z = float(end_effector_pos[2])
+                self.trail_points.append(trail_pt)
 
-            # Publish the trail as a LINE_STRIP (needs at least 2 points)
-            if len(self.trail_points) >= 2:
-                trail_marker = Marker()
-                trail_marker.header.frame_id = 'world'
-                trail_marker.header.stamp = self.get_clock().now().to_msg()
-                trail_marker.ns = 'trajectory_trail'
-                trail_marker.id = 0
-                trail_marker.type = Marker.LINE_STRIP
-                trail_marker.action = Marker.ADD
-                trail_marker.pose.orientation.w = 1.0
-                trail_marker.scale.x = 0.005  # Line width (5mm)
-                # Yellow color
-                trail_marker.color.r = 1.0
-                trail_marker.color.g = 1.0
-                trail_marker.color.b = 0.0
-                trail_marker.color.a = 1.0
-                trail_marker.points = list(self.trail_points)
-                marker_array.markers.append(trail_marker)
-        except Exception as e:
-            self.get_logger().error(f"Failed to publish trajectory trail: {e}")
+                # Publish the trail as a LINE_STRIP (needs at least 2 points)
+                if len(self.trail_points) >= 2:
+                    trail_marker = Marker()
+                    trail_marker.header.frame_id = 'world'
+                    trail_marker.header.stamp = self.get_clock().now().to_msg()
+                    trail_marker.ns = 'trajectory_trail'
+                    trail_marker.id = 0
+                    trail_marker.type = Marker.LINE_STRIP
+                    trail_marker.action = Marker.ADD
+                    trail_marker.pose.orientation.w = 1.0
+                    trail_marker.scale.x = 0.005  # Line width (5mm)
+                    # Yellow color
+                    trail_marker.color.r = 1.0
+                    trail_marker.color.g = 1.0
+                    trail_marker.color.b = 0.0
+                    trail_marker.color.a = 1.0
+                    trail_marker.points = list(self.trail_points)
+                    marker_array.markers.append(trail_marker)
+            except Exception as e:
+                self.get_logger().error(f"Failed to publish trajectory trail: {e}")
 
         # 2. Collision Spheres
         if getattr(self.collider, 'urdf_parser', None) is not None:
             try:
-                centers, radii = self.collider.urdf_parser.get_transformed_spheres(q)
+                # Convert World coordinates to URDF coordinates for collision checking/visualization
+                q_urdf = self.world_to_urdf(q)
+                centers, radii = self.collider.urdf_parser.get_transformed_spheres(q_urdf)
                 
                 # Clear only the collision sphere markers (not the trail)
                 clear_marker = Marker()
