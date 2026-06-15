@@ -30,12 +30,12 @@ help:
 
 # 1. Compile the project (GPU)
 build:
-	docker compose up -d
+	docker compose up -d --build
 	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && colcon build --symlink-install --packages-select $(PKGS)"
 
 # 1.1 Compile the project (CPU)
 build-cpu:
-	docker compose -f docker-compose.cpu.yml up -d
+	docker compose -f docker-compose.cpu.yml up -d --build
 	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && colcon build --symlink-install --packages-select $(PKGS)"
 
 # 2. Build and Launch everything (GPU)

@@ -1,10 +1,21 @@
-# Usamos Nginx Alpine por ser ligero y seguro
-FROM nginx:alpine
-
-# Copiamos los archivos de nuestra app al directorio que Nginx sirve por defecto
-COPY . /usr/share/nginx/html
-
-# Exponemos el puerto 80
+# --- Stage 1: Development stage ---
+FROM node:20-alpine AS development
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
 EXPOSE 80
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "80"]
 
-# Nginx se inicia automáticamente, no hace falta CMD
+# --- Stage 2: Build stage ---
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# --- Stage 3: Serve stage with Nginx ---
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80

@@ -188,30 +188,130 @@ const jointSub = new ROSLIB.Topic({
     messageType : 'sensor_msgs/JointState'
 });
 
+// Publisher for web-based joint control sliders (replaces joint_state_publisher_gui)
+const guiJointPub = new ROSLIB.Topic({
+    ros : ros,
+    name : '/web_gui_master_states',
+    messageType : 'sensor_msgs/JointState'
+});
+
+// Default joint offset and direction configurations (fallback, relative to world axes)
+let jointOffsets = {
+    base_yaw: 0.0,
+    shoulder_pitch: 0.0,
+    elbow_pitch: 0.0
+};
+let jointDirections = {
+    base_yaw: 1,
+    shoulder_pitch: 1,
+    elbow_pitch: 1
+};
+
+// Function to query parameters dynamically from ROS 2
+function loadParameters() {
+    const pOffsets = ['base_yaw', 'shoulder_pitch', 'elbow_pitch'];
+    pOffsets.forEach(key => {
+        const param = new ROSLIB.Param({
+            ros: ros,
+            name: `/topological_planner_node/joint_offsets/${key}`
+        });
+        param.get((val) => {
+            if (val !== null && val !== undefined) {
+                jointOffsets[key] = val;
+                console.log(`Loaded offset for ${key}: ${val}`);
+            }
+        });
+    });
+
+    const pDirs = ['base_yaw', 'shoulder_pitch', 'elbow_pitch'];
+    pDirs.forEach(key => {
+        const param = new ROSLIB.Param({
+            ros: ros,
+            name: `/topological_planner_node/joint_directions/${key}`
+        });
+        param.get((val) => {
+            if (val !== null && val !== undefined) {
+                jointDirections[key] = val;
+                console.log(`Loaded direction for ${key}: ${val}`);
+            }
+        });
+    });
+}
+
 let lastQ = null;
 let lastTableUpdateTime = 0;
 let firstPositionReceived = false;
+let sliderPublishInterval = null;
+let userDraggingSlider = false;
 
 jointSub.subscribe((msg) => {
     const names = msg.name;
     const pos = msg.position;
     
-    let q = [0, 0, 0];
+    let q_urdf = [0, 0, 0];
     let found = 0;
     for(let i=0; i<names.length; i++) {
-        if(names[i] === 'base_yaw_joint') { q[0] = pos[i]; found++; }
-        if(names[i] === 'shoulder_pitch_joint') { q[1] = pos[i]; found++; }
-        if(names[i] === 'elbow_pitch_joint') { q[2] = pos[i]; found++; }
+        if(names[i] === 'base_yaw_joint') { q_urdf[0] = pos[i]; found++; }
+        if(names[i] === 'shoulder_pitch_joint') { q_urdf[1] = pos[i]; found++; }
+        if(names[i] === 'elbow_pitch_joint') { q_urdf[2] = pos[i]; found++; }
     }
 
     if (found >= 2) {
+        // Convert URDF to World coordinates (in radians) using configured offsets and directions
+        const offsetBaseYawRad = jointOffsets.base_yaw * Math.PI / 180.0;
+        const offsetShoulderPitchRad = jointOffsets.shoulder_pitch * Math.PI / 180.0;
+        const offsetElbowPitchRad = jointOffsets.elbow_pitch * Math.PI / 180.0;
+
+        const q = [
+            (q_urdf[0] - offsetBaseYawRad) / jointDirections.base_yaw,
+            (q_urdf[1] - offsetShoulderPitchRad) / jointDirections.shoulder_pitch,
+            (q_urdf[2] - offsetElbowPitchRad) / jointDirections.elbow_pitch
+        ];
+
         robotPoint.position.set(q[0], q[1], q[2]);
 
         if (!firstPositionReceived) {
             controls.target.set(q[0], q[1], q[2]);
             camera.position.set(q[0] + 5, q[1] + 5, q[2] + 5);
             controls.update();
+            
+            // Set the sliders to the actual initial position (World coordinates)
+            const rad2deg = 180.0 / Math.PI;
+            const degQ1 = q[0] * rad2deg;
+            const degQ2 = q[1] * rad2deg;
+            const degQ3 = q[2] * rad2deg;
+            
+            document.getElementById('slider-q1').value = Math.round(degQ1);
+            document.getElementById('slider-q2').value = Math.round(degQ2);
+            document.getElementById('slider-q3').value = Math.round(degQ3);
+            
+            document.getElementById('val-q1').textContent = degQ1.toFixed(1) + '°';
+            document.getElementById('val-q2').textContent = degQ2.toFixed(1) + '°';
+            document.getElementById('val-q3').textContent = degQ3.toFixed(1) + '°';
+
             firstPositionReceived = true;
+
+            // Start 10Hz publisher only after initializing sliders
+            if (sliderPublishInterval) clearInterval(sliderPublishInterval);
+            sliderPublishInterval = setInterval(() => {
+                publishSliderJointState();
+            }, 100);
+        }
+
+        // Update sliders if user is not currently dragging them
+        if (!userDraggingSlider) {
+            const rad2deg = 180.0 / Math.PI;
+            const degQ1 = q[0] * rad2deg;
+            const degQ2 = q[1] * rad2deg;
+            const degQ3 = q[2] * rad2deg;
+            
+            document.getElementById('slider-q1').value = Math.round(degQ1);
+            document.getElementById('slider-q2').value = Math.round(degQ2);
+            document.getElementById('slider-q3').value = Math.round(degQ3);
+            
+            document.getElementById('val-q1').textContent = degQ1.toFixed(1) + '°';
+            document.getElementById('val-q2').textContent = degQ2.toFixed(1) + '°';
+            document.getElementById('val-q3').textContent = degQ3.toFixed(1) + '°';
         }
 
         const now = Date.now();
@@ -399,9 +499,11 @@ window.updatePlannerParams = function() {
 };
 
 window.planToCurrentGoal = function() {
-    const th1 = parseFloat(document.getElementById('goal-th1').value) || 0.0;
-    const th2 = parseFloat(document.getElementById('goal-th2').value) || 0.0;
-    const th3 = parseFloat(document.getElementById('goal-th3').value) || 0.0;
+    // Inputs are now in degrees — convert to radians for the planner
+    const deg2rad = Math.PI / 180.0;
+    const th1 = (parseFloat(document.getElementById('goal-th1').value) || 0.0) * deg2rad;
+    const th2 = (parseFloat(document.getElementById('goal-th2').value) || 0.0) * deg2rad;
+    const th3 = (parseFloat(document.getElementById('goal-th3').value) || 0.0) * deg2rad;
 
     const planner = document.getElementById('select-planner').value;
     const heuristic = document.getElementById('select-heuristic').value;
@@ -499,6 +601,65 @@ window.changeCSpaceEnv = function() {
     });
     webCmdPub.publish(msg);
 };
+
+// --- JOINT SLIDER CONTROL ---
+function publishSliderJointState() {
+    const deg2rad = Math.PI / 180.0;
+    const q1 = parseFloat(document.getElementById('slider-q1').value) * deg2rad;
+    const q2 = parseFloat(document.getElementById('slider-q2').value) * deg2rad;
+    const q3 = parseFloat(document.getElementById('slider-q3').value) * deg2rad;
+
+    const jointMsg = new ROSLIB.Message({
+        header: { stamp: { sec: 0, nanosec: 0 }, frame_id: '' },
+        name: ['base_yaw_joint', 'shoulder_pitch_joint', 'elbow_pitch_joint'],
+        position: [q1, q2, q3],
+        velocity: [],
+        effort: []
+    });
+    guiJointPub.publish(jointMsg);
+}
+
+window.onSliderChange = function() {
+    const v1 = document.getElementById('slider-q1').value;
+    const v2 = document.getElementById('slider-q2').value;
+    const v3 = document.getElementById('slider-q3').value;
+
+    document.getElementById('val-q1').textContent = v1 + '°';
+    document.getElementById('val-q2').textContent = v2 + '°';
+    document.getElementById('val-q3').textContent = v3 + '°';
+
+    userDraggingSlider = true;
+    publishSliderJointState();
+
+    // Auto-stop dragging flag after 500ms of inactivity
+    clearTimeout(window._sliderDragTimeout);
+    window._sliderDragTimeout = setTimeout(() => { userDraggingSlider = false; }, 500);
+};
+
+window.resetSliders = function() {
+    document.getElementById('slider-q1').value = 0;
+    document.getElementById('slider-q2').value = 0;
+    document.getElementById('slider-q3').value = 0;
+    document.getElementById('val-q1').textContent = '0°';
+    document.getElementById('val-q2').textContent = '0°';
+    document.getElementById('val-q3').textContent = '0°';
+    publishSliderJointState();
+};
+
+// Continuous publishing at 10Hz to keep the robot alive in RViz
+ros.on('connection', () => {
+    // Load offsets and directions dynamically from ROS parameters
+    loadParameters();
+    // We defer starting the publisher interval until the first /joint_states is received
+    // to avoid publishing default [0, 0, 0] values and resetting the robot.
+});
+
+ros.on('close', () => {
+    if (sliderPublishInterval) {
+        clearInterval(sliderPublishInterval);
+        sliderPublishInterval = null;
+    }
+});
 
 // --- ANIMATION LOOP ---
 function animate() {
