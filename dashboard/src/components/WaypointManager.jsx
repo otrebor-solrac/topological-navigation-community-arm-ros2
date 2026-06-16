@@ -50,14 +50,14 @@ export default function WaypointManager({ currentQ }) {
 
     return (
         <div className="card">
-            <h2>Sequential Waypoints</h2>
+            <h2>Sequential waypoints</h2>
             
             <button 
                 onClick={handleAddWaypoint} 
                 className="btn btn-primary" 
                 style={{ width: '100%', marginBottom: '10px' }}
             >
-                Add Current Pose as Waypoint
+                Add current pose as waypoint
             </button>
 
             <div id="waypoint-list" style={{ maxHeight: '180px', overflowY: 'auto', margin: '10px 0' }}>
@@ -77,7 +77,7 @@ export default function WaypointManager({ currentQ }) {
                                 borderBottom: '1px solid var(--glass-border)' 
                             }}
                         >
-                            <span>WP #{idx + 1}: [{(wp[0]*rad2deg).toFixed(1)}°, {(wp[1]*rad2deg).toFixed(1)}°, {(wp[2]*rad2deg).toFixed(1)}°]</span>
+                            <span>Waypoint #{idx + 1}: [{(wp[0]*rad2deg).toFixed(1)}°, {(wp[1]*rad2deg).toFixed(1)}°, {(wp[2]*rad2deg).toFixed(1)}°]</span>
                             <span 
                                 onClick={() => handleRemoveWaypoint(idx)} 
                                 style={{ color: 'var(--accent-red)', cursor: 'pointer', fontWeight: 'bold', padding: '0 6px', fontSize: '1.1em' }}
@@ -92,14 +92,14 @@ export default function WaypointManager({ currentQ }) {
             {waypoints.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <button onClick={handleClear} className="btn btn-secondary">
-                        Clear All
+                        Clear all
                     </button>
                     <button 
                         onClick={handleExecuteSequence} 
                         className="btn btn-accent"
                         disabled={waypoints.length < 2}
                     >
-                        Execute Seq
+                        Execute sequence
                     </button>
                 </div>
             )}

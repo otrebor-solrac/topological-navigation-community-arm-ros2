@@ -1,48 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
-export default function TraceTable({ currentQ }) {
-    const [tracePoints, setTracePoints] = useState([]);
-    const MAX_TRACE_LOG = 30;
-
-    useEffect(() => {
-        if (currentQ) {
-            setTracePoints(prev => {
-                const next = [[...currentQ], ...prev];
-                if (next.length > MAX_TRACE_LOG) {
-                    next.pop();
-                }
-                return next;
-            });
-        }
-    }, [currentQ]);
+export default function TraceTable({ plannedPath }) {
+    const rad2deg = 180.0 / Math.PI;
 
     return (
         <div className="card traceability-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <h2>Live Joint State Traceability</h2>
+            <h2>Planned path waypoints</h2>
             <div style={{ flex: 1, overflowY: 'auto', maxHeight: '350px' }}>
                 <table>
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>θ₁ (Yaw)</th>
-                            <th>θ₂ (Shoulder)</th>
-                            <th>θ₃ (Elbow)</th>
+                            <th>θ₁ (yaw)</th>
+                            <th>θ₂ (shoulder)</th>
+                            <th>θ₃ (elbow)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {tracePoints.length === 0 ? (
+                        {!plannedPath || plannedPath.length === 0 ? (
                             <tr>
                                 <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    Waiting for joint states...
+                                    No active path planned
                                 </td>
                             </tr>
                         ) : (
-                            tracePoints.map((p, idx) => (
-                                <tr key={idx} className={idx === 0 ? 'current-row' : ''}>
-                                    <td>{tracePoints.length - idx}</td>
-                                    <td>{p[0].toFixed(3)}</td>
-                                    <td>{p[1].toFixed(3)}</td>
-                                    <td>{p[2].toFixed(3)}</td>
+                            plannedPath.map((p, idx) => (
+                                <tr key={idx}>
+                                    <td>{idx + 1}</td>
+                                    <td>{(p[0] * rad2deg).toFixed(1)}°</td>
+                                    <td>{(p[1] * rad2deg).toFixed(1)}°</td>
+                                    <td>{(p[2] * rad2deg).toFixed(1)}°</td>
                                 </tr>
                             ))
                         )}
