@@ -252,6 +252,9 @@ class CSpaceVoxelPublisher(Node):
                 raw_data = json.loads(cached_json)
                 
                 if isinstance(raw_data, dict) and "self_collision_voxels" in raw_data and "obstacle_voxels" in raw_data:
+                    if "step_rad" not in raw_data:
+                        raw_data["step_rad"] = float(self.grid.step_rad)
+                        cached_json = json.dumps(raw_data)
                     msg = String()
                     msg.data = cached_json
                     self.cached_voxels_msg = msg
@@ -352,6 +355,7 @@ class CSpaceVoxelPublisher(Node):
                 
                 if process.returncode == 0:
                     output_data = json.loads(stdout)
+                    output_data["step_rad"] = float(self.grid.step_rad)
                     self.get_logger().info(f"Rust C-Space solver success! Found {len(output_data.get('forbidden_voxels', []))}/{total_states} forbidden states.")
                     return output_data
                 else:
@@ -403,7 +407,8 @@ class CSpaceVoxelPublisher(Node):
         return {
             "forbidden_voxels": forbidden_voxels,
             "self_collision_voxels": self_collision_voxels,
-            "obstacle_voxels": obstacle_voxels
+            "obstacle_voxels": obstacle_voxels,
+            "step_rad": float(self.grid.step_rad)
         }
 
     def _save_cspace_cache(self, cspace_data: dict) -> bool:

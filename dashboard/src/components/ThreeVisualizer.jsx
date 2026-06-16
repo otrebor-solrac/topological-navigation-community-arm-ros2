@@ -3,6 +3,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { jointSub, voxelSub, jointOffsets, jointDirections } from '../services/ros';
 
+const wrapToPi = (val) => {
+    let a = (val + Math.PI) % (2 * Math.PI);
+    if (a < 0) a += 2 * Math.PI;
+    return a - Math.PI;
+};
+
 export default function ThreeVisualizer({
     showSelfCollision,
     showObstacleCollision,
@@ -29,6 +35,7 @@ export default function ThreeVisualizer({
     const rawVoxelDataRef = useRef([]);
     const rawObstacleDataRef = useRef([]);
     const rawSelfCollisionDataRef = useRef([]);
+    const stepRadRef = useRef(0.12);
 
     const lastQRef = useRef(null);
 
@@ -79,25 +86,23 @@ export default function ThreeVisualizer({
 
     // Compute complement (free space)
     const computeComplement = (data) => {
-        if (!data || data.length === 0) return [];
-        const u0 = new Set();
-        const u1 = new Set();
-        const u2 = new Set();
-        data.forEach(p => {
-            u0.add(p[0].toFixed(4));
-            u1.add(p[1].toFixed(4));
-            u2.add(p[2].toFixed(4));
-        });
-        const arr0 = Array.from(u0).map(Number).sort((a,b) => a-b);
-        const arr1 = Array.from(u1).map(Number).sort((a,b) => a-b);
-        const arr2 = Array.from(u2).map(Number).sort((a,b) => a-b);
+        if (!data) return [];
         
-        const forbiddenSet = new Set(data.map(p => `${p[0].toFixed(4)},${p[1].toFixed(4)},${p[2].toFixed(4)}`));
+        const step = stepRadRef.current || 0.12;
+        const stepsPerCircle = Math.round((2 * Math.PI) / step);
+        
+        // Generate the exact set of possible coordinates on each axis
+        const axisValues = [];
+        for (let i = 0; i < stepsPerCircle; i++) {
+            axisValues.push(wrapToPi(i * step));
+        }
+        
+        const forbiddenSet = new Set(data.map(p => `${p[0].toFixed(3)},${p[1].toFixed(3)},${p[2].toFixed(3)}`));
         const freePoints = [];
-        for (let x of arr0) {
-            for (let y of arr1) {
-                for (let z of arr2) {
-                    const key = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`;
+        for (let x of axisValues) {
+            for (let y of axisValues) {
+                for (let z of axisValues) {
+                    const key = `${x.toFixed(3)},${y.toFixed(3)},${z.toFixed(3)}`;
                     if (!forbiddenSet.has(key)) {
                         freePoints.push([x, y, z]);
                     }
@@ -117,7 +122,9 @@ export default function ThreeVisualizer({
         if (obstacleCollisionMeshRef.current) { scene.remove(obstacleCollisionMeshRef.current); obstacleCollisionMeshRef.current = null; }
         if (freeCollisionMeshRef.current) { scene.remove(freeCollisionMeshRef.current); freeCollisionMeshRef.current = null; }
 
-        const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+        const stepSize = stepRadRef.current || 0.12;
+        const size = stepSize * 0.95;
+        const geo = new THREE.BoxGeometry(size, size, size);
 
         if (cspaceMode === 'obs') {
             // Render self-collisions
@@ -272,12 +279,7 @@ export default function ThreeVisualizer({
                 const offsetShoulderPitchRad = jointOffsets.shoulder_pitch * Math.PI / 180.0;
                 const offsetElbowPitchRad = jointOffsets.elbow_pitch * Math.PI / 180.0;
 
-                const wrapToPi = (val) => {
-                    let a = val % (2 * Math.PI);
-                    if (a > Math.PI) a -= 2 * Math.PI;
-                    if (a < -Math.PI) a += 2 * Math.PI;
-                    return a;
-                };
+
 
                 const q = [
                     wrapToPi((q_urdf[0] - offsetBaseYawRad) / jointDirections.base_yaw),
@@ -322,10 +324,12 @@ export default function ThreeVisualizer({
                     rawVoxelDataRef.current = parsed.forbidden_voxels;
                     rawObstacleDataRef.current = parsed.obstacle_voxels || [];
                     rawSelfCollisionDataRef.current = parsed.self_collision_voxels || [];
+                    stepRadRef.current = parsed.step_rad || 0.12;
                 } else {
                     rawVoxelDataRef.current = parsed || [];
                     rawObstacleDataRef.current = [];
                     rawSelfCollisionDataRef.current = [];
+                    stepRadRef.current = 0.12;
                 }
             } catch(e) {
                 console.error("Error parsing voxel data:", e);
