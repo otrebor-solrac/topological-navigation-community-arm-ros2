@@ -4,7 +4,7 @@ import { webCmdPub } from '../services/ros';
 
 export default function ExplorerControls() {
     const [obstacle, setObstacle] = useState('box_obstacle');
-    const [resolution, setResolution] = useState('8.0');
+    const [resolution, setResolution] = useState('15.0');
 
     const handleEnvChange = () => {
         const payload = {

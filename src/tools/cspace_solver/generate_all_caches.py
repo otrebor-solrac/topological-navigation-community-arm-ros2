@@ -139,7 +139,13 @@ def main():
         
         # Initialize parser for robot spheres
         print(f"Initializing collider parser with thinning_dist={thinning_dist}m...")
-        parser = UrdfCollisionParser(robot_urdf, min_dist=thinning_dist)
+        parser = UrdfCollisionParser(
+            robot_urdf, 
+            min_dist=thinning_dist,
+            offset_base_yaw=offset_base_yaw,
+            offset_shoulder_pitch=offset_shoulder_pitch,
+            offset_elbow_pitch=offset_elbow_pitch
+        )
         
         # Load obstacles URDF if applicable
         obstacles = []

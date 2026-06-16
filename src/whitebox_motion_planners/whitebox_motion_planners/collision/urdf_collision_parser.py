@@ -73,7 +73,11 @@ class UrdfCollisionParser:
         # 3. Preclassify Base vs Moving groups and precompute active checking pairs
         self.base_indices = []
         self.moving_indices = []
-        base_keywords = ['main_body', 'stepper_motor', 'stabilizer', 'limit_switch', 'endstop']
+        base_keywords = [
+            'main_body', 'stepper_motor', 'stabilizer', 'limit_switch', 'endstop',
+            'lower_shank', 'pleuel', 'triplate', 'basering', 'socket', 'leg', 
+            'gear_body', 'lever', 'rotategear'
+        ]
         # Only check the extended arm segments against the base.
         # The parallelogram mechanism (pleuel, lower_shank, triplate) is mechanically
         # integrated with the base and generates false positives from sphere approximation.

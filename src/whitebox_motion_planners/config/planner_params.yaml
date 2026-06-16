@@ -25,7 +25,7 @@
 
 
     # Grid resolution (lower means more precision but slower planning)
-    step_size_deg: 8.0
+    step_size_deg: 15.0
     
     # Distance threshold in meters for URDF sphere thinning (e.g. 0.015 = 1.5 cm)
     sphere_thinning_dist: 0.015
