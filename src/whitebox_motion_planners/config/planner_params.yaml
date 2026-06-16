@@ -43,7 +43,7 @@
     use_obstacles: true
 
     # Obstacle type: "box_obstacle", "narrow_passage", "u_obstacle", "toroidal_wall"
-    obstacle_type: "box_obstacle"
+    obstacle_type: "no_obstacles"
 
     # Joint origin offsets in degrees (relative to world axes)
     joint_offsets:

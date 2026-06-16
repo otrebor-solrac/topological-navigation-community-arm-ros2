@@ -61,10 +61,14 @@ export default function JointSliders({ currentQ, firstPositionReceived }) {
     const publishSliderJointState = (sQ1, sQ2, sQ3) => {
         const deg2rad = Math.PI / 180.0;
 
+        const val1 = parseFloat(sQ1);
+        const val2 = parseFloat(sQ2);
+        const val3 = parseFloat(sQ3);
+
         // Slider values in World coordinates (radians)
-        const q1_rad = sQ1 * deg2rad;
-        const q2_rad = sQ2 * deg2rad;
-        const q3_rad = sQ3 * deg2rad;
+        const q1_rad = (isNaN(val1) ? 0 : val1) * deg2rad;
+        const q2_rad = (isNaN(val2) ? 0 : val2) * deg2rad;
+        const q3_rad = (isNaN(val3) ? 0 : val3) * deg2rad;
 
         // Convert World to URDF using loaded parameters
         const offsetBaseYawRad = jointOffsets.base_yaw * Math.PI / 180.0;
@@ -85,7 +89,6 @@ export default function JointSliders({ currentQ, firstPositionReceived }) {
     };
 
     const handleSliderChange = (jointIdx, val) => {
-        const numVal = parseFloat(val);
         // Clear any pending command since user is taking manual control
         commandedQRef.current = null;
         setUserDragging(true);
@@ -95,14 +98,14 @@ export default function JointSliders({ currentQ, firstPositionReceived }) {
         let nextQ3 = q3;
 
         if (jointIdx === 1) {
-            nextQ1 = numVal;
-            setQ1(numVal);
+            nextQ1 = val;
+            setQ1(val);
         } else if (jointIdx === 2) {
-            nextQ2 = numVal;
-            setQ2(numVal);
+            nextQ2 = val;
+            setQ2(val);
         } else if (jointIdx === 3) {
-            nextQ3 = numVal;
-            setQ3(numVal);
+            nextQ3 = val;
+            setQ3(val);
         }
 
         publishSliderJointState(nextQ1, nextQ2, nextQ3);
@@ -120,67 +123,97 @@ export default function JointSliders({ currentQ, firstPositionReceived }) {
 
     const handleReset = () => {
         if (homeQ) {
-            setQ1(homeQ.q1);
-            setQ2(homeQ.q2);
-            setQ3(homeQ.q3);
-            commandedQRef.current = { q1: homeQ.q1, q2: homeQ.q2, q3: homeQ.q3 };
+            const val1 = parseFloat(homeQ.q1) || 0;
+            const val2 = parseFloat(homeQ.q2) || 0;
+            const val3 = parseFloat(homeQ.q3) || 0;
+            setQ1(val1);
+            setQ2(val2);
+            setQ3(val3);
+            commandedQRef.current = { q1: val1, q2: val2, q3: val3 };
             // Send explicit go_to_position command so the planner moves even if
             // the home position equals the last GUI command (avoids false no-change detection)
             webCmdPub.publish({
                 data: JSON.stringify({
                     action: 'go_to_position',
-                    q: [homeQ.q1, homeQ.q2, homeQ.q3]
+                    q: [val1, val2, val3]
                 })
             });
             // Also update the joint_state_publisher pipeline
-            publishSliderJointState(homeQ.q1, homeQ.q2, homeQ.q3);
+            publishSliderJointState(val1, val2, val3);
         }
     };
 
     return (
         <div className="card">
-            <h2>Joint Control (World Frame)</h2>
+            <h2>Joint control (world frame)</h2>
             
             <div className="slider-group">
-                <div className="slider-header">
-                    <span>Base Yaw (θ₁)</span>
-                    <span className="value-display">{q1.toFixed(1)}°</span>
+                <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Base yaw (θ₁)</span>
+                    <input
+                        type="number"
+                        min="-180"
+                        max="180"
+                        step="1"
+                        value={q1}
+                        onChange={(e) => handleSliderChange(1, e.target.value)}
+                        className="input-field"
+                        style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
+                    />
                 </div>
                 <input
                     type="range"
                     min="-180"
                     max="180"
-                    value={q1}
+                    value={parseFloat(q1) || 0}
                     onChange={(e) => handleSliderChange(1, e.target.value)}
                     className="slider"
                 />
             </div>
 
             <div className="slider-group">
-                <div className="slider-header">
-                    <span>Shoulder Pitch (θ₂)</span>
-                    <span className="value-display">{q2.toFixed(1)}°</span>
+                <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Shoulder pitch (θ₂)</span>
+                    <input
+                        type="number"
+                        min="-180"
+                        max="180"
+                        step="1"
+                        value={q2}
+                        onChange={(e) => handleSliderChange(2, e.target.value)}
+                        className="input-field"
+                        style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
+                    />
                 </div>
                 <input
                     type="range"
                     min="-180"
                     max="180"
-                    value={q2}
+                    value={parseFloat(q2) || 0}
                     onChange={(e) => handleSliderChange(2, e.target.value)}
                     className="slider"
                 />
             </div>
 
             <div className="slider-group">
-                <div className="slider-header">
-                    <span>Elbow Pitch (θ₃)</span>
-                    <span className="value-display">{q3.toFixed(1)}°</span>
+                <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Elbow pitch (θ₃)</span>
+                    <input
+                        type="number"
+                        min="-180"
+                        max="180"
+                        step="1"
+                        value={q3}
+                        onChange={(e) => handleSliderChange(3, e.target.value)}
+                        className="input-field"
+                        style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
+                    />
                 </div>
                 <input
                     type="range"
                     min="-180"
                     max="180"
-                    value={q3}
+                    value={parseFloat(q3) || 0}
                     onChange={(e) => handleSliderChange(3, e.target.value)}
                     className="slider"
                 />
@@ -192,7 +225,7 @@ export default function JointSliders({ currentQ, firstPositionReceived }) {
                     className="btn btn-primary" 
                     style={{ flex: 1 }}
                 >
-                    Set Home
+                    Set origin
                 </button>
                 <button 
                     onClick={handleReset} 
@@ -200,7 +233,7 @@ export default function JointSliders({ currentQ, firstPositionReceived }) {
                     disabled={!homeQ}
                     style={{ flex: 1 }}
                 >
-                    Reset to Home
+                    Move robot to origin
                 </button>
             </div>
         </div>

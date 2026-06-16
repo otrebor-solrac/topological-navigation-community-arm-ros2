@@ -1,8 +1,9 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import PointStamped, Point
+from geometry_msgs.msg import PointStamped, Point, TransformStamped
 from visualization_msgs.msg import Marker, MarkerArray
+import tf2_ros
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
@@ -243,6 +244,14 @@ class TopologicalPlannerNode(Node):
             )
         )
 
+        from rclpy.qos import QoSProfile, DurabilityPolicy
+        desc_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.obstacles_desc_pub = self.create_publisher(
+            String,
+            '/obstacles_description',
+            desc_qos
+        )
+
         # [INTERACTION]: Human-in-the-loop trigger via RViz2 "Publish Point" tool.
         # This converts a 3D Cartesian click into a goal-oriented planning event.
         self.click_sub = (
@@ -313,13 +322,17 @@ class TopologicalPlannerNode(Node):
 
         return (yaw_w, pitch1_w, pitch2_w)
 
-    def publish_status(self, success: bool, msg: str) -> tuple:
+    def publish_status(self, success: bool, msg: str, path: list = None) -> tuple:
         """
         Publishes planning status (success and details message) as a JSON string to /planner_status
         and returns the (success, msg) tuple for convenience.
         """
         status_msg = String()
-        status_msg.data = json.dumps({"success": success, "message": msg})
+        data = {"success": success, "message": msg}
+        if success and path is not None:
+            # Convert each discrete waypoint in path to radians (world coordinates)
+            data["path"] = [list(self.grid.get_radians(wp)) for wp in path]
+        status_msg.data = json.dumps(data)
         self.status_pub.publish(status_msg)
         return (success, msg)
 
@@ -469,11 +482,14 @@ class TopologicalPlannerNode(Node):
                 # 2. Update obstacles
                 self.collider.spherical_obstacles = []
                 obstacles_hash = "no_obstacles"
+                obstacles_urdf_content = '<?xml version="1.0"?><robot name="obstacles"><link name="root"/></robot>'
                 if obstacle_type != "no_obstacles":
                     try:
                         pkg_share = get_package_share_directory('community_robot_arm')
                         obstacles_urdf = os.path.join(pkg_share, 'urdf', 'spherized', 'obstacles', f"{obstacle_type}_spherized.urdf")
                         if os.path.exists(obstacles_urdf):
+                            with open(obstacles_urdf, 'r') as infp:
+                                obstacles_urdf_content = infp.read()
                             obstacles = self._load_obstacles_from_urdf(obstacles_urdf)
                             for center, radius in obstacles:
                                 self.collider.add_obstacle(center, radius)
@@ -485,6 +501,15 @@ class TopologicalPlannerNode(Node):
                             obstacles_hash = hash_md5.hexdigest()[:8]
                     except Exception as e:
                         self.get_logger().error(f"Failed to load obstacles dynamically: {e}")
+
+                try:
+                    desc_msg = String()
+                    desc_msg.data = obstacles_urdf_content
+                    self.obstacles_desc_pub.publish(desc_msg)
+                    self.publish_obstacle_tfs(obstacles_urdf_content)
+                    self.get_logger().info(f"Published dynamically reloaded obstacles description and TFs to RViz2 ({obstacle_type})")
+                except Exception as e:
+                    self.get_logger().error(f"Failed to publish obstacles description: {e}")
                 
                 # 3. Reload cache
                 cache_dir = self.get_parameter('cache_dir').value
@@ -526,6 +551,9 @@ class TopologicalPlannerNode(Node):
                 else:
                     self.get_logger().warn(f"No C-space cache found at {cache_filepath}. Planning will run in real-time mode.")
                     self.collider.set_cspace_cache(None, self.grid)
+                
+                if self.current_q is not None:
+                    self.publish_collision_markers(self.current_q)
             
             elif action == "clear_trail":
                 self.trail_points = []
@@ -675,7 +703,7 @@ class TopologicalPlannerNode(Node):
             msg = f"Sequential path found! {len(full_path)} waypoints. Starting animation..."
             self.get_logger().info(msg)
             self.start_animation(full_path)
-            return self.publish_status(True, msg)
+            return self.publish_status(True, msg, full_path)
 
         # Fallback to single start/goal from parameters
         use_static_start = self.get_parameter('use_static_start').value
@@ -744,7 +772,7 @@ class TopologicalPlannerNode(Node):
                 self.get_logger().info(f"  ... ({len(path_rad) - 8} waypoints omitted) ...")
 
         self.start_animation(path)
-        return self.publish_status(True, msg)
+        return self.publish_status(True, msg, path)
 
 
     def _build_full_msg(self, q_planned: tuple) -> JointState:
@@ -950,6 +978,43 @@ class TopologicalPlannerNode(Node):
             except Exception as e:
                 self.get_logger().error(f"Failed to publish collision markers: {e}")
 
+        # 3. Dynamic Obstacle Spheres
+        if hasattr(self, 'collider'):
+            try:
+                clear_obs_marker = Marker()
+                clear_obs_marker.header.frame_id = 'world'
+                clear_obs_marker.header.stamp = self.get_clock().now().to_msg()
+                clear_obs_marker.ns = 'obstacle_spheres'
+                clear_obs_marker.id = 9999
+                clear_obs_marker.action = Marker.DELETEALL
+                marker_array.markers.append(clear_obs_marker)
+
+                if self.collider.spherical_obstacles:
+                    for idx, sphere in enumerate(self.collider.spherical_obstacles):
+                        center = sphere.center
+                        radius = sphere.radius
+                        obs_marker = Marker()
+                        obs_marker.header.frame_id = 'world'
+                        obs_marker.header.stamp = self.get_clock().now().to_msg()
+                        obs_marker.ns = 'obstacle_spheres'
+                        obs_marker.id = idx
+                        obs_marker.type = Marker.SPHERE
+                        obs_marker.action = Marker.ADD
+                        obs_marker.pose.position.x = float(center[0])
+                        obs_marker.pose.position.y = float(center[1])
+                        obs_marker.pose.position.z = float(center[2])
+                        obs_marker.pose.orientation.w = 1.0
+                        obs_marker.scale.x = float(2 * radius)
+                        obs_marker.scale.y = float(2 * radius)
+                        obs_marker.scale.z = float(2 * radius)
+                        obs_marker.color.r = 1.0
+                        obs_marker.color.g = 0.2
+                        obs_marker.color.b = 0.2
+                        obs_marker.color.a = 0.5
+                        marker_array.markers.append(obs_marker)
+            except Exception as e:
+                self.get_logger().error(f"Failed to publish dynamic obstacle markers: {e}")
+
         if marker_array.markers:
             try:
                 self.marker_pub.publish(marker_array)
@@ -1013,6 +1078,62 @@ class TopologicalPlannerNode(Node):
                         obstacles.append((abs_center, radius))
         return obstacles
 
+    def publish_obstacle_tfs(self, urdf_content: str):
+        try:
+            if not hasattr(self, 'tf_static_broadcaster'):
+                self.tf_static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
+                
+            root = ET.fromstring(urdf_content)
+            transforms = []
+            
+            for joint in root.findall('joint'):
+                if joint.get('type') == 'fixed':
+                    parent = joint.find('parent')
+                    child = joint.find('child')
+                    if parent is not None and child is not None:
+                        parent_link = parent.get('link')
+                        child_link = child.get('link')
+                        
+                        origin = joint.find('origin')
+                        xyz = [0.0, 0.0, 0.0]
+                        rpy = [0.0, 0.0, 0.0]
+                        if origin is not None:
+                            xyz_str = origin.get('xyz')
+                            rpy_str = origin.get('rpy')
+                            if xyz_str:
+                                xyz = [float(x) for x in xyz_str.split()]
+                            if rpy_str:
+                                rpy = [float(x) for x in rpy_str.split()]
+                                
+                        t = TransformStamped()
+                        t.header.stamp = self.get_clock().now().to_msg()
+                        t.header.frame_id = parent_link
+                        t.child_frame_id = child_link
+                        t.transform.translation.x = xyz[0]
+                        t.transform.translation.y = xyz[1]
+                        t.transform.translation.z = xyz[2]
+                        
+                        # Convert RPY to Quaternion
+                        cr = math.cos(rpy[0] * 0.5)
+                        sr = math.sin(rpy[0] * 0.5)
+                        cp = math.cos(rpy[1] * 0.5)
+                        sp = math.sin(rpy[1] * 0.5)
+                        cy = math.cos(rpy[2] * 0.5)
+                        sy = math.sin(rpy[2] * 0.5)
+                        
+                        t.transform.rotation.w = cr * cp * cy + sr * sp * sy
+                        t.transform.rotation.x = sr * cp * cy - cr * sp * sy
+                        t.transform.rotation.y = cr * sp * cy + sr * cp * sy
+                        t.transform.rotation.z = cr * cp * sy - sr * sp * cy
+                        
+                        transforms.append(t)
+                        
+            if transforms:
+                self.tf_static_broadcaster.sendTransform(transforms)
+                self.get_logger().info(f"Published {len(transforms)} static transforms for dynamic obstacles")
+        except Exception as e:
+            self.get_logger().error(f"Failed to publish dynamic obstacle TFs: {e}")
+
 
 def main(args=None):
     # Initialize the ROS 2 Python client library and communications infrastructure.
@@ -1029,7 +1150,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

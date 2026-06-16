@@ -219,6 +219,14 @@ class CSpaceVoxelPublisher(Node):
 
         # String (JSON) publisher for Rosbridge
         self.publisher_ = self.create_publisher(String, '/cspace_voxels', 10)
+
+        from rclpy.qos import QoSProfile, DurabilityPolicy
+        desc_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.obstacles_desc_pub = self.create_publisher(
+            String,
+            '/obstacles_description',
+            desc_qos
+        )
         
         # Timer to publish voxels when there are active subscribers (e.g. web dashboard)
         self.timer = self.create_timer(0.5, self.publish_voxels)
@@ -567,11 +575,14 @@ class CSpaceVoxelPublisher(Node):
                 # 2. Update obstacles
                 self.collider.spherical_obstacles = []
                 obstacles_hash = "no_obstacles"
+                obstacles_urdf_content = '<?xml version="1.0"?><robot name="obstacles"><link name="root"/></robot>'
                 if obstacle_type != "no_obstacles":
                     try:
                         pkg_share = get_package_share_directory('community_robot_arm')
                         obstacles_urdf = os.path.join(pkg_share, 'urdf', 'spherized', 'obstacles', f"{obstacle_type}_spherized.urdf")
                         if os.path.exists(obstacles_urdf):
+                            with open(obstacles_urdf, 'r') as infp:
+                                obstacles_urdf_content = infp.read()
                             obstacles = self._load_obstacles_from_urdf(obstacles_urdf)
                             for center, radius in obstacles:
                                 self.collider.add_obstacle(center, radius)
@@ -586,6 +597,14 @@ class CSpaceVoxelPublisher(Node):
                             self.get_logger().error(f"Obstacle URDF not found: {obstacles_urdf}")
                     except Exception as e:
                         self.get_logger().error(f"Failed to load obstacles dynamically: {e}")
+
+                try:
+                    desc_msg = String()
+                    desc_msg.data = obstacles_urdf_content
+                    self.obstacles_desc_pub.publish(desc_msg)
+                    self.get_logger().info(f"Published dynamically reloaded obstacles description to RViz2 ({obstacle_type})")
+                except Exception as e:
+                    self.get_logger().error(f"Failed to publish obstacles description: {e}")
                 
                 # 3. Reload cache
                 self._setup_cache(step_size, self.collider.urdf_parser.min_dist, obstacles_hash, self.cache_dir)
@@ -598,9 +617,14 @@ class CSpaceVoxelPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = CSpaceVoxelPublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

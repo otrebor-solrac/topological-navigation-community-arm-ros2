@@ -40,8 +40,8 @@ Visualization Manager:
       Alpha: 0.8
     - Class: rviz_default_plugins/MarkerArray
       Name: ThinnedCollisionSpheres
-      Enabled: true
-      Value: true
+      Enabled: false
+      Value: false
       Topic:
         Value: /robot_collision_markers
         Depth: 5

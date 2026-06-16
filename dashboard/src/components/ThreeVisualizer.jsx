@@ -338,6 +338,14 @@ export default function ThreeVisualizer({
                 rawSelfCollisionDataRef.current = [];
             }
             renderVoxels();
+
+            if (robotPointRef.current) {
+                const stepSize = stepRadRef.current || 0.12;
+                // Original sphere geometry radius is 0.18, so diameter is 0.36.
+                // We want the new diameter to equal stepSize.
+                const scaleFactor = stepSize / 0.36;
+                robotPointRef.current.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            }
         };
 
         jointSub.subscribe(jointStateCallback);

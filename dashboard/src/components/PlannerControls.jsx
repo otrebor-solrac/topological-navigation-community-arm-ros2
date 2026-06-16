@@ -44,11 +44,11 @@ export default function PlannerControls() {
 
     return (
         <div className="card">
-            <h2>Path Planner Configuration</h2>
+            <h2>Path planner configuration</h2>
             
             {/* Goal configuration inputs */}
             <div className="form-group">
-                <label>Goal Configuration (World Frame)</label>
+                <label>Goal configuration (world frame)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                     <div>
                         <span style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>Yaw (θ₁)</span>
@@ -89,29 +89,29 @@ export default function PlannerControls() {
                     onChange={(e) => setPlanner(e.target.value)}
                     className="select-field"
                 >
-                    <option value="astar">A* Search (Optimal)</option>
-                    <option value="rrt">Rapidly-exploring Random Tree (RRT)</option>
+                    <option value="astar">A* search (optimal)</option>
+                    <option value="rrt">Rapidly-exploring random tree (RRT)</option>
                 </select>
             </div>
 
             {/* Heuristic selection (only if astar) */}
             {planner === 'astar' && (
                 <div className="form-group" id="heuristic-group">
-                    <label htmlFor="select-heuristic">Distance Metric / Heuristic</label>
+                    <label htmlFor="select-heuristic">Distance metric / heuristic</label>
                     <select
                         id="select-heuristic"
                         value={heuristic}
                         onChange={(e) => setHeuristic(e.target.value)}
                         className="select-field"
                     >
-                        <option value="L1">L1 Norm (Manhattan)</option>
-                        <option value="L2">L2 Norm (Euclidean)</option>
+                        <option value="L1">L1 norm (Manhattan)</option>
+                        <option value="L2">L2 norm (Euclidean)</option>
                     </select>
                 </div>
             )}
 
             <button onClick={handlePlan} className="btn btn-primary" style={{ width: '100%', marginBottom: '20px' }}>
-                Plan Path
+                Plan path
             </button>
 
             {status && (
@@ -126,7 +126,7 @@ export default function PlannerControls() {
                     marginTop: '10px',
                     wordBreak: 'break-word'
                 }}>
-                    <strong>{status.success ? '✓ SUCCESS: ' : '✗ ERROR: '}</strong>
+                    <strong>{status.success ? '✓ Success: ' : '✗ Error: '}</strong>
                     {status.message}
                 </div>
             )}
