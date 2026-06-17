@@ -905,11 +905,27 @@ class TopologicalPlannerNode(Node):
                     q_urdf = self.world_to_urdf((q1, q2, q3))
                     transforms = self.collider.urdf_parser.compute_transforms(q_urdf[0], q_urdf[1], q_urdf[2])
                     
-                    # Check for standard end-effector link names
-                    for link_name in ['manipulator_dual', 'gripperbase_by_ftobler']:
-                        if link_name in transforms:
-                            end_effector_pos = transforms[link_name][:3, 3]
-                            break
+                    # Calculate the exact center of the finger collision spheres
+                    import numpy as np
+                    finger_positions = []
+                    for s in self.collider.urdf_parser.thinned_spheres:
+                        if 'finger' in s['link'].lower() or 'gripperfinger' in s['link'].lower():
+                            lname = s['link']
+                            if lname in transforms:
+                                T = transforms[lname]
+                                c_h = np.ones(4)
+                                c_h[:3] = s['local_center']
+                                world_c = (T @ c_h)[:3]
+                                finger_positions.append(world_c)
+                    
+                    if finger_positions:
+                        end_effector_pos = np.mean(finger_positions, axis=0)
+                    else:
+                        # Fallback to standard end-effector link names if fingers not found
+                        for link_name in ['gripperbase_by_ftobler', 'manipulator_dual']:
+                            if link_name in transforms:
+                                end_effector_pos = transforms[link_name][:3, 3]
+                                break
                     
                     # Fallback to the last active sphere link if standard names aren't found
                     if end_effector_pos is None:
