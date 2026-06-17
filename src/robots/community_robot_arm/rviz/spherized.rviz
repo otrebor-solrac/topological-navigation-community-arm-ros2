@@ -39,6 +39,16 @@ Visualization Manager:
       Collision Enabled: true
       Alpha: 0.8
     - Class: rviz_default_plugins/MarkerArray
+      Name: TrajectoryTrail
+      Enabled: true
+      Value: true
+      Topic:
+        Value: /trajectory_trail
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/MarkerArray
       Name: ThinnedCollisionSpheres
       Enabled: false
       Value: false
