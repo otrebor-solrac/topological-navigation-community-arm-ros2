@@ -15,7 +15,8 @@ export default function ThreeVisualizer({
     cspaceMode,
     showTrail,
     trailRef,
-    onQUpdate
+    onQUpdate,
+    isExecuting
 }) {
     const containerRef = useRef(null);
     const sceneRef = useRef(null);
@@ -43,6 +44,19 @@ export default function ThreeVisualizer({
     const labelTh1Ref = useRef(null);
     const labelTh2Ref = useRef(null);
     const labelTh3Ref = useRef(null);
+
+    // Sync visibility props to refs to prevent stale closure bugs in ROS callbacks
+    const showSelfCollisionRef = useRef(showSelfCollision);
+    const showObstacleCollisionRef = useRef(showObstacleCollision);
+    const cspaceModeRef = useRef(cspaceMode);
+    const isExecutingRef = useRef(isExecuting);
+
+    useEffect(() => {
+        showSelfCollisionRef.current = showSelfCollision;
+        showObstacleCollisionRef.current = showObstacleCollision;
+        cspaceModeRef.current = cspaceMode;
+        isExecutingRef.current = isExecuting;
+    }, [showSelfCollision, showObstacleCollision, cspaceMode, isExecuting]);
 
     const PI = Math.PI;
 
@@ -126,9 +140,9 @@ export default function ThreeVisualizer({
         const size = stepSize * 0.95;
         const geo = new THREE.BoxGeometry(size, size, size);
 
-        if (cspaceMode === 'obs') {
+        if (cspaceModeRef.current === 'obs') {
             // Render self-collisions
-            if (showSelfCollision && rawSelfCollisionDataRef.current.length > 0) {
+            if (showSelfCollisionRef.current && rawSelfCollisionDataRef.current.length > 0) {
                 const selfMat = new THREE.MeshPhongMaterial({ color: 0x5d4778, transparent: true, opacity: 0.22 });
                 const mesh = new THREE.InstancedMesh(geo, selfMat, rawSelfCollisionDataRef.current.length);
                 const dummy = new THREE.Object3D();
@@ -143,7 +157,7 @@ export default function ThreeVisualizer({
 
             // Render obstacle-collisions
             const activeObstacles = (rawObstacleDataRef.current.length > 0) ? rawObstacleDataRef.current : rawVoxelDataRef.current;
-            const renderObstacleLayer = showObstacleCollision && (rawObstacleDataRef.current.length > 0 || (rawObstacleDataRef.current.length === 0 && !rawSelfCollisionDataRef.current.length));
+            const renderObstacleLayer = showObstacleCollisionRef.current && (rawObstacleDataRef.current.length > 0 || (rawObstacleDataRef.current.length === 0 && !rawSelfCollisionDataRef.current.length));
 
             if (renderObstacleLayer && activeObstacles.length > 0) {
                 const obsMat = new THREE.MeshPhongMaterial({ color: 0xff3333, transparent: true, opacity: 0.5 });
@@ -294,9 +308,9 @@ export default function ThreeVisualizer({
                 // Callback to parent for slider sync & traceability table
                 onQUpdate(q);
 
-                // Add to active path segment
+                // Add to active path segment only when executing a planned trajectory
                 const activePath = activePathRef.current;
-                if (activePath && activePath.count < 5000) {
+                if (activePath && isExecutingRef.current && activePath.count < 5000) {
                     const idx = activePath.count * 3;
                     activePath.array[idx] = q[0];
                     activePath.array[idx+1] = q[1];
