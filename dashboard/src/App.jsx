@@ -21,7 +21,6 @@ export default function App() {
 
     // Trajectory animation execution state
     const [isExecuting, setIsExecuting] = useState(false);
-
     // Planned path state
     const [plannedPath, setPlannedPath] = useState([]);
 
@@ -311,8 +310,6 @@ export default function App() {
                         </div>
                     </div>
                 </div>
-
-
             </div>
         </div>
     );

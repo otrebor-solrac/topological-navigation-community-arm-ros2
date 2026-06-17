@@ -60,7 +60,6 @@ export default function PlannerControls() {
             {/* Goal configuration inputs */}
             <div className="form-group">
                 <label>Goal configuration (world frame)</label>
-                
                 <div className="slider-group" style={{ marginBottom: '12px' }}>
                     <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                         <span>Base yaw (θ₁)</span>

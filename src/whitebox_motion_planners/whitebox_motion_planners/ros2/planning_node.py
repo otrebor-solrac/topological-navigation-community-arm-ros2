@@ -252,7 +252,6 @@ class TopologicalPlannerNode(Node):
                 10
             )
         )
-
         from rclpy.qos import QoSProfile, DurabilityPolicy
         desc_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.obstacles_desc_pub = self.create_publisher(
