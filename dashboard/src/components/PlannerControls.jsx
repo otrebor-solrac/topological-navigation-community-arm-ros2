@@ -11,6 +11,17 @@ export default function PlannerControls() {
     const [heuristic, setHeuristic] = useState('L1');
     const [status, setStatus] = useState(null);
 
+    const handleSliderChange = (jointIdx, val) => {
+        const floatVal = parseFloat(val);
+        if (jointIdx === 1) {
+            setGoalQ1(isNaN(floatVal) ? 0 : floatVal);
+        } else if (jointIdx === 2) {
+            setGoalQ2(isNaN(floatVal) ? 0 : floatVal);
+        } else if (jointIdx === 3) {
+            setGoalQ3(isNaN(floatVal) ? 0 : floatVal);
+        }
+    };
+
     useEffect(() => {
         const handleStatus = (msg) => {
             try {
@@ -49,34 +60,77 @@ export default function PlannerControls() {
             {/* Goal configuration inputs */}
             <div className="form-group">
                 <label>Goal configuration (world frame)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                    <div>
-                        <span style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>Yaw (θ₁)</span>
+                
+                <div className="slider-group" style={{ marginBottom: '12px' }}>
+                    <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span>Base yaw (θ₁)</span>
                         <input
                             type="number"
+                            min="-180"
+                            max="180"
+                            step="1"
                             value={goalQ1}
-                            onChange={(e) => setGoalQ1(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleSliderChange(1, e.target.value)}
                             className="input-field"
+                            style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
                         />
                     </div>
-                    <div>
-                        <span style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>Shoulder (θ₂)</span>
+                    <input
+                        type="range"
+                        min="-180"
+                        max="180"
+                        value={goalQ1}
+                        onChange={(e) => handleSliderChange(1, e.target.value)}
+                        className="slider"
+                    />
+                </div>
+
+                <div className="slider-group" style={{ marginBottom: '12px' }}>
+                    <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span>Shoulder pitch (θ₂)</span>
                         <input
                             type="number"
+                            min="-180"
+                            max="180"
+                            step="1"
                             value={goalQ2}
-                            onChange={(e) => setGoalQ2(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleSliderChange(2, e.target.value)}
                             className="input-field"
+                            style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
                         />
                     </div>
-                    <div>
-                        <span style={{ fontSize: '0.85em', color: 'var(--text-muted)' }}>Elbow (θ₃)</span>
+                    <input
+                        type="range"
+                        min="-180"
+                        max="180"
+                        value={goalQ2}
+                        onChange={(e) => handleSliderChange(2, e.target.value)}
+                        className="slider"
+                    />
+                </div>
+
+                <div className="slider-group" style={{ marginBottom: '12px' }}>
+                    <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span>Elbow pitch (θ₃)</span>
                         <input
                             type="number"
+                            min="-180"
+                            max="180"
+                            step="1"
                             value={goalQ3}
-                            onChange={(e) => setGoalQ3(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => handleSliderChange(3, e.target.value)}
                             className="input-field"
+                            style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
                         />
                     </div>
+                    <input
+                        type="range"
+                        min="-180"
+                        max="180"
+                        value={goalQ3}
+                        onChange={(e) => handleSliderChange(3, e.target.value)}
+                        className="slider"
+                    />
                 </div>
             </div>
 
