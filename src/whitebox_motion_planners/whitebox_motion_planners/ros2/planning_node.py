@@ -244,6 +244,15 @@ class TopologicalPlannerNode(Node):
             )
         )
 
+        # Publisher for the yellow trajectory trail
+        self.trail_pub = (
+            self.create_publisher(
+                MarkerArray,
+                '/trajectory_trail',
+                10
+            )
+        )
+
         from rclpy.qos import QoSProfile, DurabilityPolicy
         desc_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self.obstacles_desc_pub = self.create_publisher(
@@ -468,7 +477,14 @@ class TopologicalPlannerNode(Node):
                 if len(waypoints) >= 2:
                     if self.get_parameter('angles_in_degrees').value:
                         waypoints = [[math.degrees(coord) for coord in pt] for pt in waypoints]
-                    self.execute_plan(waypoints=waypoints)
+                    waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
+                    try:
+                        import yaml
+                        with open(waypoints_file, 'w') as f:
+                            yaml.safe_dump({'waypoints': waypoints}, f)
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to write sequential waypoints: {e}")
+                    self.execute_plan()
                     
             elif action == "change_cspace":
                 obstacle_type = data.get("obstacle_type")
@@ -566,7 +582,7 @@ class TopologicalPlannerNode(Node):
                 
                 marker_array = MarkerArray()
                 marker_array.markers.append(clear_trail_marker)
-                self.marker_pub.publish(marker_array)
+                self.trail_pub.publish(marker_array)
                 self.get_logger().info("Cleared trajectory trail in RViz!")
                 
             elif action == "go_to_position":
@@ -603,7 +619,7 @@ class TopologicalPlannerNode(Node):
                     
                     marker_array = MarkerArray()
                     marker_array.markers.append(clear_trail_marker)
-                    self.marker_pub.publish(marker_array)
+                    self.trail_pub.publish(marker_array)
                     
         except Exception as e:
             self.get_logger().error(f"Failed to process web command: {e}")
@@ -838,6 +854,7 @@ class TopologicalPlannerNode(Node):
         self.animation_path = path
         self.animation_index = 0
         self.trail_points = []  # Clear previous trail for new trajectory
+        self.publish_status(True, "Executing planned trajectory...", path)
 
         # Publish a waypoint every 150ms (smooth but visible)
         self.animation_timer = self.create_timer(0.15, self.animation_step)
@@ -857,6 +874,7 @@ class TopologicalPlannerNode(Node):
             # relative to the robot's actual end position (the goal).
             self.current_q = self.grid.get_radians(self.animation_path[-1])
             self.get_logger().info("Trajectory execution complete ✅")
+            self.publish_status(True, "Trajectory execution complete ✅")
             return
 
         q = self.animation_path[self.animation_index]
@@ -872,7 +890,7 @@ class TopologicalPlannerNode(Node):
         marker_array = MarkerArray()
 
         # 1. Trajectory Trail (Yellow LINE_STRIP)
-        if self.show_path_trail:
+        if self.show_path_trail and self.is_animating:
             try:
                 # Try to get the exact end-effector position from URDF transforms
                 end_effector_pos = None
@@ -905,12 +923,23 @@ class TopologicalPlannerNode(Node):
                     fk_positions = self.kinematics.compute_forward_kinematics(q)
                     end_effector_pos = fk_positions[-1]
 
-                # Accumulate the point
+                # Accumulate the point (only if it has moved to avoid infinite duplicates when static)
                 trail_pt = Point()
                 trail_pt.x = float(end_effector_pos[0])
                 trail_pt.y = float(end_effector_pos[1])
                 trail_pt.z = float(end_effector_pos[2])
-                self.trail_points.append(trail_pt)
+                
+                is_duplicate = False
+                if self.trail_points:
+                    last_pt = self.trail_points[-1]
+                    dist = math.sqrt((trail_pt.x - last_pt.x)**2 + 
+                                     (trail_pt.y - last_pt.y)**2 + 
+                                     (trail_pt.z - last_pt.z)**2)
+                    if dist < 0.005:  # Less than 5mm change
+                        is_duplicate = True
+                        
+                if not is_duplicate:
+                    self.trail_points.append(trail_pt)
 
                 # Publish the trail as a LINE_STRIP (needs at least 2 points)
                 if len(self.trail_points) >= 2:
@@ -929,7 +958,10 @@ class TopologicalPlannerNode(Node):
                     trail_marker.color.b = 0.0
                     trail_marker.color.a = 1.0
                     trail_marker.points = list(self.trail_points)
-                    marker_array.markers.append(trail_marker)
+                    
+                    trail_marker_array = MarkerArray()
+                    trail_marker_array.markers.append(trail_marker)
+                    self.trail_pub.publish(trail_marker_array)
             except Exception as e:
                 self.get_logger().error(f"Failed to publish trajectory trail: {e}")
 
