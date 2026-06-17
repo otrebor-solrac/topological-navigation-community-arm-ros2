@@ -28,3 +28,7 @@ robot-test/
 src/robots/community_robot_arm/oneshape-robot/
 src/tools/foam/foam/*.stl
 cspace_cache/
+
+# Local planner waypoints and Vite cache
+src/whitebox_motion_planners/config/waypoints.yaml
+dashboard/.vite/

@@ -308,6 +308,16 @@ export default function ThreeVisualizer({
                 // Callback to parent for slider sync & traceability table
                 onQUpdate(q);
 
+                // Check for toroidal wrap-around first, so wrap-around point is placed in a new path segment
+                const lastQ = lastQRef.current;
+                if (lastQ) {
+                    const dist = Math.sqrt((q[0]-lastQ[0])**2 + (q[1]-lastQ[1])**2 + (q[2]-lastQ[2])**2);
+                    if (dist > 1.2) {
+                        createNewPathSegment(sceneRef.current);
+                    }
+                }
+                lastQRef.current = [...q];
+
                 // Add to active path segment only when executing a planned trajectory
                 const activePath = activePathRef.current;
                 if (activePath && isExecutingRef.current && activePath.count < 5000) {
@@ -319,15 +329,6 @@ export default function ThreeVisualizer({
                     activePath.line.geometry.attributes.position.needsUpdate = true;
                     activePath.line.geometry.setDrawRange(0, activePath.count);
                 }
-
-                const lastQ = lastQRef.current;
-                if (lastQ) {
-                    const dist = Math.sqrt((q[0]-lastQ[0])**2 + (q[1]-lastQ[1])**2 + (q[2]-lastQ[2])**2);
-                    if (dist > 1.2) {
-                        createNewPathSegment(sceneRef.current);
-                    }
-                }
-                lastQRef.current = [...q];
             }
         };
 
