@@ -51,32 +51,75 @@ def _select_rviz_config(pkg_share, use_spherized):
 def _get_zeros_params(pkg_share_wb):
     """
     Load start positions from whitebox_motion_planners waypoints.yaml
-    to initialize the GUI sliders.
+    and convert them to URDF joint states using planner_params.yaml offsets/directions.
 
     :param pkg_share_wb: The package share directory
     :return: Dictionary of start positions
     """
-
-    yaml_path = os.path.join(pkg_share_wb, 'config', 'waypoints.yaml')
+    waypoints_yaml = os.path.join(pkg_share_wb, 'config', 'waypoints.yaml')
+    params_yaml = os.path.join(pkg_share_wb, 'config', 'planner_params.yaml')
+    
+    # Defaults
+    offsets = {'base_yaw': 32.0694, 'shoulder_pitch': 90.0, 'elbow_pitch': 0.0}
+    directions = {'base_yaw': -1.0, 'shoulder_pitch': -1.0, 'elbow_pitch': 1.0}
+    
+    # Load offsets and directions from planner_params.yaml if available
     try:
-        with open(yaml_path, 'r') as f:
+        if os.path.exists(params_yaml):
+            with open(params_yaml, 'r') as f:
+                param_data = yaml.safe_load(f)
+                wb_params = param_data.get('/**', {}).get('ros__parameters', {})
+                if 'joint_offsets' in wb_params:
+                    offsets = wb_params['joint_offsets']
+                if 'joint_directions' in wb_params:
+                    directions = wb_params['joint_directions']
+    except Exception as e:
+        print(f"Could not load planner_params.yaml offsets: {e}")
+
+    try:
+        with open(waypoints_yaml, 'r') as f:
             data = yaml.safe_load(f)
             waypoints = data.get('waypoints', [])
         
         if waypoints:
-            # Take the first waypoint as the starting position
+            # Take the first waypoint as the starting position (in World degrees)
             start = waypoints[0]
-            # Convert degrees to radians
-            start_rad = [float(x) * math.pi / 180.0 for x in start]
+            
+            deg2rad = math.pi / 180.0
+            q1_rad = float(start[0]) * deg2rad
+            q2_rad = float(start[1]) * deg2rad
+            q3_rad = float(start[2]) * deg2rad
+            
+            offset_base = float(offsets.get('base_yaw', 32.0694)) * deg2rad
+            offset_shoulder = float(offsets.get('shoulder_pitch', 90.0)) * deg2rad
+            offset_elbow = float(offsets.get('elbow_pitch', 0.0)) * deg2rad
+            
+            dir_base = float(directions.get('base_yaw', -1.0))
+            dir_shoulder = float(directions.get('shoulder_pitch', -1.0))
+            dir_elbow = float(directions.get('elbow_pitch', 1.0))
+            
+            urdf_q1 = offset_base + dir_base * q1_rad
+            urdf_q2 = offset_shoulder + dir_shoulder * q2_rad
+            urdf_q3 = offset_elbow + dir_elbow * q3_rad
             
             return {
-                'zeros.base_yaw_joint': start_rad[0],
-                'zeros.shoulder_pitch_joint': start_rad[1],
-                'zeros.elbow_pitch_joint': start_rad[2],
+                'zeros.base_yaw_joint': urdf_q1,
+                'zeros.shoulder_pitch_joint': urdf_q2,
+                'zeros.elbow_pitch_joint': urdf_q3,
             }
     except Exception as e:
         print(f"Could not load start zeros from waypoints.yaml: {e}")
-    return {}
+        
+    # Default fallback to 0 90 0 in World degrees
+    deg2rad = math.pi / 180.0
+    urdf_q1 = (32.0694) * deg2rad
+    urdf_q2 = 0.0
+    urdf_q3 = 0.0
+    return {
+        'zeros.base_yaw_joint': urdf_q1,
+        'zeros.shoulder_pitch_joint': urdf_q2,
+        'zeros.elbow_pitch_joint': urdf_q3,
+    }
 
 def launch_setup(context, *args, **kwargs):
     """
