@@ -22,7 +22,7 @@ class CSpaceVoxelPublisher(Node):
         (robot_type, step_size, use_horizontal, use_obstacles, 
          thinning_dist, robot_urdf, obstacles_urdf, cache_dir,
          base_yaw_offset, shoulder_pitch_offset, elbow_pitch_offset,
-         base_yaw_dir, shoulder_pitch_dir, elbow_pitch_dir) = self._init_parameters()
+         base_yaw_dir, shoulder_pitch_dir, elbow_pitch_dir, link_lengths) = self._init_parameters()
         
         self.base_yaw_offset = base_yaw_offset
         self.shoulder_pitch_offset = shoulder_pitch_offset
@@ -32,7 +32,7 @@ class CSpaceVoxelPublisher(Node):
         self.elbow_pitch_dir = elbow_pitch_dir
         
         # 2. Get kinematics model
-        self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal)
+        self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal, link_lengths=link_lengths)
         
         # 3. Setup collider and load obstacles
         obstacles_hash = self._setup_collider_and_obstacles(
@@ -71,6 +71,11 @@ class CSpaceVoxelPublisher(Node):
         # Optional override directory path to save/load persistent cache
         self.declare_parameter('cache_dir', '')
         
+        # Link lengths for kinematics
+        self.declare_parameter('link_lengths.base_height', 0.065)
+        self.declare_parameter('link_lengths.lower_shank', 0.140)
+        self.declare_parameter('link_lengths.upper_shank', 0.140)
+        
         # Configurable joint mapping to global world frame
         self.declare_parameter('joint_offsets.base_yaw', 0.0)
         self.declare_parameter('joint_offsets.shoulder_pitch', 0.0)
@@ -80,6 +85,11 @@ class CSpaceVoxelPublisher(Node):
         self.declare_parameter('joint_directions.elbow_pitch', 1)
         
         import math
+        link_lengths = {
+            'base_height': self.get_parameter('link_lengths.base_height').value,
+            'lower_shank': self.get_parameter('link_lengths.lower_shank').value,
+            'upper_shank': self.get_parameter('link_lengths.upper_shank').value
+        }
         return (
             self.get_parameter('robot_type').value,
             self.get_parameter('step_size_deg').value,
@@ -94,7 +104,8 @@ class CSpaceVoxelPublisher(Node):
             math.radians(self.get_parameter('joint_offsets.elbow_pitch').value),
             float(self.get_parameter('joint_directions.base_yaw').value),
             float(self.get_parameter('joint_directions.shoulder_pitch').value),
-            float(self.get_parameter('joint_directions.elbow_pitch').value)
+            float(self.get_parameter('joint_directions.elbow_pitch').value),
+            link_lengths
         )
 
     def _setup_collider_and_obstacles(

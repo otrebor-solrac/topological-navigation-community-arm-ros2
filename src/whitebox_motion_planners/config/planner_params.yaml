@@ -18,28 +18,41 @@
       - 0.0        # Elbow Pitch (0.0 = parallel/aligned)
 
     # GOAL CONFIGURATION (Point B) in DEGREES (World coordinates)
+    # TODO: Is this goal point useful? Currently we are using the GUI sliders to input the goal point.
     goal:
       - 72.0       # Base Yaw (angle in world)
       - 135.0      # Shoulder Pitch (angle in world)
       - 90.0       # Elbow Pitch (angle in world)
 
 
+    # Link lengths in meters (for kinematics solver)
+    link_lengths:
+      base_height: 0.065
+      lower_shank: 0.140
+      upper_shank: 0.140
+
     # Grid resolution (lower means more precision but slower planning)
+    # TODO: Is this parameter still used? We have computed several C-space maps for different resolutions.
     step_size_deg: 15.0
     
     # Distance threshold in meters for URDF sphere thinning (e.g. 0.015 = 1.5 cm)
-    sphere_thinning_dist: 0.015
+    # TODO: Is this parameter the best way to compute collisions?
+    phere_thinning_dist: 0.015
 
     # Algorithm: "astar" or "rrt"
+    # TODO: Is this parameter still used? We use the GUI for this. 
     planner_type: "astar"
 
     # Metric/Heuristic: "L1" (Manhattan) or "L2" (Euclidean)
+    # TODO: Is this parameter still used? We use the GUI for this. 
     heuristic_type: "L1"
 
     # End-effector behavior
+    # TODO: This is not useful, we might need to remove it. 
     use_horizontal_constraint: false
 
     # Environment obstacles
+    #TODO: Clarify the use of this parameter.
     use_obstacles: true
 
     # Obstacle type: "box_obstacle", "narrow_passage", "u_obstacle", "toroidal_wall"

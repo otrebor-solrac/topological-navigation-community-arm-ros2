@@ -15,6 +15,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnProcessStart
 
 # To add new urdf file, add the file to the urdf folder and update this function
 def _select_urdf_file(pkg_share, use_spherized):
@@ -60,19 +62,24 @@ def _get_zeros_params(pkg_share_wb):
     params_yaml = os.path.join(pkg_share_wb, 'config', 'planner_params.yaml')
     
     # Defaults
+    # TODO: We should get these defaults from the YAML file too.
     offsets = {'base_yaw': 32.0694, 'shoulder_pitch': 90.0, 'elbow_pitch': 0.0}
     directions = {'base_yaw': -1.0, 'shoulder_pitch': -1.0, 'elbow_pitch': 1.0}
     
     # Load offsets and directions from planner_params.yaml if available
     try:
         if os.path.exists(params_yaml):
+            
             with open(params_yaml, 'r') as f:
                 param_data = yaml.safe_load(f)
                 wb_params = param_data.get('/**', {}).get('ros__parameters', {})
+                
                 if 'joint_offsets' in wb_params:
                     offsets = wb_params['joint_offsets']
+                
                 if 'joint_directions' in wb_params:
                     directions = wb_params['joint_directions']
+    
     except Exception as e:
         print(f"Could not load planner_params.yaml offsets: {e}")
 
@@ -81,6 +88,8 @@ def _get_zeros_params(pkg_share_wb):
             data = yaml.safe_load(f)
             waypoints = data.get('waypoints', [])
         
+        # TODO: We change waypoints file, maybe we need to define this initial point from
+        # parameter file.
         if waypoints:
             # Take the first waypoint as the starting position (in World degrees)
             start = waypoints[0]
@@ -131,8 +140,6 @@ def launch_setup(context, *args, **kwargs):
     :return: List of nodes to be launched
     """
     pkg_share = get_package_share_directory('community_robot_arm')
-    
-    # Get the value of the argument
     use_spherized = LaunchConfiguration('spherized').perform(context).lower() == 'true'
     urdf_file = _select_urdf_file(pkg_share, use_spherized)
 
@@ -158,9 +165,9 @@ def launch_setup(context, *args, **kwargs):
         # robot_state_publisher: Computes and publishes the 3D transforms (TF) of all robot links
         # based on the URDF model and the current joint positions published to /joint_states.
         Node(
+            name='robot_state_publisher',
             package='robot_state_publisher',
             executable='robot_state_publisher',
-            name='robot_state_publisher',
             output='screen',
             parameters=[{'robot_description': robot_desc}]
         ),
@@ -168,9 +175,9 @@ def launch_setup(context, *args, **kwargs):
         # It subscribes to '/web_gui_master_states' (from the web dashboard) to update the 3 controlled joints
         # and merges them with the default values for the remaining 30+ joints.
         Node(
+            name='joint_state_publisher',            
             package='joint_state_publisher',
             executable='joint_state_publisher',
-            name='joint_state_publisher',
             output='screen',
             parameters=[
                 {'source_list': ['/web_gui_master_states']},

@@ -20,8 +20,16 @@ class CommunityArmKinematics(BaseKinematics):
     LOWER_SHANK = 0.140   # Lower shank length (140mm)
     UPPER_SHANK = 0.140   # Upper shank length (140mm)
 
-    def __init__(self, use_horizontal_constraint: bool = False):
+    def __init__(self, use_horizontal_constraint: bool = False, link_lengths: dict = None):
         self.use_horizontal_constraint = use_horizontal_constraint
+        if link_lengths is not None:
+            self.base_height = link_lengths.get('base_height', self.BASE_HEIGHT)
+            self.lower_shank = link_lengths.get('lower_shank', self.LOWER_SHANK)
+            self.upper_shank = link_lengths.get('upper_shank', self.UPPER_SHANK)
+        else:
+            self.base_height = self.BASE_HEIGHT
+            self.lower_shank = self.LOWER_SHANK
+            self.upper_shank = self.UPPER_SHANK
 
     def get_dof(self) -> int:
         """
@@ -60,23 +68,23 @@ class CommunityArmKinematics(BaseKinematics):
         p0 = np.array([0.0, 0.0, 0.0])
 
         # P1: Shoulder joint (fixed elevation)
-        p1 = np.array([0.0, 0.0, self.BASE_HEIGHT])
+        p1 = np.array([0.0, 0.0, self.base_height])
 
         # P2: Elbow joint (Spherical projection of Lower Shank)
         # r = link_length * cos(pitch), z = link_length * sin(pitch)
-        r2 = self.LOWER_SHANK * c2
+        r2 = self.lower_shank * c2
         p2 = p1 + np.array([
             r2 * c1, # X: projection on XY plane * cos(yaw)
             r2 * s1, # Y: projection on XY plane * sin(yaw)
-            self.LOWER_SHANK * s2  # Z: vertical elevation
+            self.lower_shank * s2  # Z: vertical elevation
         ])
 
         # P3: End effector (Spherical projection of Upper Shank)
-        r3 = self.UPPER_SHANK * c23
+        r3 = self.upper_shank * c23
         p3 = p2 + np.array([
             r3 * c1, # X
             r3 * s1, # Y
-            self.UPPER_SHANK * s23 # Z
+            self.upper_shank * s23 # Z
         ])
 
         return [p0, p1, p2, p3]
