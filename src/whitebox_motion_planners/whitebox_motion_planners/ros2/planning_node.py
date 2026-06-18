@@ -43,6 +43,11 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('sphere_thinning_dist', 0.015)
         self.declare_parameter('cache_dir', '')
 
+        # Link lengths for kinematics
+        self.declare_parameter('link_lengths.base_height', 0.065)
+        self.declare_parameter('link_lengths.lower_shank', 0.140)
+        self.declare_parameter('link_lengths.upper_shank', 0.140)
+
         # Configurable joint mapping to global world frame (defaults to neutral 0.0 offsets, 1 direction)
         self.declare_parameter('joint_offsets.base_yaw', 0.0)
         self.declare_parameter('joint_offsets.shoulder_pitch', 0.0)
@@ -74,7 +79,12 @@ class TopologicalPlannerNode(Node):
         # 2. Mathematical Components (White-Box)
         robot_type = self.get_parameter('robot_type').value
         use_horizontal = self.get_parameter('use_horizontal_constraint').value
-        self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal)
+        link_lengths = {
+            'base_height': self.get_parameter('link_lengths.base_height').value,
+            'lower_shank': self.get_parameter('link_lengths.lower_shank').value,
+            'upper_shank': self.get_parameter('link_lengths.upper_shank').value
+        }
+        self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal, link_lengths=link_lengths)
   
         # If using static start, initialize the robot's initial override to the start position
         use_static = self.get_parameter('use_static_start').value

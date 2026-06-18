@@ -118,10 +118,11 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
     - Suavidad de la trayectoria (métrica de aceleración acumulada / Jerk)
   - Exportar tablas de resultados en código LaTeX directamente insertables en el Capítulo 4 (Resultados) de la tesis.
 
-### 📐 8.4. Sistema de Referencia de Coordenadas (Absoluto vs Relativo)
-- [ ] **Resolución del Sistema de Coordenadas:**
-  - Resolver e identificar la diferencia entre el sistema absoluto de coordenadas en RViz (marco `world` / `root`) y el sistema relativo de cada articulación y eslabón del robot.
-  - Definir de forma clara la correspondencia física y matemática para saber exactamente dónde colocar el robot cuando se especifican configuraciones de juntas angulares (por ejemplo, determinar a qué eje o marco de referencia local se refieren valores como `[30, 60, 120]`).
+### 📐 8.4. Sistema de Referencia de Coordenadas (Absoluto vs Relativo) (COMPLETADO)
+- [x] **Resolución del Sistema de Coordenadas:**
+  - [x] Resolver e identificar la diferencia entre el sistema absoluto de coordenadas en RViz (marco `world` / `root`) y el sistema relativo de cada articulación y eslabón del robot.
+  - [x] Definir de forma clara la correspondencia física y matemática para saber exactamente dónde colocar el robot cuando se especifican configuraciones de juntas angulares (por ejemplo, determinar a qué eje o marco de referencia local se refieren valores como `[30, 60, 120]`).
+  - [x] **Alineación de estela en RViz:** Se corrigió el origen de la estela amarilla para rastrear el promedio de los centros de las esferas de colisión de las garras (`gripperfinger_by_ftobler`) en lugar de la junta de la muñeca.
 
 ---
 
