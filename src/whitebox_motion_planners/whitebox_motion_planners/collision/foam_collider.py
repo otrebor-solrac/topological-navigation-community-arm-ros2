@@ -38,6 +38,7 @@ class FoamCollider(BaseCollider):
             
         self.forbidden_set = None
         self.grid_discretizer = None
+        self.singularity_threshold = 0.0
 
         # Default joint offset and direction configurations (relative to world axes)
         self.offset_base_yaw = 0.0
@@ -117,6 +118,15 @@ class FoamCollider(BaseCollider):
             if q_discrete in self.forbidden_set:
                 return False
             return True
+
+        # 1. Singularity / Manipulability check
+        if getattr(self, 'singularity_threshold', 0.0) > 0.0:
+            try:
+                w = kinematics.compute_manipulability(q)
+                if w < self.singularity_threshold:
+                    return False
+            except (NotImplementedError, AttributeError):
+                pass
 
         if self.urdf_parser is not None:
             # Convert q from World coordinates to URDF coordinates using configured parameters

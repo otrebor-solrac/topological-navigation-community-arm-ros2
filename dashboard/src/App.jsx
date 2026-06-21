@@ -149,60 +149,69 @@ export default function App() {
         <div className="app-container">
             {/* 3D Viewport container */}
             <div className="canvas-container">
-                <div className="overlay-header" style={{ pointerEvents: 'none', display: 'flex', justifyContent: 'space-between', width: 'calc(100% - 48px)' }}>
-                    <div>
-                        <h1 style={{ pointerEvents: 'auto' }}>T³ manifold visualizer</h1>
-                        <div className={`connection-status ${connectionStatus}`}>
-                            {connectionStatus === 'connected' && 'ROS: Connected'}
-                            {connectionStatus === 'disconnected' && 'ROS: Disconnected'}
-                            {connectionStatus === 'error' && 'ROS: Connection error'}
+                {activeTab !== 'kinematics' && (
+                    <div className="overlay-header" style={{ pointerEvents: 'none', display: 'flex', justifyContent: 'space-between', width: 'calc(100% - 48px)' }}>
+                        <div>
+                            <h1 style={{ pointerEvents: 'auto' }}>T³ manifold visualizer</h1>
+                            <div className={`connection-status ${connectionStatus}`}>
+                                {connectionStatus === 'connected' && 'ROS: Connected'}
+                                {connectionStatus === 'disconnected' && 'ROS: Disconnected'}
+                                {connectionStatus === 'error' && 'ROS: Connection error'}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Global Environment & Resolution Settings elevated to top header */}
-                    <div style={{ pointerEvents: 'auto', display: 'flex', gap: '15px', alignItems: 'center', background: 'rgba(6, 6, 12, 0.6)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--glass-border)', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.4)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{ fontSize: '0.75em', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Obstacles</span>
-                            <select
-                                value={obstacle}
-                                onChange={(e) => handleObstacleChange(e.target.value)}
-                                className="select-field"
-                                style={{ width: '170px', padding: '4px 8px', fontSize: '0.85em', background: '#0b0c10' }}
-                            >
-                                <option value="no_obstacles">No obstacles</option>
-                                <option value="box_obstacle">Single box obstacle</option>
-                                <option value="narrow_passage">Narrow passage</option>
-                                <option value="u_obstacle">U-shaped obstacle (trap)</option>
-                                <option value="toroidal_wall">Toroidal wall constraint</option>
-                            </select>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <span style={{ fontSize: '0.75em', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Resolution</span>
-                            <select
-                                value={resolution}
-                                onChange={(e) => handleResolutionChange(e.target.value)}
-                                className="select-field"
-                                style={{ width: '135px', padding: '4px 8px', fontSize: '0.85em', background: '#0b0c10' }}
-                            >
-                                <option value="6.0">6.0° (fine / heavy)</option>
-                                <option value="8.0">8.0° (medium-fine)</option>
-                                <option value="10.0">10.0° (medium / fast)</option>
-                                <option value="12.0">12.0° (coarse)</option>
-                                <option value="15.0">15.0° (coarse / light)</option>
-                            </select>
+                        {/* Global Environment & Resolution Settings elevated to top header */}
+                        <div style={{ pointerEvents: 'auto', display: 'flex', gap: '15px', alignItems: 'center', background: 'rgba(6, 6, 12, 0.6)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--glass-border)', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.4)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <span style={{ fontSize: '0.75em', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Obstacles</span>
+                                <select
+                                    value={obstacle}
+                                    onChange={(e) => handleObstacleChange(e.target.value)}
+                                    className="select-field"
+                                    style={{ width: '170px', padding: '4px 8px', fontSize: '0.85em', background: '#0b0c10' }}
+                                >
+                                    <option value="no_obstacles">No obstacles</option>
+                                    <option value="box_obstacle">Single box obstacle</option>
+                                    <option value="narrow_passage">Narrow passage</option>
+                                    <option value="u_obstacle">U-shaped obstacle (trap)</option>
+                                    <option value="toroidal_wall">Toroidal wall constraint</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <span style={{ fontSize: '0.75em', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Resolution</span>
+                                <select
+                                    value={resolution}
+                                    onChange={(e) => handleResolutionChange(e.target.value)}
+                                    className="select-field"
+                                    style={{ width: '135px', padding: '4px 8px', fontSize: '0.85em', background: '#0b0c10' }}
+                                >
+                                    <option value="6.0">6.0° (fine / heavy)</option>
+                                    <option value="8.0">8.0° (medium-fine)</option>
+                                    <option value="10.0">10.0° (medium / fast)</option>
+                                    <option value="12.0">12.0° (coarse)</option>
+                                    <option value="15.0">15.0° (coarse / light)</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
+                )}
+
+                <div style={{ display: activeTab === 'kinematics' ? 'none' : 'block', width: '100%', height: '100%' }}>
+                    <ThreeVisualizer
+                        showSelfCollision={showSelfCollision}
+                        showObstacleCollision={showObstacleCollision}
+                        cspaceMode={cspaceMode}
+                        showTrail={showTrail}
+                        trailRef={trailRef}
+                        onQUpdate={handleQUpdate}
+                        isExecuting={isExecuting}
+                    />
                 </div>
-
-                <ThreeVisualizer
-                    showSelfCollision={showSelfCollision}
-                    showObstacleCollision={showObstacleCollision}
-                    cspaceMode={cspaceMode}
-                    showTrail={showTrail}
-                    trailRef={trailRef}
-                    onQUpdate={handleQUpdate}
-                    isExecuting={isExecuting}
-                />
+                {activeTab === 'kinematics' && (
+                    <div className="analytics-container" style={{ width: '100%', height: '100%', padding: '24px', boxSizing: 'border-box', overflowY: 'auto' }}>
+                        <KinematicsProfile plannedPath={plannedPath} isFullScreen={true} />
+                    </div>
+                )}
             </div>
 
             {/* Glassmorphic Sidebar */}
@@ -300,15 +309,13 @@ export default function App() {
 
                     {/* Tab 2: Kinematics & Analytics */}
                     <div className={`tab-content ${activeTab === 'kinematics' ? 'active' : ''}`}>
-                        <div style={{ marginBottom: '12px' }}>
-                            <span style={{ fontSize: '0.8em', color: 'var(--text-muted)' }}>
-                                Planned path velocity & acceleration plots
-                            </span>
+                        <div className="card" style={{ marginBottom: '16px' }}>
+                            <h2 style={{ fontSize: '0.95em', margin: 0 }}>Trajectory Summary</h2>
+                            <p style={{ fontSize: '0.8em', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.4' }}>
+                                The charts in the main viewport show the continuous-time joint positions, velocities, accelerations, and manipulability profile.
+                            </p>
                         </div>
-                        <KinematicsProfile plannedPath={plannedPath} />
-                        <div style={{ marginTop: '16px' }}>
-                            <TraceTable plannedPath={plannedPath} />
-                        </div>
+                        <TraceTable plannedPath={plannedPath} />
                     </div>
                 </div>
 

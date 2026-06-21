@@ -14,7 +14,7 @@ import json
 import xml.etree.ElementTree as ET
 from ament_index_python.packages import get_package_share_directory
 
-from ..kinematics import get_kinematics
+from ..kinematics import get_kinematics, TrajectoryGenerator
 from ..collision.foam_collider import FoamCollider
 from ..collision.grid_discretizer import GridDiscretizer
 from ..planners.planner_factory import PlannerFactory
@@ -42,6 +42,8 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('obstacles_urdf_path', '')
         self.declare_parameter('sphere_thinning_dist', 0.015)
         self.declare_parameter('cache_dir', '')
+        self.declare_parameter('singularity_threshold', 0.0)
+        self.declare_parameter('animation_rate_hz', 50.0)
 
         # Link lengths for kinematics
         self.declare_parameter('link_lengths.base_height', 0.065)
@@ -123,6 +125,7 @@ class TopologicalPlannerNode(Node):
             dir_shoulder_pitch=self.shoulder_pitch_dir,
             dir_elbow_pitch=self.elbow_pitch_dir
         )
+        self.collider.singularity_threshold = self.get_parameter('singularity_threshold').value
         # Declare and read parameter use_obstacles
         self.declare_parameter('use_obstacles', True)
         use_obstacles = self.get_parameter('use_obstacles').value
@@ -168,7 +171,12 @@ class TopologicalPlannerNode(Node):
                         cache_dir = '/home/ros_ws/src/whitebox_motion_planners/cspace_cache'
                     else:
                         cache_dir = os.path.join(src_dir, 'cspace_cache')
-            cache_filepath = os.path.join(cache_dir, f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json")
+            sing_thresh = self.collider.singularity_threshold
+            if sing_thresh > 0.0:
+                cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}_singularity{sing_thresh}.json"
+            else:
+                cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json"
+            cache_filepath = os.path.join(cache_dir, cache_filename)
             
             if os.path.exists(cache_filepath):
                 self.get_logger().info(f"Loading C-Space cache for planner from: {cache_filepath}")
@@ -551,7 +559,12 @@ class TopologicalPlannerNode(Node):
                             cache_dir = os.path.join(src_dir, 'cspace_cache')
                 
                 thinning_dist = self.get_parameter('sphere_thinning_dist').value
-                cache_filepath = os.path.join(cache_dir, f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json")
+                sing_thresh = self.collider.singularity_threshold
+                if sing_thresh > 0.0:
+                    cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}_singularity{sing_thresh}.json"
+                else:
+                    cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json"
+                cache_filepath = os.path.join(cache_dir, cache_filename)
                 
                 if os.path.exists(cache_filepath):
                     self.get_logger().info(f"Loading C-space cache from: {cache_filepath}")
@@ -789,7 +802,7 @@ class TopologicalPlannerNode(Node):
         self.get_logger().info(msg)
 
         # Log planned waypoints in degrees for debugging
-        path_rad = [self.grid.get_radians(wp) for wp in path]
+        path_rad = path
         for i, wp_rad in enumerate(path_rad):
             wp_deg = tuple(round(math.degrees(x), 1) for x in wp_rad)
             if i < 5 or i >= len(path_rad) - 3:
@@ -857,41 +870,51 @@ class TopologicalPlannerNode(Node):
 
     def start_animation(self, path: list):
         """
-        Begins stepping through the planned path, publishing each waypoint
-        to /master_states at a fixed rate so the robot animates in RViz.
+        Begins stepping through the planned path using high-frequency
+        interpolated quintic splines, publishing to /master_states.
         """
         self.is_animating = True
         self.animation_path = path
-        self.animation_index = 0
+        
+        # Instantiate the trajectory generator (max_vel = 1.0 rad/s, max_acc = 1.0 rad/s^2)
+        self.trajectory = TrajectoryGenerator(path, max_vel=1.0, max_acc=1.0)
+        self.animation_start_time = self.get_clock().now()
         self.trail_points = []  # Clear previous trail for new trajectory
         self.publish_status(True, "Executing planned trajectory...", path)
 
-        # Publish a waypoint every 150ms (smooth but visible)
-        self.animation_timer = self.create_timer(0.15, self.animation_step)
+        # Publish waypoints at dynamic rate (animation_rate_hz)
+        rate_hz = self.get_parameter('animation_rate_hz').value
+        period = 1.0 / max(1.0, rate_hz)  # avoid division by zero or negative rate
+        self.animation_timer = self.create_timer(period, self.animation_step)
 
     def animation_step(self):
         """
-        Timer callback: publishes the next waypoint in the planned path.
+        Timer callback: evaluates the trajectory spline at the current elapsed time.
         """
-        if self.animation_index >= len(self.animation_path):
+        elapsed = (self.get_clock().now() - self.animation_start_time).nanoseconds / 1e9
+        
+        if elapsed >= self.trajectory.total_duration:
             self.animation_timer.cancel()
             self.is_animating = False
-            # Store the final position so the robot stays there
-            self.final_planned_q = self.animation_path[-1]
-            # Sync current_q to the actual robot position (World coords).
-            # This ensures that if the user sends a GUI command from the same position
-            # they were at before planning, it is still detected as a manual change
-            # relative to the robot's actual end position (the goal).
-            self.current_q = self.grid.get_radians(self.animation_path[-1])
+            # Set the exact goal configuration at the end
+            q_final = tuple(self.trajectory.waypoints[-1])
+            out = self._build_full_msg(q_final)
+            self.joint_pub.publish(out)
+            self.publish_collision_markers(q_final)
+            
+            self.final_planned_q = q_final
+            self.current_q = q_final
             self.get_logger().info("Trajectory execution complete ✅")
             self.publish_status(True, "Trajectory execution complete ✅")
             return
 
-        q = self.animation_path[self.animation_index]
-        out = self._build_full_msg(q)
+        # Interpolate position
+        q_interp, qd_interp, qdd_interp = self.trajectory.evaluate(elapsed)
+        q_tuple = tuple(q_interp)
+        
+        out = self._build_full_msg(q_tuple)
         self.joint_pub.publish(out)
-        self.publish_collision_markers(q)
-        self.animation_index += 1
+        self.publish_collision_markers(q_tuple)
 
     def publish_collision_markers(self, q: tuple):
         """
@@ -911,38 +934,9 @@ class TopologicalPlannerNode(Node):
                     else:
                         q1, q2, q3 = q
                     
-                    # Convert World coordinates to URDF coordinates for compute_transforms
+                    # Convert World coordinates to URDF coordinates and get exact EE center
                     q_urdf = self.world_to_urdf((q1, q2, q3))
-                    transforms = self.collider.urdf_parser.compute_transforms(q_urdf[0], q_urdf[1], q_urdf[2])
-                    
-                    # Calculate the exact center of the finger collision spheres
-                    import numpy as np
-                    finger_positions = []
-                    for s in self.collider.urdf_parser.thinned_spheres:
-                        if 'finger' in s['link'].lower() or 'gripperfinger' in s['link'].lower():
-                            lname = s['link']
-                            if lname in transforms:
-                                T = transforms[lname]
-                                c_h = np.ones(4)
-                                c_h[:3] = s['local_center']
-                                world_c = (T @ c_h)[:3]
-                                finger_positions.append(world_c)
-                    
-                    if finger_positions:
-                        end_effector_pos = np.mean(finger_positions, axis=0)
-                    else:
-                        # Fallback to standard end-effector link names if fingers not found
-                        for link_name in ['gripperbase_by_ftobler', 'manipulator_dual']:
-                            if link_name in transforms:
-                                end_effector_pos = transforms[link_name][:3, 3]
-                                break
-                    
-                    # Fallback to the last active sphere link if standard names aren't found
-                    if end_effector_pos is None:
-                        for lname in reversed(list(self.collider.urdf_parser.links_with_spheres.keys())):
-                            if lname in transforms:
-                                end_effector_pos = transforms[lname][:3, 3]
-                                break
+                    end_effector_pos = self.collider.urdf_parser.get_end_effector_position(q_urdf)
                 
                 # Fallback to simplified serial forward kinematics if URDF not loaded
                 if end_effector_pos is None:

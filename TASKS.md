@@ -89,21 +89,19 @@ Este documento detalla los pasos técnicos para traducir la **Fase 3 (Metodolog�
 ## 🚀 8. Tareas Pendientes para los Objetivos de la Tesis (Pendiente)
 *Fase de desarrollo e integración final de los perfiles cinemáticos, la validación geométrica de singularidades y la suite de evaluación comparativa automatizada para los capítulos de la tesis.*
 
-### 📈 8.1. Perfiles de Trayectoria Cinemáticos (Velocidad, Aceleración y Parametrización Temporal)
-- [ ] **Generador de Perfiles de Trayectoria (`TrajectoryGenerator`):**
+### 📈 8.1. Perfiles de Trayectoria Cinemáticos (Velocidad, Aceleración y Parametrización Temporal) (COMPLETADO)
+- [x] **Generador de Perfiles de Trayectoria (`TrajectoryGenerator`):**
   - Implementar interpolación mediante Splines Quínticas ($C^2$ continuas) o Trapezoidal (LSPB) para convertir la ruta geométrica discreta en una trayectoria de tiempo continuo.
   - Definir y respetar los límites físicos de velocidad ($v_{max}$) y aceleración ($a_{max}$) para cada articulación.
-- [ ] **Herramienta de Graficado de Perfiles (`plot_trajectory.py`):**
-  - Crear script en Python para graficar Posición ($q_i$), Velocidad ($\dot{q}_i$) y Aceleración ($\ddot{q}_i$) vs Tiempo para cada una de las articulaciones.
-  - Guardar automáticamente las curvas en formato PNG en la carpeta de figuras de la tesis.
-- [ ] **Simulador de Trayectoria a Alta Frecuencia:**
+- [ ] **Herramienta de Graficado de Perfiles (`plot_trajectory.py`):** (Omitido temporalmente por decisión del usuario; se exportarán datos directos para graficado en LaTeX)
+- [x] **Simulador de Trayectoria a Alta Frecuencia:**
   - Modificar el publicador de la animación en `planning_node.py` para correr a 50Hz (muestreo cada 20ms) interpolando en tiempo real sobre la spline generada.
 
-### 📐 8.2. Análisis Diferencial y Evasión de Singularidades (Jacobiano)
-- [ ] **Cálculo de la Matriz Jacobiana ($J(q)$):**
+### 📐 8.2. Análisis Diferencial y Evasión de Singularidades (Jacobiano) (COMPLETADO)
+- [x] **Cálculo de la Matriz Jacobiana ($J(q)$):**
   - Implementar el cálculo de la matriz Jacobiana geométrica en la clase de cinemática del robot.
   - Calcular el Determinante del Jacobiano ($\det(J)$) o la medida de manipulabilidad de Yoshikawa ($w = \sqrt{\det(J J^T)}$) a lo largo de la trayectoria.
-- [ ] **Filtro de Seguridad de Singularidades:**
+- [x] **Filtro de Seguridad de Singularidades:**
   - Penalizar estados en el planificador que se acerquen a singularidades ($\det(J) \approx 0$).
   - Graficar el perfil de manipulabilidad a lo largo del tiempo para verificar la estabilidad de la trayectoria.
 
