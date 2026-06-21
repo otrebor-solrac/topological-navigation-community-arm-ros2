@@ -22,7 +22,8 @@ class CSpaceVoxelPublisher(Node):
         (robot_type, step_size, use_horizontal, use_obstacles, 
          thinning_dist, robot_urdf, obstacles_urdf, cache_dir,
          base_yaw_offset, shoulder_pitch_offset, elbow_pitch_offset,
-         base_yaw_dir, shoulder_pitch_dir, elbow_pitch_dir, link_lengths) = self._init_parameters()
+         base_yaw_dir, shoulder_pitch_dir, elbow_pitch_dir, link_lengths,
+         singularity_threshold) = self._init_parameters()
         
         self.base_yaw_offset = base_yaw_offset
         self.shoulder_pitch_offset = shoulder_pitch_offset
@@ -36,7 +37,7 @@ class CSpaceVoxelPublisher(Node):
         
         # 3. Setup collider and load obstacles
         obstacles_hash = self._setup_collider_and_obstacles(
-            robot_type, use_obstacles, thinning_dist, robot_urdf, obstacles_urdf
+            robot_type, use_obstacles, thinning_dist, robot_urdf, obstacles_urdf, singularity_threshold
         )
         
         # 4. Setup grid discretizer
@@ -83,6 +84,7 @@ class CSpaceVoxelPublisher(Node):
         self.declare_parameter('joint_directions.base_yaw', 1)
         self.declare_parameter('joint_directions.shoulder_pitch', 1)
         self.declare_parameter('joint_directions.elbow_pitch', 1)
+        self.declare_parameter('singularity_threshold', 0.0)
         
         import math
         link_lengths = {
@@ -105,7 +107,8 @@ class CSpaceVoxelPublisher(Node):
             float(self.get_parameter('joint_directions.base_yaw').value),
             float(self.get_parameter('joint_directions.shoulder_pitch').value),
             float(self.get_parameter('joint_directions.elbow_pitch').value),
-            link_lengths
+            link_lengths,
+            self.get_parameter('singularity_threshold').value
         )
 
     def _setup_collider_and_obstacles(
@@ -114,7 +117,8 @@ class CSpaceVoxelPublisher(Node):
         use_obstacles, 
         thinning_dist, 
         robot_urdf, 
-        obstacles_urdf
+        obstacles_urdf,
+        singularity_threshold
     ) -> str:
         """
         Configure the robot collider and optionally load environment obstacles.
@@ -124,6 +128,7 @@ class CSpaceVoxelPublisher(Node):
         :param thinning_dist: Safety distance to shrink the collision spheres.
         :param robot_urdf: User-defined path to robot URDF.
         :param obstacles_urdf: User-defined path to obstacles URDF.
+        :param singularity_threshold: Threshold below which states are marked singular.
         :return: MD5 hash of the obstacles URDF file, or "no_obstacles".
         """
         # Resolve robot URDF dynamically if not provided
@@ -140,6 +145,7 @@ class CSpaceVoxelPublisher(Node):
             urdf_path=robot_urdf,
             sphere_thinning_dist=thinning_dist
         )
+        self.collider.singularity_threshold = singularity_threshold
         self.collider.set_joint_transforms(
             offset_base_yaw=self.base_yaw_offset,
             offset_shoulder_pitch=self.shoulder_pitch_offset,
@@ -214,7 +220,11 @@ class CSpaceVoxelPublisher(Node):
             self.cache_dir = cache_dir
 
         os.makedirs(self.cache_dir, exist_ok=True)
-        self.cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json"
+        sing_thresh = self.collider.singularity_threshold
+        if sing_thresh > 0.0:
+            self.cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}_singularity{sing_thresh}.json"
+        else:
+            self.cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json"
         self.cache_filepath = os.path.join(self.cache_dir, self.cache_filename)
         self.get_logger().info(f"Cache filepath: {self.cache_filepath}")
         

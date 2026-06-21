@@ -21,6 +21,18 @@ class BaseKinematics(ABC):
         """
         pass
 
+    def compute_jacobian(self, q: tuple) -> np.ndarray:
+        """
+        Computes the geometric Jacobian matrix J(q) for the end-effector.
+        """
+        raise NotImplementedError("compute_jacobian is not implemented for this robot kinematics.")
+
+    def compute_manipulability(self, q: tuple) -> float:
+        """
+        Computes the Yoshikawa measure of manipulability.
+        """
+        raise NotImplementedError("compute_manipulability is not implemented for this robot kinematics.")
+
 class BaseCollider(ABC):
     """
     Contract for any collision detection engine (FOAM, AABB, etc).

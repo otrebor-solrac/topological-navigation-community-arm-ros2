@@ -34,6 +34,13 @@
     # Grid resolution (lower means more precision but slower planning)
     # TODO: Is this parameter still used? We have computed several C-space maps for different resolutions.
     step_size_deg: 15.0
+
+    # Yoshikawa manipulability threshold for singularity avoidance (0.0 = disabled)
+    # Recommended default: 0.0005. Values below this will be classified as C_obs (obstacle/invalid).
+    singularity_threshold: 0.0005
+
+    # Rate in Hz to publish waypoints during trajectory animation (default: 50.0 Hz)
+    animation_rate_hz: 50.0
     
     # Distance threshold in meters for URDF sphere thinning (e.g. 0.015 = 1.5 cm)
     # TODO: Is this parameter the best way to compute collisions?
