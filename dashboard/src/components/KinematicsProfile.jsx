@@ -186,7 +186,7 @@ function computeManipulability(q1, q2, q3, useHorizontal = false) {
     }
 }
 
-export default function KinematicsProfile({ plannedPath, isFullScreen = false }) {
+export default function KinematicsProfile({ plannedPath, plannedManipulability = [], isFullScreen = false }) {
     if (!plannedPath || plannedPath.length === 0) {
         return (
             <div className="card" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -262,12 +262,14 @@ export default function KinematicsProfile({ plannedPath, isFullScreen = false })
     }
 
     // 4. Manipulability Index (w)
-    const manipulability = plannedPath.map(p => {
-        const q1 = p[0];
-        const q2 = p[1];
-        const q3 = useHorizontal ? 0.0 : p[2];
-        return [computeManipulability(q1, q2, q3, useHorizontal)];
-    });
+    const manipulability = plannedManipulability && plannedManipulability.length === plannedPath.length
+        ? plannedManipulability.map(w => [w])
+        : plannedPath.map(p => {
+            const q1 = p[0];
+            const q2 = p[1];
+            const q3 = useHorizontal ? 0.0 : p[2];
+            return [computeManipulability(q1, q2, q3, useHorizontal)];
+        });
 
     // Color theme matching the dashboard
     const colors = ['#00ff9d', '#00d4ff', '#ffff00'];

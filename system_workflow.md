@@ -123,26 +123,26 @@ sequenceDiagram
 To follow the data flow and understand the mathematical computations, here is a structured guide on the main files to read first:
 
 ### 1. Orchestration (Starting Point)
-* **[planning.launch.py](file:///home/rc/workspace/ROS2/src/whitebox_motion_planners/launch/planning.launch.py)**
+* **[planning.launch.py](file:///media/rc/SSD_DATOS/workspace/ROS2/src/whitebox_motion_planners/launch/planning.launch.py)**
   - **Purpose:** The ROS 2 launch file. It orchestrates all nodes, hooks up parameter configurations (like `planner_params.yaml`), and sets up RViz2 and rosbridge.
 
 ### 2. ROS 2 Node Layer (Communication API)
-* **[planning_node.py](file:///home/rc/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/ros2/planning_node.py)** *(Main Controller)*
+* **[planning_node.py](file:///media/rc/SSD_DATOS/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/ros2/planning_node.py)** *(Main Controller)*
   - **Purpose:** Implements the `whitebox_planner` node. It hosts the `/execute_plan` service, reads `waypoints.yaml` dynamically on every trigger, runs A* search, and publishes trajectories to `/joint_states`.
-* **[cspace_publisher.py](file:///home/rc/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/ros2/cspace_publisher.py)**
+* **[cspace_publisher.py](file:///media/rc/SSD_DATOS/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/ros2/cspace_publisher.py)**
   - **Purpose:** Implements the offline/online voxelizer node. It evaluates the grid for self-collisions and environment obstacles, publishes the grid to `/cspace`, and saves the cache JSON file (`cspace_cache_*.json`).
 
 ### 3. Pure Algorithmic Layer (Mathematics)
 These modules are independent of ROS 2 and contain core geometric and planning computations:
-* **[a_star.py](file:///home/rc/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/planners/a_star.py)**
+* **[a_star.py](file:///media/rc/SSD_DATOS/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/planners/a_star.py)**
   - **Purpose:** Implements A* graph search on the toroidal manifold $T^n$, expanding neighbor grid configurations and computing shortest paths.
-* **[foam_collider.py](file:///home/rc/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/collision/foam_collider.py)**
+* **[foam_collider.py](file:///media/rc/SSD_DATOS/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/collision/foam_collider.py)**
   - **Purpose:** Performs collision detection. When the JSON cache is loaded, it executes $O(1)$ set lookups on `forbidden_set` instead of running full geometric checks.
-* **[grid_discretizer.py](file:///home/rc/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/collision/grid_discretizer.py)**
+* **[grid_discretizer.py](file:///media/rc/SSD_DATOS/workspace/ROS2/src/whitebox_motion_planners/whitebox_motion_planners/collision/grid_discretizer.py)**
   - **Purpose:** Handles mapping continuous joint configurations (radians) to integer grid bins, computing wrap-around neighbors under the toroidal topology.
 
 ### 4. Visual Frontend (Dashboard)
-* **[app.js](file:///home/rc/workspace/ROS2/dashboard/app.js)**
-  - **Purpose:** Client-side Three.js visualizer. Subscribes to `/cspace` and `/joint_states` via WebSockets (rosbridge) to render the 3D fundamental cube, the voxel cloud, and the live trajectory path.
+* **[App.jsx](file:///media/rc/SSD_DATOS/workspace/ROS2/dashboard/src/App.jsx)**
+  - **Purpose:** Client-side React & Three.js visualizer. Subscribes to `/cspace` and `/joint_states` via WebSockets (rosbridge) to render the 3D fundamental cube, the voxel cloud, and the live trajectory path.
 
 Hola

@@ -24,6 +24,7 @@ export default function App() {
 
     // Planned path state
     const [plannedPath, setPlannedPath] = useState([]);
+    const [plannedManipulability, setPlannedManipulability] = useState([]);
 
     // Visibility states
     const [showTrail, setShowTrail] = useState(true);
@@ -70,12 +71,18 @@ export default function App() {
                 const data = JSON.parse(msg.data);
                 if (data.success && data.path) {
                     setPlannedPath(data.path);
+                    if (data.manipulability) {
+                        setPlannedManipulability(data.manipulability);
+                    } else {
+                        setPlannedManipulability([]);
+                    }
                     handleClearTrail(); // Clear old trail before starting the new animation
                     setIsExecuting(true);
                 } else if (data.success && data.message && data.message.includes("complete ✅")) {
                     setIsExecuting(false);
                 } else if (!data.success) {
                     setPlannedPath([]);
+                    setPlannedManipulability([]);
                     setIsExecuting(false);
                 }
             } catch (e) {
@@ -209,7 +216,7 @@ export default function App() {
                 </div>
                 {activeTab === 'kinematics' && (
                     <div className="analytics-container" style={{ width: '100%', height: '100%', padding: '24px', boxSizing: 'border-box', overflowY: 'auto' }}>
-                        <KinematicsProfile plannedPath={plannedPath} isFullScreen={true} />
+                        <KinematicsProfile plannedPath={plannedPath} plannedManipulability={plannedManipulability} isFullScreen={true} />
                     </div>
                 )}
             </div>
