@@ -107,6 +107,48 @@ class FoamCollider(BaseCollider):
                 self.offset_elbow_pitch
             )
 
+    def compute_manipulability(self, q: tuple, epsilon: float = 1e-5) -> float:
+        """
+        Computes the manipulability index using the numerical Jacobian of the URDF parser
+        if available, otherwise raises NotImplementedError.
+        """
+        if self.urdf_parser is not None:
+            # Helper to get EE position from q_world
+            def get_ee(q_w):
+                yaw_w, pitch1_w, pitch2_w = q_w[:3] if len(q_w) >= 3 else (q_w[0], q_w[1], 0.0)
+                base_yaw = self.offset_base_yaw + self.dir_base_yaw * yaw_w
+                shoulder_pitch = self.offset_shoulder_pitch + self.dir_shoulder_pitch * pitch1_w
+                elbow_pitch = self.offset_elbow_pitch + self.dir_elbow_pitch * pitch2_w
+                q_urdf = (base_yaw, shoulder_pitch, elbow_pitch)
+                return self.urdf_parser.get_end_effector_position(q_urdf)
+
+            J = []
+            dof = len(q)
+            for i in range(dof):
+                q_plus = list(q)
+                q_plus[i] += epsilon
+                p_plus = get_ee(q_plus)
+                
+                q_minus = list(q)
+                q_minus[i] -= epsilon
+                p_minus = get_ee(q_minus)
+                
+                if p_plus is None or p_minus is None:
+                    return 0.0
+                    
+                col = (p_plus - p_minus) / (2.0 * epsilon)
+                J.append(col)
+                
+            J = np.column_stack(J)
+            m, n = J.shape
+            if m <= n:
+                w = float(np.sqrt(max(0.0, np.linalg.det(J @ J.T))))
+            else:
+                w = float(np.sqrt(max(0.0, np.linalg.det(J.T @ J))))
+            return w
+        else:
+            raise NotImplementedError("URDF parser not initialized")
+
     def is_state_valid(self, q: tuple, kinematics: BaseKinematics) -> bool:
         """
         Determines if state q is safe (C_free) using the injected kinematic model.
@@ -122,7 +164,10 @@ class FoamCollider(BaseCollider):
         # 1. Singularity / Manipulability check
         if getattr(self, 'singularity_threshold', 0.0) > 0.0:
             try:
-                w = kinematics.compute_manipulability(q)
+                if self.urdf_parser is not None:
+                    w = self.compute_manipulability(q)
+                else:
+                    w = kinematics.compute_manipulability(q)
                 if w < self.singularity_threshold:
                     return False
             except (NotImplementedError, AttributeError):

@@ -358,7 +358,12 @@ class TopologicalPlannerNode(Node):
         data = {"success": success, "message": msg}
         if success and path is not None:
             # Convert each discrete waypoint in path to radians (world coordinates)
-            data["path"] = [list(self.grid.get_radians(wp)) for wp in path]
+            path_rads = [list(self.grid.get_radians(wp)) for wp in path]
+            data["path"] = path_rads
+            try:
+                data["manipulability"] = [self.collider.compute_manipulability(tuple(wp)) for wp in path_rads]
+            except Exception as e:
+                self.get_logger().warn(f"Failed to compute path manipulability: {e}")
         status_msg.data = json.dumps(data)
         self.status_pub.publish(status_msg)
         return (success, msg)
