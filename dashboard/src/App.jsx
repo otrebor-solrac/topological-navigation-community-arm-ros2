@@ -11,9 +11,9 @@ export default function App() {
     const [firstPositionReceived, setFirstPositionReceived] = useState(false);
     const [activeTab, setActiveTab] = useState('control');
     const [connectionStatus, setConnectionStatus] = useState('disconnected');
-    
-    // Shared origin/home pose for the robot (in degrees)
-    const [homeQ, setHomeQ] = useState({ q1: 0, q2: 90, q3: 0 });
+
+    // homeQ loaded from planner_params.yaml via ROS parameter service — no hardcoded default
+    const [homeQ, setHomeQ] = useState(null);
 
     // Global obstacle & resolution states
     const [obstacle, setObstacle] = useState('no_obstacles');
@@ -38,7 +38,9 @@ export default function App() {
     useEffect(() => {
         const handleConnect = () => {
             setConnectionStatus('connected');
-            loadParameters();
+            loadParameters((startVal) => {
+                if (startVal) setHomeQ(startVal);
+            });
         };
 
         const handleError = () => {

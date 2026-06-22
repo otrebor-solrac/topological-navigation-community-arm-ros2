@@ -226,6 +226,7 @@ class CSpaceVoxelPublisher(Node):
         else:
             self.cache_filename = f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json"
         self.cache_filepath = os.path.join(self.cache_dir, self.cache_filename)
+        
         self.get_logger().info(f"Cache filepath: {self.cache_filepath}")
         
         self.warned_no_cache = False

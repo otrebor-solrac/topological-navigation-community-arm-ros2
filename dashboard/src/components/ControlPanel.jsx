@@ -1,27 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { guiJointPub, webCmdPub, jointOffsets, jointDirections } from '../services/ros';
 
-export default function ControlPanel({ currentQ, firstPositionReceived, homeQ, setHomeQ }) {
-    const DEFAULT_HOME = { q1: 0, q2: 90, q3: 0 };
-
-    // Slider states (in World degrees)
-    const [q1, setQ1] = useState(DEFAULT_HOME.q1);
-    const [q2, setQ2] = useState(DEFAULT_HOME.q2);
-    const [q3, setQ3] = useState(DEFAULT_HOME.q3);
+export default function ControlPanel({ currentQ, homeQ, setHomeQ }) {
+    // Slider states (in World degrees) — initialized to 0, updated from /joint_states on first message
+    const [q1, setQ1] = useState(0);
+    const [q2, setQ2] = useState(0);
+    const [q3, setQ3] = useState(0);
 
     const [userDragging, setUserDragging] = useState(false);
-    const initialPublishRef = useRef(false);
     const dragTimeoutRef = useRef(null);
     const commandedQRef = useRef(null);
 
-    // Publish home position on mount
-    useEffect(() => {
-        if (!initialPublishRef.current && firstPositionReceived && homeQ) {
-            commandedQRef.current = { q1: homeQ.q1, q2: homeQ.q2, q3: homeQ.q3 };
-            publishSliderJointState(homeQ.q1, homeQ.q2, homeQ.q3);
-            initialPublishRef.current = true;
-        }
-    }, [firstPositionReceived, homeQ]);
 
     // Update sliders when robot moves
     const ARRIVE_TOLERANCE_DEG = 9;

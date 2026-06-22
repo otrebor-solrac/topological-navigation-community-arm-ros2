@@ -50,5 +50,17 @@ export const jointDirections = {
 };
 
 export function loadParameters(onLoadCallback) {
-    if (onLoadCallback) onLoadCallback();
+    const svc = new ROSLIB.Service({
+        ros: ros,
+        name: '/whitebox_planner/get_parameters',
+        serviceType: 'rcl_interfaces/srv/GetParameters'
+    });
+    svc.callService(new ROSLIB.ServiceRequest({ names: ['start'] }), (res) => {
+        const val = res?.values?.[0]?.double_array_value;
+        if (val && val.length >= 3) {
+            if (onLoadCallback) onLoadCallback({ q1: val[0], q2: val[1], q3: val[2] });
+        } else {
+            if (onLoadCallback) onLoadCallback(null);
+        }
+    }, () => { if (onLoadCallback) onLoadCallback(null); });
 }
