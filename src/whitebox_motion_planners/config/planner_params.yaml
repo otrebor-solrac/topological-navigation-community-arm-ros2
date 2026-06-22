@@ -13,17 +13,9 @@
 
     # START CONFIGURATION (Point A) in DEGREES (World coordinates)
     start:
-      - 0.0        # Base Yaw (aligned with X axis)
+      - 180.0        # Base Yaw (aligned with X axis)
       - 90.0       # Shoulder Pitch (90.0 = vertical)
       - 0.0        # Elbow Pitch (0.0 = parallel/aligned)
-
-    # GOAL CONFIGURATION (Point B) in DEGREES (World coordinates)
-    # TODO: Is this goal point useful? Currently we are using the GUI sliders to input the goal point.
-    goal:
-      - 72.0       # Base Yaw (angle in world)
-      - 135.0      # Shoulder Pitch (angle in world)
-      - 90.0       # Elbow Pitch (angle in world)
-
 
     # Link lengths in meters (for kinematics solver)
     link_lengths:

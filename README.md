@@ -32,6 +32,46 @@ Starts the robot simulation, RViz2, the planning agent, and the Web Dashboard.
 make run
 ```
 
+> [!IMPORTANT]
+> **GUI & RViz2 Authorization (X11):**
+> If you run `make run` or `make run-cpu` and the RViz2 window does not appear (with errors in logs like `qt.qpa.xcb: could not connect to display`), you need to authorize the Docker container to access your host's X server by running this command on your host machine:
+> ```bash
+> xhost +local:docker
+> ```
+> *(Or simply `xhost +` if needed).*
+
+> [!TIP]
+> **Soporte de GPU NVIDIA y Alternativa en CPU (Error `could not select device driver "nvidia"`):**
+> Si al ejecutar `make run` se produce el error `Error response from daemon: could not select device driver "nvidia" with capabilities: [[gpu]]`, significa que el sistema host no tiene instalado o configurado el **NVIDIA Container Toolkit**.
+> 
+> Tienes dos opciones para solucionarlo:
+> 
+> 1. **Ejecutar en modo solo CPU (No requiere GPU ni configuraciones adicionales):**
+>    ```bash
+>    make run-cpu
+>    ```
+>    *Nota: Como el espacio de configuración ya está precalculado en el directorio `cspace_cache/`, la planificación y visualización funcionarán perfectamente en CPU.*
+> 
+> 2. **Instalar el NVIDIA Container Toolkit en tu máquina host para habilitar GPU:**
+>    Si deseas restaurar el soporte de GPU en Docker, ejecuta los siguientes comandos en tu terminal local:
+>    ```bash
+>    # Configurar el repositorio oficial de NVIDIA
+>    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+>      && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+>        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+>        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+>    
+>    # Instalar el paquete
+>    sudo apt update && sudo apt install -y nvidia-container-toolkit
+>    
+>    # Configurar el runtime en Docker y reiniciar el servicio
+>    sudo nvidia-ctk runtime configure --runtime=docker
+>    sudo systemctl restart docker
+>    ```
+>    Una vez hecho esto, puedes verificar que Docker reconozca el runtime ejecutando `docker info | grep -i runtime` (debería aparecer `nvidia` en la lista). Luego podrás usar `make run` con normalidad.
+
+
+
 ### 3. Quick Restart
 Restarts the containers and the WebSocket bridge if the connection is lost.
 ```bash

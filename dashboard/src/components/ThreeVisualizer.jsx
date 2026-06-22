@@ -156,10 +156,12 @@ export default function ThreeVisualizer({
             }
 
             // Render obstacle-collisions
-            const activeObstacles = (rawObstacleDataRef.current.length > 0) ? rawObstacleDataRef.current : rawVoxelDataRef.current;
-            const renderObstacleLayer = showObstacleCollisionRef.current && (rawObstacleDataRef.current.length > 0 || (rawObstacleDataRef.current.length === 0 && !rawSelfCollisionDataRef.current.length));
+            const activeObstacles = rawObstacleDataRef.current.length > 0
+                ? rawObstacleDataRef.current
+                : rawVoxelDataRef.current;
+            const renderObstacleLayer = showObstacleCollisionRef.current && activeObstacles.length > 0;
 
-            if (renderObstacleLayer && activeObstacles.length > 0) {
+            if (renderObstacleLayer) {
                 const obsMat = new THREE.MeshPhongMaterial({ color: 0xff3333, transparent: true, opacity: 0.5 });
                 const mesh = new THREE.InstancedMesh(geo, obsMat, activeObstacles.length);
                 const dummy = new THREE.Object3D();
