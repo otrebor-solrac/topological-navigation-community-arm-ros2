@@ -49,18 +49,13 @@ export const jointDirections = {
     elbow_pitch: 1
 };
 
-export function loadParameters(onLoadCallback) {
-    const svc = new ROSLIB.Service({
-        ros: ros,
-        name: '/whitebox_planner/get_parameters',
-        serviceType: 'rcl_interfaces/srv/GetParameters'
-    });
-    svc.callService(new ROSLIB.ServiceRequest({ names: ['start'] }), (res) => {
-        const val = res?.values?.[0]?.double_array_value;
-        if (val && val.length >= 3) {
-            if (onLoadCallback) onLoadCallback({ q1: val[0], q2: val[1], q3: val[2] });
-        } else {
-            if (onLoadCallback) onLoadCallback(null);
-        }
-    }, () => { if (onLoadCallback) onLoadCallback(null); });
-}
+// Latched topic: planner publishes start config once at startup with TRANSIENT_LOCAL QoS.
+// rosbridge delivers the last message automatically to any new subscriber — no retries needed.
+export const startConfigSub = new ROSLIB.Topic({
+    ros: ros,
+    name: '/planner_start_config',
+    messageType: 'std_msgs/String',
+    throttle_rate: 0,
+    queue_length: 1,
+    compression: 'none'
+});

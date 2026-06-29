@@ -35,7 +35,17 @@ class TrajectoryGenerator:
             return
             
         self.num_joints = len(path[0])
-        self.waypoints = [np.array(wp) for wp in path]
+        
+        # Unwrap path waypoints to ensure continuity on the toroidal manifold (T^n)
+        unwrapped_waypoints = [np.array(path[0])]
+        for i in range(1, len(path)):
+            wp_prev = unwrapped_waypoints[-1]
+            dq = np.array(path[i]) - np.array(path[i-1])
+            # Wrap joint difference to [-pi, pi] to find the shortest path on the torus
+            dq_wrapped = (dq + np.pi) % (2 * np.pi) - np.pi
+            unwrapped_waypoints.append(wp_prev + dq_wrapped)
+            
+        self.waypoints = unwrapped_waypoints
         
         self.times = [0.0]
         for i in range(len(self.waypoints) - 1):

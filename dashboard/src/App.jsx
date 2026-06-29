@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ros, loadParameters, webCmdPub, statusSub } from './services/ros';
+import { ros, startConfigSub, webCmdPub, statusSub } from './services/ros';
+
 import ThreeVisualizer from './components/ThreeVisualizer';
 import ControlPanel from './components/ControlPanel';
 import WaypointManager from './components/WaypointManager';
@@ -12,7 +13,7 @@ export default function App() {
     const [activeTab, setActiveTab] = useState('control');
     const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
-    // homeQ loaded from planner_params.yaml via ROS parameter service — no hardcoded default
+    // homeQ: loaded from planner_params.yaml via /whitebox_planner/get_parameters service
     const [homeQ, setHomeQ] = useState(null);
 
     // Global obstacle & resolution states
@@ -38,9 +39,6 @@ export default function App() {
     useEffect(() => {
         const handleConnect = () => {
             setConnectionStatus('connected');
-            loadParameters((startVal) => {
-                if (startVal) setHomeQ(startVal);
-            });
         };
 
         const handleError = () => {
@@ -66,7 +64,23 @@ export default function App() {
         };
     }, []);
 
-    // Monitor Planner Status to get computed paths
+    // Subscribe to the latched /planner_start_config topic.
+    // TRANSIENT_LOCAL QoS ensures we receive the last message even if we connect after the planner.
+    useEffect(() => {
+        const handleStartConfig = (msg) => {
+            try {
+                const data = JSON.parse(msg.data);
+                if (data.start && data.start.length >= 3) {
+                    setHomeQ({ q1: data.start[0], q2: data.start[1], q3: data.start[2] });
+                }
+            } catch (e) {
+                console.error('Failed to parse planner_start_config:', e);
+            }
+        };
+        startConfigSub.subscribe(handleStartConfig);
+        return () => startConfigSub.unsubscribe(handleStartConfig);
+    }, []);
+
     useEffect(() => {
         const handleStatus = (msg) => {
             try {
