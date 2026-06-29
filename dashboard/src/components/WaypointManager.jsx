@@ -86,8 +86,8 @@ export default function WaypointManager({ currentQ, homeQ }) {
             </button>
 
             <div id="waypoint-list" style={{ maxHeight: '200px', overflowY: 'auto', margin: '10px 0' }}>
-                {/* Always show origin at the top as the sequence start */}
-                {homeQ && (
+                {/* Always show origin row — loading from params service if not yet received */}
+                {homeQ ? (
                     <div 
                         style={{ 
                             display: 'flex', 
@@ -102,6 +102,10 @@ export default function WaypointManager({ currentQ, homeQ }) {
                     >
                         <span>Start (Origin): [{homeQ.q1.toFixed(1)}°, {homeQ.q2.toFixed(1)}°, {homeQ.q3.toFixed(1)}°]</span>
                         <span style={{ fontSize: '0.8em', fontStyle: 'italic', paddingRight: '6px' }}>Origin</span>
+                    </div>
+                ) : (
+                    <div style={{ color: 'var(--text-muted)', padding: '6px 4px', fontSize: '0.85em', borderBottom: '1px solid var(--glass-border)', fontStyle: 'italic' }}>
+                        ⏳ Loading origin from params...
                     </div>
                 )}
 

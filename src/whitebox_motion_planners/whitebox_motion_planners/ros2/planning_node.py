@@ -180,7 +180,6 @@ class TopologicalPlannerNode(Node):
             
             if os.path.exists(cache_filepath):
                 self.get_logger().info(f"Loading C-Space cache for planner from: {cache_filepath}")
-                import json
                 with open(cache_filepath, 'r') as f:
                     cache_data = json.load(f)
                 
@@ -279,6 +278,16 @@ class TopologicalPlannerNode(Node):
             desc_qos
         )
 
+        # [CONFIG]: Latched topic that publishes the start configuration once at startup.
+        # Any dashboard subscriber connecting at any time will receive this message automatically,
+        # eliminating the need for service call retries.
+        config_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.start_config_pub = self.create_publisher(
+            String,
+            '/planner_start_config',
+            config_qos
+        )
+
         # [INTERACTION]: Human-in-the-loop trigger via RViz2 "Publish Point" tool.
         # This converts a 3D Cartesian click into a goal-oriented planning event.
         self.click_sub = (
@@ -308,6 +317,18 @@ class TopologicalPlannerNode(Node):
         self.get_logger().info("  Option 1: Click in RViz2 using 'Publish Point' tool")
         self.get_logger().info("  Option 2: ros2 service call /execute_plan std_srvs/srv/Trigger")
         self.get_logger().info("  Option 3: Publish JSON commands to /web_commands (dashboard interface)")
+
+        # Publish start config to latched topic so the dashboard can read it at any time
+        start_list = self.get_parameter('start').get_parameter_value().double_array_value
+        angles_in_degrees = self.get_parameter('angles_in_degrees').value
+        if angles_in_degrees:
+            start_deg = list(start_list)
+        else:
+            start_deg = [math.degrees(x) for x in start_list]
+        config_msg = String()
+        config_msg.data = json.dumps({'start': start_deg})
+        self.start_config_pub.publish(config_msg)
+        self.get_logger().info(f"Published start config to /planner_start_config: {start_deg}")
 
 
     def world_to_urdf(self, q_world: tuple) -> tuple:
@@ -357,8 +378,8 @@ class TopologicalPlannerNode(Node):
         status_msg = String()
         data = {"success": success, "message": msg}
         if success and path is not None:
-            # Convert each discrete waypoint in path to radians (world coordinates)
-            path_rads = [list(self.grid.get_radians(wp)) for wp in path]
+            # The path returned by the planner is already in radians (world coordinates)
+            path_rads = [list(wp) for wp in path]
             data["path"] = path_rads
             try:
                 data["manipulability"] = [self.collider.compute_manipulability(tuple(wp)) for wp in path_rads]
