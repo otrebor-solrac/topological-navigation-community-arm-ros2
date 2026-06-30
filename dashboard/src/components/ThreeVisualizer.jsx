@@ -16,7 +16,9 @@ export default function ThreeVisualizer({
     showTrail,
     trailRef,
     onQUpdate,
-    isExecuting
+    isExecuting,
+    waypoints = [],
+    homeQ = null
 }) {
     const containerRef = useRef(null);
     const sceneRef = useRef(null);
@@ -32,13 +34,20 @@ export default function ThreeVisualizer({
     const obstacleCollisionMeshRef = useRef(null);
     const freeCollisionMeshRef = useRef(null);
 
+    const lastQRef = useRef(null);
+
     // Voxel data refs
     const rawVoxelDataRef = useRef([]);
     const rawObstacleDataRef = useRef([]);
     const rawSelfCollisionDataRef = useRef([]);
     const stepRadRef = useRef(0.12);
 
-    const lastQRef = useRef(null);
+    // Waypoint meshes and caching
+    const waypointMeshesRef = useRef([]);
+    const originMeshRef = useRef(null);
+    const forbiddenSetRef = useRef(new Set());
+    const waypointsRef = useRef(waypoints);
+    const homeQRef = useRef(homeQ);
 
     // 3D labels
     const labelTh1Ref = useRef(null);
@@ -56,7 +65,9 @@ export default function ThreeVisualizer({
         showObstacleCollisionRef.current = showObstacleCollision;
         cspaceModeRef.current = cspaceMode;
         isExecutingRef.current = isExecuting;
-    }, [showSelfCollision, showObstacleCollision, cspaceMode, isExecuting]);
+        waypointsRef.current = waypoints;
+        homeQRef.current = homeQ;
+    }, [showSelfCollision, showObstacleCollision, cspaceMode, isExecuting, waypoints, homeQ]);
 
     const PI = Math.PI;
 
@@ -194,10 +205,88 @@ export default function ThreeVisualizer({
         }
     };
 
+    // Update waypoint spheres in 3D scene (including origin)
+    const updateWaypoints = () => {
+        const scene = sceneRef.current;
+        if (!scene) {
+            console.warn("ThreeVisualizer: Scene not ready yet for waypoints.");
+            return;
+        }
+
+        console.log(`ThreeVisualizer: Rendering ${waypointsRef.current.length} waypoints + origin...`);
+
+        // Clear existing waypoint meshes
+        waypointMeshesRef.current.forEach(mesh => scene.remove(mesh));
+        waypointMeshesRef.current = [];
+
+        if (originMeshRef.current) {
+            scene.remove(originMeshRef.current);
+            originMeshRef.current = null;
+        }
+
+        const step = stepRadRef.current || 0.12;
+
+        // Render origin sphere (labeled "O")
+        let originRad = null;
+        if (homeQRef.current) {
+            const deg2rad = Math.PI / 180.0;
+            originRad = [
+                homeQRef.current.q1 * deg2rad,
+                homeQRef.current.q2 * deg2rad,
+                homeQRef.current.q3 * deg2rad
+            ];
+        } else {
+            originRad = [0.0, 90.0 * Math.PI / 180.0, 0.0];
+        }
+
+        const odq0 = wrapToPi(Math.round(wrapToPi(originRad[0]) / step) * step);
+        const odq1 = wrapToPi(Math.round(wrapToPi(originRad[1]) / step) * step);
+        const odq2 = wrapToPi(Math.round(wrapToPi(originRad[2]) / step) * step);
+        const oKey = `${odq0.toFixed(3)},${odq1.toFixed(3)},${odq2.toFixed(3)}`;
+        const oInCollision = forbiddenSetRef.current.has(oKey);
+
+        const oGeo = new THREE.SphereGeometry(0.18, 16, 16);
+        const oColor = oInCollision ? 0xff3333 : 0x00d4ff; // Cyan if safe, red if in collision
+        const oMat = new THREE.MeshBasicMaterial({ color: oColor });
+        const oMesh = new THREE.Mesh(oGeo, oMat);
+        oMesh.position.set(originRad[0], originRad[1], originRad[2]);
+        scene.add(oMesh);
+        originMeshRef.current = oMesh;
+
+        // Render waypoints
+        waypointsRef.current.forEach((wp, idx) => {
+            // Discretize to the nearest voxel center using wrapToPi logic
+            const dq0 = wrapToPi(Math.round(wrapToPi(wp[0]) / step) * step);
+            const dq1 = wrapToPi(Math.round(wrapToPi(wp[1]) / step) * step);
+            const dq2 = wrapToPi(Math.round(wrapToPi(wp[2]) / step) * step);
+            const key = `${dq0.toFixed(3)},${dq1.toFixed(3)},${dq2.toFixed(3)}`;
+
+            const inCollision = forbiddenSetRef.current.has(key);
+
+            console.log(`Waypoint #${idx + 1}: original=${wp.map(x => (x*180/Math.PI).toFixed(1))}°, discrete=${[dq0, dq1, dq2].map(x => (x*180/Math.PI).toFixed(1))}°, key=${key}, inCollision=${inCollision}`);
+
+            // Create a small sphere for the waypoint (size matching the robot point)
+            const geo = new THREE.SphereGeometry(0.18, 16, 16);
+            
+            // Red if in collision (cannot pass), green if safe
+            const color = inCollision ? 0xff3333 : 0x00ff9d;
+            const mat = new THREE.MeshBasicMaterial({ color: color });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(wp[0], wp[1], wp[2]);
+            scene.add(mesh);
+            waypointMeshesRef.current.push(mesh);
+        });
+    };
+
     // Re-render voxels when toggles or mode change
     useEffect(() => {
         renderVoxels();
     }, [showSelfCollision, showObstacleCollision, cspaceMode]);
+
+    // Update waypoint meshes when waypoints or homeQ changes
+    useEffect(() => {
+        updateWaypoints();
+    }, [waypoints, homeQ]);
 
     // Initial Three.js setup
     useEffect(() => {
@@ -266,6 +355,48 @@ export default function ThreeVisualizer({
                     const v = vectors[key].clone().project(camera);
                     labels[key].style.left = (v.x + 1) / 2 * container.clientWidth + 'px';
                     labels[key].style.top = -(v.y - 1) / 2 * container.clientHeight + 'px';
+                }
+            }
+
+            // Waypoint labels projection
+            waypointsRef.current.forEach((wp, idx) => {
+                const el = document.getElementById(`wp-label-${idx}`);
+                if (el) {
+                    const pos = new THREE.Vector3(wp[0], wp[1], wp[2]);
+                    pos.project(camera);
+                    if (pos.z > 1) {
+                        el.style.display = 'none';
+                    } else {
+                        el.style.display = 'block';
+                        el.style.left = (pos.x + 1) / 2 * container.clientWidth + 'px';
+                        el.style.top = -(pos.y - 1) / 2 * container.clientHeight + 'px';
+                    }
+                }
+            });
+
+            // Origin label projection
+            let originRad = null;
+            if (homeQRef.current) {
+                const deg2rad = Math.PI / 180.0;
+                originRad = [
+                    homeQRef.current.q1 * deg2rad,
+                    homeQRef.current.q2 * deg2rad,
+                    homeQRef.current.q3 * deg2rad
+                ];
+            } else {
+                originRad = [0.0, 90.0 * Math.PI / 180.0, 0.0];
+            }
+
+            const oEl = document.getElementById('origin-label');
+            if (oEl && originRad) {
+                const pos = new THREE.Vector3(originRad[0], originRad[1], originRad[2]);
+                pos.project(camera);
+                if (pos.z > 1) {
+                    oEl.style.display = 'none';
+                } else {
+                    oEl.style.display = 'block';
+                    oEl.style.left = (pos.x + 1) / 2 * container.clientWidth + 'px';
+                    oEl.style.top = -(pos.y - 1) / 2 * container.clientHeight + 'px';
                 }
             }
         };
@@ -357,7 +488,13 @@ export default function ThreeVisualizer({
                 rawObstacleDataRef.current = [];
                 rawSelfCollisionDataRef.current = [];
             }
+            // Update forbidden set representation for O(1) checks
+            forbiddenSetRef.current = new Set(rawVoxelDataRef.current.map(p =>
+                `${p[0].toFixed(3)},${p[1].toFixed(3)},${p[2].toFixed(3)}`
+            ));
+
             renderVoxels();
+            updateWaypoints();
 
             if (robotPointRef.current) {
                 const stepSize = stepRadRef.current || 0.12;
@@ -370,6 +507,9 @@ export default function ThreeVisualizer({
 
         jointSub.subscribe(jointStateCallback);
         voxelSub.subscribe(voxelCallback);
+
+        // Render any initial waypoints immediately once scene is initialized
+        updateWaypoints();
 
         // Resize Listener
         const resizeHandler = () => {
@@ -402,6 +542,57 @@ export default function ThreeVisualizer({
             <div ref={labelTh1Ref} id="label-th1" className="axis-label">θ₁</div>
             <div ref={labelTh2Ref} id="label-th2" className="axis-label">θ₂</div>
             <div ref={labelTh3Ref} id="label-th3" className="axis-label">θ₃</div>
+
+            {/* Origin label */}
+            <div
+                id="origin-label"
+                className="axis-label"
+                style={{
+                    position: 'absolute',
+                    color: '#ffffff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.85)',
+                    padding: '3px 7px',
+                    borderRadius: '4px',
+                    fontSize: '0.8em',
+                    fontWeight: 'bold',
+                    fontFamily: 'Share Tech Mono, monospace',
+                    pointerEvents: 'none',
+                    border: '1px solid rgba(0, 212, 255, 0.3)',
+                    transform: 'translate(-50%, -140%)',
+                    display: 'none',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    zIndex: 60
+                }}
+            >
+                O
+            </div>
+
+            {/* Waypoint labels */}
+            {waypoints.map((wp, idx) => (
+                <div
+                    key={idx}
+                    id={`wp-label-${idx}`}
+                    className="axis-label"
+                    style={{
+                        position: 'absolute',
+                        color: '#ffffff',
+                        backgroundColor: 'rgba(6, 6, 12, 0.85)',
+                        padding: '3px 7px',
+                        borderRadius: '4px',
+                        fontSize: '0.8em',
+                        fontWeight: 'bold',
+                        fontFamily: 'Share Tech Mono, monospace',
+                        pointerEvents: 'none',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        transform: 'translate(-50%, -140%)',
+                        display: 'none',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                        zIndex: 60
+                    }}
+                >
+                    W{idx + 1}
+                </div>
+            ))}
         </div>
     );
 }
