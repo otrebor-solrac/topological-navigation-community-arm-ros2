@@ -150,8 +150,10 @@ class TopologicalPlannerNode(Node):
         # Try to load C-Space cache to enable O(1) set-based collision checks during path planning
         try:
             obstacles_hash = "no_obstacles"
-            if use_obstacles:
-                if os.path.exists(obstacles_urdf_path):
+            if use_obstacles and obstacles_urdf_path and os.path.exists(obstacles_urdf_path):
+                if "no_obstacles" in os.path.basename(obstacles_urdf_path):
+                    obstacles_hash = "no_obstacles"
+                else:
                     import hashlib
                     hash_md5 = hashlib.md5()
                     with open(obstacles_urdf_path, "rb") as f:

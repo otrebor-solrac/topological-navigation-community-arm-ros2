@@ -28,9 +28,9 @@ export default function App() {
     const [plannedManipulability, setPlannedManipulability] = useState([]);
 
     // Visibility states
-    const [showTrail, setShowTrail] = useState(true);
-    const [showSelfCollision, setShowSelfCollision] = useState(true);
-    const [showObstacleCollision, setShowObstacleCollision] = useState(true);
+    const [showTrail, setShowTrail] = useState(false);
+    const [showSelfCollision, setShowSelfCollision] = useState(false);
+    const [showObstacleCollision, setShowObstacleCollision] = useState(false);
     const [cspaceMode, setCspaceMode] = useState('obs'); // 'obs' or 'free'
 
     const trailRef = useRef(null);

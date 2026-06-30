@@ -156,7 +156,10 @@ export default function ThreeVisualizer({
             }
 
             // Render obstacle-collisions
-            const activeObstacles = rawObstacleDataRef.current.length > 0
+            // If the cache is segregated (contains self-collisions), use rawObstacleData.
+            // Otherwise, fall back to rawVoxelData (old unsegregated format) for backward compatibility.
+            const isSegregated = rawSelfCollisionDataRef.current.length > 0;
+            const activeObstacles = isSegregated
                 ? rawObstacleDataRef.current
                 : rawVoxelDataRef.current;
             const renderObstacleLayer = showObstacleCollisionRef.current && activeObstacles.length > 0;

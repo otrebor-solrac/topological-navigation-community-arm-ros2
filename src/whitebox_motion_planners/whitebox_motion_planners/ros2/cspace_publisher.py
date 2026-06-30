@@ -176,12 +176,15 @@ class CSpaceVoxelPublisher(Node):
                         self.get_logger().info(f"CSpace Voxelizer: Added obstacle sphere: center={center}, radius={radius:.3f}")
                         
                     # Calculate MD5 hash of obstacles URDF to invalidate cache
-                    import hashlib
-                    hash_md5 = hashlib.md5()
-                    with open(obstacles_urdf, "rb") as f:
-                        for chunk in iter(lambda: f.read(4096), b""):
-                            hash_md5.update(chunk)
-                    obstacles_hash = hash_md5.hexdigest()[:8]
+                    if "no_obstacles" in os.path.basename(obstacles_urdf):
+                        obstacles_hash = "no_obstacles"
+                    else:
+                        import hashlib
+                        hash_md5 = hashlib.md5()
+                        with open(obstacles_urdf, "rb") as f:
+                            for chunk in iter(lambda: f.read(4096), b""):
+                                hash_md5.update(chunk)
+                        obstacles_hash = hash_md5.hexdigest()[:8]
                 except Exception as e:
                     self.get_logger().error(f"CSpace Voxelizer: Failed to load obstacles: {e}")
             else:
