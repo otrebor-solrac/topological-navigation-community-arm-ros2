@@ -164,6 +164,7 @@ export default function ThreeVisualizer({
                     dummy.updateMatrix();
                     mesh.setMatrixAt(i, dummy.matrix);
                 }
+                mesh.instanceMatrix.needsUpdate = true;
                 scene.add(mesh);
                 selfCollisionMeshRef.current = mesh;
             }
@@ -186,6 +187,7 @@ export default function ThreeVisualizer({
                     dummy.updateMatrix();
                     mesh.setMatrixAt(i, dummy.matrix);
                 }
+                mesh.instanceMatrix.needsUpdate = true;
                 scene.add(mesh);
                 obstacleCollisionMeshRef.current = mesh;
             }
@@ -280,8 +282,13 @@ export default function ThreeVisualizer({
         });
     };
 
-    // Re-render voxels when toggles or mode change
+    // Re-render voxels when toggles or mode change.
+    // Explicitly sync the three refs BEFORE calling renderVoxels() to guarantee
+    // they are up-to-date regardless of React effect execution order.
     useEffect(() => {
+        showSelfCollisionRef.current = showSelfCollision;
+        showObstacleCollisionRef.current = showObstacleCollision;
+        cspaceModeRef.current = cspaceMode;
         renderVoxels();
     }, [showSelfCollision, showObstacleCollision, cspaceMode]);
 
@@ -451,9 +458,15 @@ export default function ThreeVisualizer({
 
                     const inCollision = forbiddenSetRef.current.has(key);
                     if (inCollision) {
-                        robotPointRef.current.material.color.setHex(0xff3333); // Red if colliding
+                        // MeshStandardMaterial: must set BOTH color and emissive,
+                        // otherwise the white emissive channel washes out the red base color.
+                        robotPointRef.current.material.color.setHex(0xff2200);
+                        robotPointRef.current.material.emissive.setHex(0xff2200);
+                        robotPointRef.current.material.emissiveIntensity = 1.0;
                     } else {
-                        robotPointRef.current.material.color.setHex(0xffffff); // White if safe
+                        robotPointRef.current.material.color.setHex(0xffffff);
+                        robotPointRef.current.material.emissive.setHex(0xffffff);
+                        robotPointRef.current.material.emissiveIntensity = 0.8;
                     }
                 }
 
