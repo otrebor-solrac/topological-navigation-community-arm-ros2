@@ -255,21 +255,41 @@ fn main() {
                 
                 let mut is_self_collision = false;
                 
-                // 1. Self-collision checks
-                for &(pair_i, pair_j) in active_pairs.iter() {
-                    if pair_i >= world_spheres.len() || pair_j >= world_spheres.len() {
-                        continue;
+                // 1. Floor collision check (Z < 0) for moving links
+                for (idx, s) in thinned_spheres.iter().enumerate() {
+                    let link_lower = s.link.to_lowercase();
+                    let is_base = link_lower.contains("basering")
+                        || link_lower.contains("leg")
+                        || link_lower.contains("main_body")
+                        || link_lower.contains("stepper_motor")
+                        || link_lower.contains("stabilizer")
+                        || link_lower.contains("socket");
+                    if !is_base {
+                        let (world_c, radius) = world_spheres[idx];
+                        if world_c[2] - radius < 0.0 {
+                            is_self_collision = true;
+                            break;
+                        }
                     }
-                    let (c_i, r_i) = world_spheres[pair_i];
-                    let (c_j, r_j) = world_spheres[pair_j];
-                    let dx = c_i[0] - c_j[0];
-                    let dy = c_i[1] - c_j[1];
-                    let dz = c_i[2] - c_j[2];
-                    let dist_sq = dx*dx + dy*dy + dz*dz;
-                    let limit = r_i + r_j;
-                    if dist_sq < limit * limit {
-                        is_self_collision = true;
-                        break;
+                }
+                
+                // 2. Self-collision checks
+                if !is_self_collision {
+                    for &(pair_i, pair_j) in active_pairs.iter() {
+                        if pair_i >= world_spheres.len() || pair_j >= world_spheres.len() {
+                            continue;
+                        }
+                        let (c_i, r_i) = world_spheres[pair_i];
+                        let (c_j, r_j) = world_spheres[pair_j];
+                        let dx = c_i[0] - c_j[0];
+                        let dy = c_i[1] - c_j[1];
+                        let dz = c_i[2] - c_j[2];
+                        let dist_sq = dx*dx + dy*dy + dz*dz;
+                        let limit = r_i + r_j;
+                        if dist_sq < limit * limit {
+                            is_self_collision = true;
+                            break;
+                        }
                     }
                 }
                 

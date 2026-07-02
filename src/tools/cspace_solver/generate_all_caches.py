@@ -2,6 +2,7 @@
 import os
 import sys
 import json
+import math
 import yaml
 import hashlib
 import subprocess
@@ -74,6 +75,7 @@ def compute_file_hash(file_path):
     return hash_md5.hexdigest()[:8]
 
 def main():
+    # Load parameters to compute the different scenarios to be generated
     config_path = os.path.join(os.path.dirname(__file__), 'cspace_generation.yaml')
     if not os.path.exists(config_path):
         print(f"Error: Config file not found at {config_path}")
@@ -83,9 +85,21 @@ def main():
         config = yaml.safe_load(f)
         
     paths_cfg = config.get('paths', {})
+    # Robot URDF path: it is the path where the robot model is stored
     robot_urdf = os.path.abspath(os.path.join(workspace_dir, paths_cfg.get('robot_urdf', '')))
+    # Rust binary path: it is the path where the rust binary is stored
     rust_binary = os.path.abspath(os.path.join(workspace_dir, paths_cfg.get('rust_binary', '')))
+    # Cache directory: it is the path where the json files (C-space) will be stored.
     cache_dir = os.path.abspath(os.path.join(workspace_dir, paths_cfg.get('cache_dir', 'cspace_cache')))
+    
+    if not os.path.exists(cache_dir):
+        print(f"Error: Cache directory does not exist at {cache_dir}. Please create it manually.")
+        sys.exit(1)
+        
+    if not os.access(cache_dir, os.W_OK):
+        print(f"Error: Cache directory at {cache_dir} is not writable. Please check folder permissions.")
+        sys.exit(1)
+    # Obstacles directory: it is the path where the obstacles URDF files are stored.
     obstacles_dir = os.path.abspath(os.path.join(workspace_dir, paths_cfg.get('obstacles_dir', '')))
     
     # Load joint offsets and directions from planner_params.yaml
@@ -98,8 +112,10 @@ def main():
         ros_params = params_data.get('/**', {}).get('ros__parameters', {})
         offsets_deg = ros_params.get('joint_offsets', {})
         directions = ros_params.get('joint_directions', {})
+        # This value is related to the singularity detection in the solver
+        singularity_threshold = float(ros_params.get('singularity_threshold', 0.0005))
         
-        import math
+        
         offset_base_yaw = math.radians(offsets_deg.get('base_yaw', 0.0))
         offset_shoulder_pitch = math.radians(offsets_deg.get('shoulder_pitch', 0.0))
         offset_elbow_pitch = math.radians(offsets_deg.get('elbow_pitch', 0.0))
@@ -108,6 +124,8 @@ def main():
         dir_shoulder_pitch = float(directions.get('shoulder_pitch', 1.0))
         dir_elbow_pitch = float(directions.get('elbow_pitch', 1.0))
     else:
+        # IMPORTANT: the offsets and directions are used to compute the min/max range of the joint space
+        # for the c-space discretization. 
         print(f"Warning: planner_params.yaml not found at {params_path}, using defaults (offset=0, dir=1)")
         offset_base_yaw = 0.0
         offset_shoulder_pitch = 0.0
@@ -115,14 +133,16 @@ def main():
         dir_base_yaw = 1.0
         dir_shoulder_pitch = 1.0
         dir_elbow_pitch = 1.0
+        singularity_threshold = 0.0005
     
     scenarios = config.get('scenarios', [])
     
-    os.makedirs(cache_dir, exist_ok=True)
+   
     
     if not os.path.exists(robot_urdf):
         print(f"Error: Robot URDF not found at {robot_urdf}")
         sys.exit(1)
+
     if not os.path.exists(rust_binary):
         print(f"Error: Rust solver binary not found at {rust_binary}")
         sys.exit(1)
@@ -163,7 +183,7 @@ def main():
             print(f"\nEvaluating step size: {step_size}deg...")
             grid = GridDiscretizer(step_size_deg=step_size, num_dof=3)
             
-            cache_file = os.path.join(cache_dir, f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}.json")
+            cache_file = os.path.join(cache_dir, f"cspace_cache_{step_size}deg_{thinning_dist}m_{obstacles_hash}_singularity{singularity_threshold:.4f}.json")
             
             # Format payload for Rust solver
             input_data = {
@@ -222,12 +242,17 @@ def main():
                 output = json.loads(stdout)
                 forbidden_voxels = output.get('forbidden_voxels', [])
                 
+                # Inject step_rad so the ROS 2 node doesn't have to compute it at load time
+                output["step_rad"] = float(grid.step_rad)
+                
                 # Save cache file
                 with open(cache_file, 'w') as out_f:
                     json.dump(output, out_f)
                     
                 print(f"Saved cache file: {os.path.basename(cache_file)}")
                 print(f"Forbidden voxels: {len(forbidden_voxels)} / {grid.steps_per_circle**3}")
+                print(f"Self-collision: {len(output.get('self_collision_voxels', []))}, Obstacle: {len(output.get('obstacle_voxels', []))}, step_rad: {output['step_rad']:.4f}")
+
             except Exception as e:
                 print(f"Exception during generation: {e}")
                 
