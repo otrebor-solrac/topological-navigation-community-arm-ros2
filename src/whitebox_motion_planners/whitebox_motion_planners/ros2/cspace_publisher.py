@@ -20,7 +20,7 @@ class CSpaceVoxelPublisher(Node):
         
         # 1. Initialize parameters
         (robot_type, step_size, use_horizontal, use_obstacles, 
-         thinning_dist, robot_urdf, obstacles_urdf, cache_dir,
+         thinning_dist, acm_margin, robot_urdf, obstacles_urdf, cache_dir,
          base_yaw_offset, shoulder_pitch_offset, elbow_pitch_offset,
          base_yaw_dir, shoulder_pitch_dir, elbow_pitch_dir, link_lengths,
          singularity_threshold) = self._init_parameters()
@@ -65,6 +65,8 @@ class CSpaceVoxelPublisher(Node):
         self.declare_parameter('use_obstacles', True)
         # Collision sphere radius offset distance (thinning) in meters
         self.declare_parameter('sphere_thinning_dist', 0.015)
+        # ACM margin (meters) added to sum of radii when computing allowed collision pairs
+        self.declare_parameter('acm_margin', 0.005)
         # Optional override path to the robot URDF file
         self.declare_parameter('robot_urdf_path', '')
         # Optional override path to the obstacles URDF file
@@ -98,6 +100,7 @@ class CSpaceVoxelPublisher(Node):
             self.get_parameter('use_horizontal_constraint').value,
             self.get_parameter('use_obstacles').value,
             self.get_parameter('sphere_thinning_dist').value,
+            self.get_parameter('acm_margin').value,
             self.get_parameter('robot_urdf_path').value,
             self.get_parameter('obstacles_urdf_path').value,
             self.get_parameter('cache_dir').value,
@@ -276,7 +279,7 @@ class CSpaceVoxelPublisher(Node):
         :return: True if cache loaded successfully, False otherwise.
         """
         if os.path.exists(self.cache_filepath):
-            self.get_logger().info(f"CSpace Voxelizer: Loading cache from: {self.cache_filepath}")
+            self.get_logger().info(f"[CSpace] Cache found at: {self.cache_filepath}")
             try:
                 with open(self.cache_filepath, 'r') as f:
                     cached_json = f.read()
@@ -284,21 +287,29 @@ class CSpaceVoxelPublisher(Node):
                 # Validate JSON syntax and structure
                 raw_data = json.loads(cached_json)
                 
+                # Log what keys are present and their counts
+                if isinstance(raw_data, dict):
+                    for k, v in raw_data.items():
+                        count = len(v) if isinstance(v, list) else v
+                        self.get_logger().info(f"[CSpace] Cache key '{k}': {count}")
+                
                 if isinstance(raw_data, dict) and "self_collision_voxels" in raw_data and "obstacle_voxels" in raw_data:
                     if "step_rad" not in raw_data:
+                        self.get_logger().info(f"[CSpace] step_rad missing in cache, injecting: {self.grid.step_rad}")
                         raw_data["step_rad"] = float(self.grid.step_rad)
                         cached_json = json.dumps(raw_data)
                     msg = String()
                     msg.data = cached_json
                     self.cached_voxels_msg = msg
+                    self.get_logger().info(f"[CSpace] Cache format OK. self_collision={len(raw_data.get('self_collision_voxels',[]))}, obstacle={len(raw_data.get('obstacle_voxels',[]))}, forbidden={len(raw_data.get('forbidden_voxels',[]))}")
                 else:
                     # Old cache format! Auto-regenerate using the new Rust solver
-                    self.get_logger().info("Old cache format detected (missing segregated layers). Auto-regenerating in segregated dictionary format...")
+                    self.get_logger().warn(f"[CSpace] Old cache format detected (keys: {list(raw_data.keys()) if isinstance(raw_data, dict) else type(raw_data)}). Auto-regenerating...")
                     cspace_data = self._compute_cspace_voxels()
                     self._save_cspace_cache(cspace_data)
                 
                 self.cache_dirty = True
-                self.get_logger().info("C-Space loaded from cache successfully!")
+                self.get_logger().info("[CSpace] C-Space loaded from cache successfully!")
                 
                 return True
             

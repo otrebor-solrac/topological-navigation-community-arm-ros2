@@ -36,7 +36,12 @@
     
     # Distance threshold in meters for URDF sphere thinning (e.g. 0.015 = 1.5 cm)
     # TODO: Is this parameter the best way to compute collisions?
-    phere_thinning_dist: 0.015
+    sphere_thinning_dist: 0.015
+
+    # Margin (in meters) added to the sum of radii when computing the
+    # Allowed Collision Matrix (ACM) at the home pose. Sphere pairs overlapping
+    # within this margin are marked as "always allowed" to avoid false positives.
+    acm_margin: 0.005
 
     # Algorithm: "astar" or "rrt"
     # TODO: Is this parameter still used? We use the GUI for this. 

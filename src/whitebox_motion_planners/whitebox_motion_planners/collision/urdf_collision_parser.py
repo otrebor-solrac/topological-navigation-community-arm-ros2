@@ -4,6 +4,18 @@ import os
 from typing import List, Tuple, Dict, Set
 
 def rpy_to_rotation_matrix(r: float, p: float, y: float) -> np.ndarray:
+    """
+    This function is a helper function to create a 3x3 
+    rotation matrix from a 3x1 rotation vector.
+    The rotation matrix is computed using the Z-Y-X 
+    Euler angles convention (yaw, pitch, roll).
+    
+    :param r: roll angle in radians
+    :param p: pitch angle in radians
+    :param y: yaw angle in radians
+    :return: 3x3 rotation matrix
+    """
+
     c_r, s_r = np.cos(r), np.sin(r)
     c_p, s_p = np.cos(p), np.sin(p)
     c_y, s_y = np.cos(y), np.sin(y)
@@ -42,18 +54,34 @@ def rotation_matrix_axis_angle(axis: np.ndarray, theta: float) -> np.ndarray:
     return R
 
 def make_homogeneous_matrix(xyz: List[float], rpy: List[float]) -> np.ndarray:
+    """
+    This function is a helper function to create a 4x4 
+    homogeneous matrix from a 3x1 translation vector and a 3x1 rotation vector.
+
+    :param xyz: 3x1 translation vector
+    :param rpy: 3x1 rotation vector (roll, pitch, yaw)
+    :return: 4x4 homogeneous transformation matrix
+    """
+    
     T = np.eye(4)
     T[:3, :3] = rpy_to_rotation_matrix(*rpy)
     T[:3, 3] = xyz
     return T
 
 class UrdfCollisionParser:
-    def __init__(self, urdf_path: str, min_dist: float = 0.015,
-                 offset_base_yaw: float = 0.559643,
-                 offset_shoulder_pitch: float = 1.57079632679,
-                 offset_elbow_pitch: float = 0.0):
+    def __init__(
+        self, 
+        urdf_path: str, 
+        min_dist: float = 0.015,
+        acm_margin: float = 0.005,
+        offset_base_yaw: float = 0.559643,
+        offset_shoulder_pitch: float = 1.57079632679,
+        offset_elbow_pitch: float = 0.0
+    ):
+
         self.urdf_path = urdf_path
         self.min_dist = min_dist
+        self.acm_margin = acm_margin
         self.offset_base_yaw = offset_base_yaw
         self.offset_shoulder_pitch = offset_shoulder_pitch
         self.offset_elbow_pitch = offset_elbow_pitch
@@ -73,15 +101,17 @@ class UrdfCollisionParser:
         # 3. Preclassify Base vs Moving groups and precompute active checking pairs
         self.base_indices = []
         self.moving_indices = []
+        # Base Group: Represents static mount components (base, legs, socket) and the closed
+        # parallel linkage mechanism (lower_shank, pleuel, triplate). Grouping them here prevents
+        # false-positive self-collisions between adjacent/parallel parts of the linkage.
         base_keywords = [
             'main_body', 'stepper_motor', 'stabilizer', 'limit_switch', 'endstop',
             'lower_shank', 'pleuel', 'triplate', 'basering', 'socket', 'leg', 
             'gear_body', 'lever', 'rotategear'
         ]
-        # Only check the extended arm segments against the base.
-        # The parallelogram mechanism (pleuel, lower_shank, triplate) is mechanically
-        # integrated with the base and generates false positives from sphere approximation.
-        moving_keywords = ['upper_shank', 'gripper', 'finger', 'manipulator']
+        # Moving Arm Group: Represents dynamic segments of the arm that travel through space (upper arm,
+        # gripper body, claws, and fingers). These are checked for collisions against the Base Group.
+        moving_keywords = ['upper_shank', 'gripper', 'finger', 'manipulator','pleuel']
         
         for i, s in enumerate(self.thinned_spheres):
             lname = s['link'].lower()
@@ -130,6 +160,8 @@ class UrdfCollisionParser:
                 'name': name,
                 'type': jtype,
                 'parent': parent,
+                # static_T: 4x4 homogeneous transformation matrix representing the fixed translation (xyz) 
+                # and rotation (rpy) of the child frame relative to the parent frame when joint angle is 0.
                 'static_T': make_homogeneous_matrix(xyz, rpy),
                 'axis': axis
             }
@@ -155,22 +187,44 @@ class UrdfCollisionParser:
                     sphere = geom.find('sphere')
                     if sphere is not None:
                         r = float(sphere.get('radius'))
+                        # (x, y, z) coordinates of the sphere center in the link frame
+                        # r: radius of the sphere
                         spheres.append((np.array(xyz), r))
             if spheres:
                 self.links_with_spheres[lname] = spheres
 
-    def compute_transforms(self, q1: float, q2: float, q3: float) -> Dict[str, np.ndarray]:
-        # Solve parallelogram kinematic coupling
+    def compute_transforms(
+        self,
+        q1: float,
+        q2: float,
+        q3: float
+    ) -> Dict[str, np.ndarray]:
+        # Solve parallelogram kinematic coupling.
+        # Note: These equations are copied from parallelogram_kinematics.py.
+        # We must explicitly resolve the passive joint angles of the closed-loop
+        # parallel linkage mechanism here because compute_transforms() performs 
+        # forward kinematics. Without these equations, the position transforms 
+        # of child links (like triplates and upper linkages) would not align, 
+        # resulting in incorrect sphere coordinates and broken collision checks.
         joint_angles = {
+            # Primary active joint states (master motor inputs)
             'base_yaw_joint': q1,
             'shoulder_pitch_joint': q2,
             'elbow_pitch_joint': q3,
+            
+            # Parallelogram linkage loop closure constraints
             'revolute_16_0': -q3 - q2,
             'revolute_12_0': q2 + q3,
+            
+            # Lower linkages (rotating with lower_shank pitch)
             'revolute_32_0': q2,
             'revolute_31_0': -q2,
+            
+            # Triplate orientation compensation (keeping triplates level relative to world frame)
             'revolute_13_0': -q2,
             'revolute_18_0': q2,
+            
+            # Upper linkages (driving the end-effector pitch matching elbow rotation)
             'revolute_15_0': -q3,
             'revolute_19_0': q3,
         }
@@ -185,27 +239,35 @@ class UrdfCollisionParser:
                 children[parent] = []
             children[parent].append(child)
             
+        # Perform a Breadth-First Search (BFS) traversal starting from the root link 
+        # to propagate coordinate frames down the kinematic tree hierarchy.
         queue = [self.root_link]
         while queue:
             parent = queue.pop(0)
-            p_T = transforms[parent]
+            p_T = transforms[parent] # World transform matrix of the parent link
             
+            # Check if this parent link has any child links connected via joints
             if parent in children:
                 for child in children[parent]:
                     jinfo = self.joints[child]
-                    static_T = jinfo['static_T']
+                    static_T = jinfo['static_T'] # Static CAD translation/rotation offset
                     jtype = jinfo['type']
                     jname = jinfo['name']
                     
                     if jtype in ['revolute', 'continuous']:
+                        # For active/passive moving joints, compute the variable rotation around the joint axis
                         angle = joint_angles.get(jname, 0.0)
                         R_joint = rotation_matrix_axis_angle(jinfo['axis'], angle)
                         T_joint = np.eye(4)
                         T_joint[:3, :3] = R_joint
+                        
+                        # Child transform = Parent transform * Static offset * Joint rotation
                         transforms[child] = p_T @ static_T @ T_joint
                     else:
+                        # For fixed joints, simply apply the static offset
                         transforms[child] = p_T @ static_T
                         
+                    # Queue the child link to propagate transforms to its descendants
                     queue.append(child)
                     
         return transforms
@@ -230,8 +292,10 @@ class UrdfCollisionParser:
         # Sort by radius descending to prioritize larger spheres
         for world_c, r, lname, local_c in sorted(all_spheres, key=lambda x: x[1], reverse=True):
             too_close = False
-            for tw_c, tr, _, _ in thinned:
-                if np.linalg.norm(world_c - tw_c) < self.min_dist:
+            for tw_c, tr, tlname, _ in thinned:
+                # Only thin out spheres if they belong to the SAME link and are too close.
+                # Comparing across different links would cause adjacent links to erase each other's spheres.
+                if tlname == lname and np.linalg.norm(world_c - tw_c) < self.min_dist:
                     too_close = True
                     break
             if not too_close:
@@ -263,7 +327,7 @@ class UrdfCollisionParser:
                         
                 # Also check distance: if they overlap at home pose, allow it
                 dist = np.linalg.norm(wc_i - wc_j)
-                if same_or_adj or dist <= (r_i + r_j + 0.005):
+                if same_or_adj or dist <= (r_i + r_j + self.acm_margin):
                     self.allowed_pairs.add((i, j))
 
     def get_transformed_spheres(self, q: tuple) -> Tuple[np.ndarray, np.ndarray]:
@@ -297,12 +361,23 @@ class UrdfCollisionParser:
 
     def check_self_collision(self, q: tuple) -> bool:
         """
-        Checks if the robot collides with itself at configuration q.
+        Checks if the robot collides with itself at configuration q, or with the floor.
         To avoid false positives from the parallel link mechanism, we only check
         collisions between the Base group and the Moving Arm group.
         """
         centers, radii = self.get_transformed_spheres(q)
         
+        # Check collision with the floor (Z < 0) for moving links
+        for i, s in enumerate(self.thinned_spheres):
+            lname = s['link'].lower()
+            if any(k in lname for k in ['basering', 'leg', 'main_body', 'stepper_motor', 'stabilizer', 'socket']):
+                continue
+            
+            c_z = centers[i][2]
+            r = radii[i]
+            if c_z - r < 0.0:
+                return True
+
         for i, j in self.active_checking_pairs:
             c_i = centers[i]
             c_j = centers[j]
@@ -353,7 +428,16 @@ class UrdfCollisionParser:
         # Reclassify Base vs Moving groups
         self.base_indices = []
         self.moving_indices = []
-        base_keywords = ['main_body', 'stepper_motor', 'stabilizer', 'limit_switch', 'endstop']
+        # Base Group: Represents static mount components (base, legs, socket) and the closed
+        # parallel linkage mechanism (lower_shank, pleuel, triplate). Grouping them here prevents
+        # false-positive self-collisions between adjacent/parallel parts of the linkage.
+        base_keywords = [
+            'main_body', 'stepper_motor', 'stabilizer', 'limit_switch', 'endstop',
+            'lower_shank', 'pleuel', 'triplate', 'basering', 'socket', 'leg', 
+            'gear_body', 'lever', 'rotategear'
+        ]
+        # Moving Arm Group: Represents dynamic segments of the arm that travel through space (upper arm,
+        # gripper body, claws, and fingers). These are checked for collisions against the Base Group.
         moving_keywords = ['upper_shank', 'gripper', 'finger', 'manipulator']
         for i, s in enumerate(self.thinned_spheres):
             lname = s['link'].lower()
