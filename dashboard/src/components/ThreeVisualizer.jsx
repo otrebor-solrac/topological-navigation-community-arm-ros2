@@ -48,6 +48,7 @@ export default function ThreeVisualizer({
     const forbiddenSetRef = useRef(new Set());
     const waypointsRef = useRef(waypoints);
     const homeQRef = useRef(homeQ);
+    const showTrailRef = useRef(showTrail);
 
     // 3D labels
     const labelTh1Ref = useRef(null);
@@ -67,7 +68,8 @@ export default function ThreeVisualizer({
         isExecutingRef.current = isExecuting;
         waypointsRef.current = waypoints;
         homeQRef.current = homeQ;
-    }, [showSelfCollision, showObstacleCollision, cspaceMode, isExecuting, waypoints, homeQ]);
+        showTrailRef.current = showTrail;
+    }, [showSelfCollision, showObstacleCollision, cspaceMode, isExecuting, waypoints, homeQ, showTrail]);
 
     const PI = Math.PI;
 
@@ -78,7 +80,7 @@ export default function ThreeVisualizer({
         geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         const trailMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 2.5 });
         const line = new THREE.Line(geo, trailMaterial);
-        line.visible = showTrail;
+        line.visible = showTrailRef.current;
         scene.add(line);
         pathSegmentsRef.current.push(line);
         activePathRef.current = { line, array: positions, count: 0 };
@@ -439,6 +441,20 @@ export default function ThreeVisualizer({
 
                 if (robotPointRef.current) {
                     robotPointRef.current.position.set(q[0], q[1], q[2]);
+
+                    // Discretize current position to check collision in C-space
+                    const step = stepRadRef.current || 0.12;
+                    const dq0 = wrapToPi(Math.round(wrapToPi(q[0]) / step) * step);
+                    const dq1 = wrapToPi(Math.round(wrapToPi(q[1]) / step) * step);
+                    const dq2 = wrapToPi(Math.round(wrapToPi(q[2]) / step) * step);
+                    const key = `${dq0.toFixed(3)},${dq1.toFixed(3)},${dq2.toFixed(3)}`;
+
+                    const inCollision = forbiddenSetRef.current.has(key);
+                    if (inCollision) {
+                        robotPointRef.current.material.color.setHex(0xff3333); // Red if colliding
+                    } else {
+                        robotPointRef.current.material.color.setHex(0xffffff); // White if safe
+                    }
                 }
 
                 // Callback to parent for slider sync & traceability table
