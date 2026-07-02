@@ -17,6 +17,9 @@ class CSpaceVoxelPublisher(Node):
         self.cached_voxels_msg = None
         self.cache_dirty = True
         self.last_sub_count = 0
+        self.last_publish_time = 0.0
+        # Seconds between periodic fallback republishes (covers race conditions on page reload)
+        self._republish_interval_s = 8.0
         
         # 1. Initialize parameters
         (robot_type, step_size, use_horizontal, use_obstacles, 
@@ -502,25 +505,47 @@ class CSpaceVoxelPublisher(Node):
     def publish_voxels(self):
         """
         Publish voxels to the topic only when there are active subscribers.
+
+        Republish is triggered by:
+        1. Any change in subscriber count (increase OR decrease-then-increase).
+        2. Cache dirty flag (new cache loaded or obstacles changed).
+        3. Periodic fallback every ``_republish_interval_s`` seconds — covers the
+           race condition where React StrictMode's rapid unsubscribe/resubscribe
+           cycle happens faster than the 500 ms timer, so the timer never observes
+           sub_count == 0 and never resets last_sub_count.
         """
         sub_count = self.publisher_.get_subscription_count()
         msg_is_set = self.cached_voxels_msg is not None
-        
+
         should_publish = False
         if msg_is_set:
             if sub_count > 0:
-                if sub_count > self.last_sub_count:
+                now_s = self.get_clock().now().nanoseconds / 1e9
+                # Trigger 1: subscriber count changed in any direction
+                if sub_count != self.last_sub_count:
                     should_publish = True
+                    self.get_logger().debug(
+                        f"[voxelizer] Sub count changed {self.last_sub_count} → {sub_count}, republishing."
+                    )
+                # Trigger 2: cache was refreshed
                 if self.cache_dirty:
+                    should_publish = True
+                # Trigger 3: periodic fallback to handle page-reload race conditions
+                if (now_s - self.last_publish_time) >= self._republish_interval_s:
                     should_publish = True
                 self.last_sub_count = sub_count
             else:
+                # No subscribers — reset so the very next subscriber gets fresh data
                 self.last_sub_count = 0
-                
+
         if should_publish:
             self.publisher_.publish(self.cached_voxels_msg)
             self.cache_dirty = False
-            self.get_logger().info(f"Published C-space voxels to {sub_count} subscribers (size: {len(self.cached_voxels_msg.data)} chars)")
+            self.last_publish_time = self.get_clock().now().nanoseconds / 1e9
+            self.get_logger().info(
+                f"Published C-space voxels to {sub_count} subscribers "
+                f"(size: {len(self.cached_voxels_msg.data)} chars)"
+            )
         elif not msg_is_set:
             if not getattr(self, 'warned_no_cache', False):
                 self.get_logger().warn("publish_voxels: self.cached_voxels_msg is None, cannot publish.")
