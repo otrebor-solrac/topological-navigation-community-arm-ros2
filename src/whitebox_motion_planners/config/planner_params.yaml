@@ -57,10 +57,10 @@
 
     # Environment obstacles
     #TODO: Clarify the use of this parameter.
-    use_obstacles: false
+    use_obstacles: true
 
     # Obstacle type: "box_obstacle", "narrow_passage", "u_obstacle", "toroidal_wall"
-    obstacle_type: "no_obstacles"
+    obstacle_type: "toroidal_wall"
 
     # Joint origin offsets in degrees (relative to world axes)
     joint_offsets:

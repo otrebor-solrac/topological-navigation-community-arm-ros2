@@ -10,7 +10,7 @@
     </inertial>
     <!-- Visual - Toroidal Wall -->
     <visual>
-      <origin xyz="0.35 0.0 0.2" rpy="0 0 0"/>
+      <origin xyz="0.25 0.0 0.2" rpy="0 0 0"/>
       <geometry>
         <box size="0.06 0.45 0.4"/>
       </geometry>
@@ -20,7 +20,7 @@
     </visual>
     <!-- Collision -->
     <collision>
-      <origin xyz="0.35 0.0 0.2" rpy="0 0 0"/>
+      <origin xyz="0.25 0.0 0.2" rpy="0 0 0"/>
       <geometry>
         <box size="0.06 0.45 0.4"/>
       </geometry>

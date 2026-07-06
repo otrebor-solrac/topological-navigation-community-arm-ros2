@@ -30,6 +30,7 @@ help:
 
 # 1. Compile the project (GPU)
 build:
+	xhost +local:docker
 	docker compose up -d --build
 	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && colcon build --symlink-install --packages-select $(PKGS)"
 
