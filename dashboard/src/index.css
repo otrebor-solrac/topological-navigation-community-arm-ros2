@@ -448,3 +448,8 @@ td {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Custom keyframes for C-space loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

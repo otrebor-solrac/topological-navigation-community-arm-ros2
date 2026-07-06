@@ -18,7 +18,8 @@ export default function ThreeVisualizer({
     onQUpdate,
     isExecuting,
     waypoints = [],
-    homeQ = null
+    homeQ = null,
+    onVoxelsReceived
 }) {
     const containerRef = useRef(null);
     const sceneRef = useRef(null);
@@ -60,6 +61,7 @@ export default function ThreeVisualizer({
     const showObstacleCollisionRef = useRef(showObstacleCollision);
     const cspaceModeRef = useRef(cspaceMode);
     const isExecutingRef = useRef(isExecuting);
+    const onVoxelsReceivedRef = useRef(onVoxelsReceived);
 
     useEffect(() => {
         showSelfCollisionRef.current = showSelfCollision;
@@ -69,7 +71,8 @@ export default function ThreeVisualizer({
         waypointsRef.current = waypoints;
         homeQRef.current = homeQ;
         showTrailRef.current = showTrail;
-    }, [showSelfCollision, showObstacleCollision, cspaceMode, isExecuting, waypoints, homeQ, showTrail]);
+        onVoxelsReceivedRef.current = onVoxelsReceived;
+    }, [showSelfCollision, showObstacleCollision, cspaceMode, isExecuting, waypoints, homeQ, showTrail, onVoxelsReceived]);
 
     const PI = Math.PI;
 
@@ -531,6 +534,10 @@ export default function ThreeVisualizer({
                 // We want the new diameter to equal stepSize.
                 const scaleFactor = stepSize / 0.36;
                 robotPointRef.current.scale.set(scaleFactor, scaleFactor, scaleFactor);
+            }
+
+            if (onVoxelsReceivedRef.current) {
+                onVoxelsReceivedRef.current();
             }
         };
 
