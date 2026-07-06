@@ -542,7 +542,7 @@ class CSpaceVoxelPublisher(Node):
             self.publisher_.publish(self.cached_voxels_msg)
             self.cache_dirty = False
             self.last_publish_time = self.get_clock().now().nanoseconds / 1e9
-            self.get_logger().info(
+            self.get_logger().debug(
                 f"Published C-space voxels to {sub_count} subscribers "
                 f"(size: {len(self.cached_voxels_msg.data)} chars)"
             )
