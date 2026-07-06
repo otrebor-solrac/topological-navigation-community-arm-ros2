@@ -86,3 +86,15 @@ clean:
 # 7. Generate all C-space caches in batch
 generate-caches:
 	docker exec -it $(CONTAINER_NAME) bash -c "PYTHONPATH=$(WS_PATH)/src/whitebox_motion_planners python3 $(WS_PATH)/src/tools/cspace_solver/generate_all_caches.py"
+
+# 8. Run experiments (Pilot)
+experiments-pilot:
+	docker exec -it $(CONTAINER_NAME) bash -c "python3 $(WS_PATH)/experiments/run_experiments.py --pilot"
+
+# 9. Run experiments (All)
+experiments-all:
+	docker exec -it $(CONTAINER_NAME) bash -c "python3 $(WS_PATH)/experiments/run_experiments.py --all"
+
+# 10. Run benchmarks
+benchmarks:
+	docker exec -it $(CONTAINER_NAME) bash -c "python3 $(WS_PATH)/experiments/run_benchmarks.py"
