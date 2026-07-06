@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     cargo \
     rustc \
-    && pip3 install pudb flask \
+    && pip3 install --no-cache-dir -U pudb flask \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up workspace directory

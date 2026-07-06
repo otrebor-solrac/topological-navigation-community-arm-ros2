@@ -44,12 +44,21 @@ class RRTPlanner(BasePlanner):
                  max_samples: int = 5000,
                  step_size: float = 0.15,
                  goal_bias: float = 0.10,
-                 goal_tolerance: float = 0.2):
+                 goal_tolerance: float = 0.2,
+                 metric_type: str = 'L2'):
+
         super().__init__(space, collider, kinematics)
         self.max_samples = max_samples
         self.step_size = step_size
         self.goal_bias = goal_bias
         self.goal_tolerance = goal_tolerance
+        
+        if metric_type == 'L1':
+            self.dist_func = Metrics.heuristic_L1
+        elif metric_type == 'L2':
+            self.dist_func = Metrics.heuristic_L2
+        else:
+            raise ValueError("Unsupported metric. Use 'L1' or 'L2'.")
 
         # Tree storage: list of nodes (radian tuples)
         # Parent map: node_index -> parent_index
@@ -99,8 +108,7 @@ class RRTPlanner(BasePlanner):
             self.nodes.append(q_new)
             self.parent[new_idx] = nearest_idx
 
-            # 6. CHECK GOAL: Are we close enough?
-            dist_to_goal = Metrics.heuristic_L2(
+            dist_to_goal = self.dist_func(
                 np.array(q_new), np.array(goal_rad)
             )
             if dist_to_goal < self.goal_tolerance:
@@ -138,14 +146,14 @@ class RRTPlanner(BasePlanner):
     def _nearest(self, q_target: tuple) -> int:
         """
         Finds the index of the nearest node in the tree to q_target,
-        using the toroidal L2 metric (geodesic distance on T^n).
+        using the configured toroidal metric (geodesic L1 or L2 distance on T^n).
         """
         target_arr = np.array(q_target)
         best_idx = 0
         best_dist = float('inf')
 
         for idx, node in enumerate(self.nodes):
-            d = Metrics.heuristic_L2(np.array(node), target_arr)
+            d = self.dist_func(np.array(node), target_arr)
             if d < best_dist:
                 best_dist = d
                 best_idx = idx
@@ -159,18 +167,27 @@ class RRTPlanner(BasePlanner):
         The extension respects the circular topology of each S^1 factor:
         it always takes the shortest arc direction (clockwise or
         counter-clockwise) and wraps the result into [0, 2π).
+
+        The step is limited by scaling the shortest arc difference vector
+        so that its length under the selected metric does not exceed `step_size`.
         """
-        result = []
+        diffs = []
         for theta_from, theta_to in zip(q_from, q_to):
             # Compute shortest signed arc on S^1
             diff = theta_to - theta_from
             # Wrap to [-π, π]
             diff = (diff + math.pi) % (2 * math.pi) - math.pi
+            diffs.append(diff)
 
-            # Limit step size
-            if abs(diff) > self.step_size:
-                diff = self.step_size * (1.0 if diff > 0 else -1.0)
+        diff_arr = np.array(diffs)
+        # Compute distance of the step under the selected metric
+        dist = self.dist_func(np.zeros_like(diff_arr), diff_arr)
 
+        if dist > self.step_size:
+            diff_arr = diff_arr * (self.step_size / dist)
+
+        result = []
+        for theta_from, diff in zip(q_from, diff_arr):
             new_angle = TorusTopology.normalize_angle(theta_from + diff)
             result.append(new_angle)
 

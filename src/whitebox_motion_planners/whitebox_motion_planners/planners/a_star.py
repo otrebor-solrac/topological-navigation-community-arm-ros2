@@ -12,6 +12,7 @@ class AStarPlanner(BasePlanner):
     
     def __init__(self, space, collider, kinematics, heuristic_type: str = 'L1'):
         super().__init__(space, collider, kinematics)
+        self.heuristic_type = heuristic_type
         if heuristic_type == 'L1':
             self.heuristic = Metrics.heuristic_L1
         elif heuristic_type == 'L2':
@@ -22,26 +23,36 @@ class AStarPlanner(BasePlanner):
     def plan(self, start_q: tuple, goal_q: tuple) -> List[tuple]:
         """
         Plans a path in the grid.
-        start_q and goal_q are expected to be integer indices tuples.
-        Returns a list of radian tuples.
+        :param start_q: Starting configuration as integer indices tuple.
+        :param goal_q: Goal configuration as integer indices tuple.
+        :return: A list of radian tuples representing the path.
         """
+        # Initialize the priority queue (open set) as a min-heap to keep track of nodes to be evaluated
         open_set = []
+        # Insert the start node with an initial priority/f_score of 0.0 to bootstrap the loop
         heapq.heappush(open_set, (0.0, start_q))
         
+        # Dictionary to store the navigation history (key: current node, value: parent node) for path reconstruction
         came_from: Dict[tuple, tuple] = {}
+        # Map to store the exact cost of the shortest path from the start node to any visited node
         g_score = {start_q: 0.0}
         
-        # Pre-convert goal to radians for heuristic calculations
+        # Pre-convert goal coordinates to radians and wrap into a NumPy array for fast metric calculations
         goal_rad = self.space.get_radians(goal_q)
         goal_array = np.array(goal_rad)
-        
+
+        # Pre-convert start coordinates to radians and wrap into a NumPy array for consistency        
         start_rad = self.space.get_radians(start_q)
         start_array = np.array(start_rad)
         
+        # Map to store the total estimated cost (g_score + heuristic) from start to goal through each node
         f_score = {start_q: self.heuristic(start_array, goal_array)}
+
+        # Set to store already fully evaluated nodes to prevent reprocessing and infinite loops
         closed_set = set()
 
         while open_set:
+            # Get the node with the lowest f_score
             current_f, current_q = heapq.heappop(open_set)
             
             if current_q == goal_q:
@@ -53,7 +64,7 @@ class AStarPlanner(BasePlanner):
             current_rad = self.space.get_radians(current_q)
             current_array = np.array(current_rad)
             
-            for neighbor_q in self.space.get_neighbors(current_q):
+            for neighbor_q in self.space.get_neighbors(current_q, metric_type=self.heuristic_type):
                 if neighbor_q in closed_set:
                     continue
                     
@@ -63,13 +74,22 @@ class AStarPlanner(BasePlanner):
                 if not self.collider.is_state_valid(neighbor_rad, self.kinematics):
                     continue
                 
-                step_cost = Metrics.heuristic_L2(current_array, neighbor_array)
+                step_cost = self.heuristic(current_array, neighbor_array)
                 tentative_g_score = g_score[current_q] + step_cost
                 
+                # Check if this new path to the neighbor is better (cheaper) than any previously found path
                 if tentative_g_score < g_score.get(neighbor_q, float('inf')):
+                    
+                    # Record the current node as the best parent/predecessor for this neighbor
                     came_from[neighbor_q] = current_q
+                    
+                    # Update the neighbor's exact cost from the start node with the new lower score
                     g_score[neighbor_q] = tentative_g_score
+                    
+                    # Calculate and update the total estimated cost (f = g + h) for this neighbor
                     f_score[neighbor_q] = tentative_g_score + self.heuristic(neighbor_array, goal_array)
+                    
+                    # Push the neighbor into the priority queue with its new f_score for future evaluation
                     heapq.heappush(open_set, (f_score[neighbor_q], neighbor_q))
                     
         return []
