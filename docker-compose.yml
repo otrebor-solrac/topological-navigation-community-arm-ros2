@@ -7,6 +7,7 @@ services:
       - ./src:/home/ros_ws/src
       - ./dashboard:/home/ros_ws/dashboard
       - ./cspace_cache:/home/ros_ws/cspace_cache
+      - ./experiments:/home/ros_ws/experiments
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - $HOME/.Xauthority:/root/.Xauthority:rw
     environment:

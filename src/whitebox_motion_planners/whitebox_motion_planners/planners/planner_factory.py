@@ -39,7 +39,7 @@ class PlannerFactory:
                 space, 
                 collider, 
                 kinematics, 
-                heuristic_type=kwargs.get('heuristic_type', 'L1')
+                heuristic_type=kwargs.get('metric_type', kwargs.get('heuristic_type', 'L1'))
             )
         
         # RRT Planner
