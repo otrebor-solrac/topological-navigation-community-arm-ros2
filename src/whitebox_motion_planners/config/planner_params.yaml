@@ -52,7 +52,7 @@
 
     # Environment obstacles
     #TODO: Clarify the use of this parameter.
-    use_obstacles: true
+    use_obstacles: false
 
     # Obstacle type: "box_obstacle", "narrow_passage", "u_obstacle", "toroidal_wall"
     obstacle_type: "no_obstacles"

@@ -43,13 +43,13 @@ body {
   background: var(--panel-bg);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  border-left: 1px solid var(--glass-border);
+  border-right: 1px solid var(--glass-border);
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
   overflow-y: auto;
-  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.7);
+  box-shadow: 10px 0 35px rgba(0, 0, 0, 0.7);
   z-index: 10;
   height: 100vh;
 }

@@ -80,12 +80,13 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # Static transform publisher linking root to world
+    # Published unconditionally so that RViz2 retains the root->world TF frame
+    # when obstacles are toggled/loaded dynamically later via the web dashboard.
     static_tf_publisher = Node(
         name='root_to_world_tf',
         package='tf2_ros',
         executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '0', 'root', 'world'],
-        condition=IfCondition(LaunchConfiguration('use_obstacles'))
+        arguments=['0', '0', '0', '0', '0', '0', 'root', 'world']
     )
 
     # Main planner node, where all the computations are done
@@ -155,7 +156,7 @@ def generate_launch_description():
         # TODO: As we are using the GUI for obstacle selection,Is this chunk of code still needed?
         DeclareLaunchArgument(
             'use_obstacles',
-            default_value='true',
+            default_value='false',
             description='Whether to load and visualize environment obstacles'
         ),
         # Declare launch argument to choose which obstacles file to load

@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import * as ROSLIB from 'roslib';
 import { webCmdPub, statusSub } from '../services/ros';
 
-export default function WaypointManager({ currentQ, homeQ }) {
-    const [waypoints, setWaypoints] = useState([]);
+export default function WaypointManager({ currentQ, homeQ, waypoints, setWaypoints }) {
     const [planner, setPlanner] = useState('astar');
     const [heuristic, setHeuristic] = useState('L1');
     const [status, setStatus] = useState(null);
