@@ -32,6 +32,7 @@ export default function App() {
     const [showSelfCollision, setShowSelfCollision] = useState(false);
     const [showObstacleCollision, setShowObstacleCollision] = useState(false);
     const [cspaceMode, setCspaceMode] = useState('obs'); // 'obs' or 'free'
+    const [isLoadingVoxels, setIsLoadingVoxels] = useState(true);
 
     // Waypoints state lifted up from WaypointManager
     const [waypoints, setWaypoints] = useState([]);
@@ -132,6 +133,7 @@ export default function App() {
     };
 
     const handleEnvChange = (newObstacle, newResolution) => {
+        setIsLoadingVoxels(true);
         handleClearTrail();
         setPlannedPath([]); // Reset current path since environment changed
 
@@ -284,6 +286,54 @@ export default function App() {
 
             {/* 3D Viewport container */}
             <div className="canvas-container">
+                {isLoadingVoxels && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'rgba(6, 6, 12, 0.45)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        zIndex: 150,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '20px',
+                        color: '#ffffff',
+                        fontFamily: 'Share Tech Mono, monospace',
+                        transition: 'all 0.35s ease'
+                    }}>
+                        <div style={{
+                            width: '60px',
+                            height: '60px',
+                            border: '3px solid rgba(0, 212, 255, 0.15)',
+                            borderTop: '3px solid #00d4ff',
+                            borderRadius: '50%',
+                            animation: 'spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite',
+                            boxShadow: '0 0 20px rgba(0, 212, 255, 0.3), inset 0 0 20px rgba(0, 212, 255, 0.1)'
+                        }} />
+                        <div style={{
+                            fontSize: '1.2em',
+                            letterSpacing: '2px',
+                            textTransform: 'uppercase',
+                            color: '#00d4ff',
+                            textShadow: '0 0 10px rgba(0, 212, 255, 0.5)',
+                            fontWeight: 'bold'
+                        }}>
+                            C-Space Loading...
+                        </div>
+                        <div style={{
+                            fontSize: '0.85em',
+                            color: 'var(--text-muted)',
+                            letterSpacing: '1px'
+                        }}>
+                            Generating or loading configuration space manifold
+                        </div>
+                    </div>
+                )}
                 {activeTab !== 'kinematics' && (
                     <div className="overlay-header" style={{ pointerEvents: 'none', display: 'flex', justifyContent: 'space-between', width: 'calc(100% - 48px)' }}>
                         <div>
@@ -342,6 +392,7 @@ export default function App() {
                         isExecuting={isExecuting}
                         waypoints={waypoints}
                         homeQ={homeQ}
+                        onVoxelsReceived={() => setIsLoadingVoxels(false)}
                     />
                 </div>
                 {activeTab === 'kinematics' && (

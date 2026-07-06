@@ -3,7 +3,7 @@ import * as ROSLIB from 'roslib';
 import { webCmdPub } from '../services/ros';
 
 export default function ExplorerControls() {
-    const [obstacle, setObstacle] = useState('box_obstacle');
+    const [obstacle, setObstacle] = useState('no_obstacles');
     const [resolution, setResolution] = useState('15.0');
 
     const handleEnvChange = () => {

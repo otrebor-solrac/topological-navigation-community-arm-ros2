@@ -109,7 +109,8 @@ def launch_setup(context, *args, **kwargs):
         package='rosbridge_server',
         executable='rosbridge_websocket',
         output='screen',
-        parameters=[{'port': 9090}]
+        parameters=[{'port': 9090}],
+        arguments=['--ros-args', '--log-level', 'warn']
     )
 
     # C-Space voxelizer node
