@@ -32,3 +32,6 @@ cspace_cache/
 # Local planner waypoints and Vite cache
 src/whitebox_motion_planners/config/waypoints.yaml
 dashboard/.vite/
+
+# Rust compiler outputs
+src/tools/cspace_solver/target/
