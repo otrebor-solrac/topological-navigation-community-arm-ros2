@@ -23,6 +23,7 @@ class GridDiscretizer:
     def discretize(self, q_continuous: tuple) -> tuple:
         """ 
         Maps continuous angles to integer grid indices. 
+        E.g (12,6,0) -> (180,90,0)deg with a step of 15 deg
 
         :param q_continuous: Tuple of continuous angles in radians.
         :return: Tuple of integer grid indices.
@@ -30,6 +31,7 @@ class GridDiscretizer:
 
         indices = []
         for ang_rad in q_continuous:
+            # Wrap to [-pi, pi]
             norm_ang = TorusTopology.normalize_angle(ang_rad)
             idx = int(round(norm_ang / self.step_rad))
             indices.append(idx % self.steps_per_circle)
@@ -51,20 +53,35 @@ class GridDiscretizer:
 
         return tuple(angles)
 
-    def get_neighbors(self, q_indices: tuple) -> List[tuple]:
+    def get_neighbors(self, q_indices: tuple, metric_type: str = 'L1') -> List[tuple]:
         """
         Returns adjacent integer indices in the grid.
 
         :param q_indices: Tuple of integer grid indices.
+        :param metric_type: The metric type to use ('L1' or 'L2').
         :return: List of tuples of integer grid indices.
         """
         
         neighbors = []
-        for i in range(self.num_dof):
-            for direction in [-1, 1]:
+        if metric_type == 'L1':
+            for i in range(self.num_dof):
+                for direction in [-1, 1]:
+                    neighbor = list(q_indices)
+                    neighbor[i] = (neighbor[i] + direction) % self.steps_per_circle
+                    neighbors.append(tuple(neighbor))
+        elif metric_type == 'L2':
+            # Generate all combinations of offset values in {-1, 0, 1} for each DOF
+            offsets = list(itertools.product([-1, 0, 1], repeat=self.num_dof))
+            for offset in offsets:
+                # Exclude the (0, 0, ..., 0) offset which represents the current state itself
+                if all(d == 0 for d in offset):
+                    continue
                 neighbor = list(q_indices)
-                neighbor[i] = (neighbor[i] + direction) % self.steps_per_circle
+                for i, direction in enumerate(offset):
+                    neighbor[i] = (neighbor[i] + direction) % self.steps_per_circle
                 neighbors.append(tuple(neighbor))
+        else:
+            raise ValueError(f"Unsupported metric_type: {metric_type}. Must be 'L1' or 'L2'.")
                 
         return neighbors
 

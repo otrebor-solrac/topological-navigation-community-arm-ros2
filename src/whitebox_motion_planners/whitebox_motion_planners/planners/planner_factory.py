@@ -49,7 +49,8 @@ class PlannerFactory:
                 collider, 
                 kinematics,
                 max_samples=kwargs.get('max_samples', 1000),
-                step_size=kwargs.get('step_size', 0.1)
+                step_size=kwargs.get('step_size', 0.1),
+                metric_type=kwargs.get('metric_type', kwargs.get('heuristic_type', 'L2'))
             )
         
         # Unknown Planner

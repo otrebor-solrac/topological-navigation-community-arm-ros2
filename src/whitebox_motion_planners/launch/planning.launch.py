@@ -99,7 +99,8 @@ def launch_setup(context, *args, **kwargs):
             'obstacles_urdf_path': obstacles_urdf_file,
             'obstacle_type': obstacle_type,
             'use_obstacles': LaunchConfiguration('use_obstacles')
-        }]
+        }],
+        condition=IfCondition(LaunchConfiguration('run_planner'))
     )
 
     # Rosbridge Server (for the web dashboard)
@@ -165,6 +166,12 @@ def generate_launch_description():
             'obstacle_type',
             default_value = get_default_obstacle_type(),
             description = 'Obstacle type to load (box_obstacle, narrow_passage, u_obstacle, toroidal_wall)'
+        ),
+        # Declare launch argument to toggle starting the planner node
+        DeclareLaunchArgument(
+            'run_planner',
+            default_value='true',
+            description='Whether to run the main planner node'
         ),
         # OpaqueFunction executes the setup logic dynamically
         OpaqueFunction(function=launch_setup)

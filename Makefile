@@ -12,7 +12,7 @@ OBSTACLE ?= $(shell python3 -c "import yaml; print(yaml.safe_load(open('src/whit
 
 # --- Targets ---
 
-.PHONY: build run build-cpu run-cpu restart shell debug-env visualize-obstacles clean help
+.PHONY: build run build-cpu run-cpu restart shell debug debug-cpu visualize-obstacles clean help generate-caches
 
 help:
 	@echo "🦾 White-Box Motion Planning - Command Center"
@@ -23,7 +23,8 @@ help:
 	@echo "make run-cpu             - Build and launch the full project (CPU)"
 	@echo "make restart             - Quick restart of all Docker containers"
 	@echo "make shell               - Open an interactive terminal inside the Docker container"
-	@echo "make debug-env           - Launch ONLY the robot and RViz (ready for manual planner debug)"
+	@echo "make debug               - Full interactive debug (GPU): starts background env & planner"
+	@echo "make debug-cpu           - Full interactive debug (CPU): starts background env & planner"
 	@echo "make visualize-obstacles - Launch robot and obstacles in RViz to see positioning"
 	@echo "make clean               - Delete build, install, and log directories"
 	@echo "--------------------------------------------"
@@ -55,9 +56,24 @@ restart:
 shell:
 	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && source $(WS_PATH)/install/setup.bash && exec bash"
 
-# 4. Environment for Debugging (No planner)
-debug-env: build
-	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && source install/setup.bash && ros2 launch community_robot_arm display.launch.py spherized:=true"
+# 4.2 Full Debug Session (GPU)
+# Starts the background environment if not already running, then starts the planner interactively
+debug: build
+	@docker exec $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && ros2 node list 2>/dev/null" | grep -q "cspace_voxelizer" || \
+		(echo "Starting debug environment in background..." && \
+		 docker exec -d $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && source install/setup.bash && ros2 launch whitebox_motion_planners planning.launch.py run_planner:=false" && \
+		 sleep 4)
+	@echo "Starting planner node in interactive foreground mode..."
+	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && source install/setup.bash && ros2 run whitebox_motion_planners planner --ros-args --params-file install/whitebox_motion_planners/share/whitebox_motion_planners/config/planner_params.yaml"
+
+# 4.3 Full Debug Session (CPU)
+debug-cpu: build-cpu
+	@docker exec $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && ros2 node list 2>/dev/null" | grep -q "cspace_voxelizer" || \
+		(echo "Starting debug environment in background..." && \
+		 docker exec -d $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && source install/setup.bash && ros2 launch whitebox_motion_planners planning.launch.py run_planner:=false" && \
+		 sleep 4)
+	@echo "Starting planner node in interactive foreground mode..."
+	docker exec -it $(CONTAINER_NAME) bash -c "source /opt/ros/humble/setup.bash && cd $(WS_PATH) && source install/setup.bash && ros2 run whitebox_motion_planners planner --ros-args --params-file install/whitebox_motion_planners/share/whitebox_motion_planners/config/planner_params.yaml"
 
 # 5. Visualize robot and obstacles in RViz
 visualize-obstacles: build
