@@ -89,6 +89,55 @@ class CommunityArmKinematics(BaseKinematics):
 
         return [p0, p1, p2, p3]
 
+    def compute_forward_kinematics_gripper(self, q: tuple, dx: float = -0.019, dz: float = -0.015, k_elbow: float = 0.080) -> np.ndarray:
+        """
+        Computes the Cartesian 3D position of the gripper TCP in meters.
+
+        Incorporates:
+        1. World-frame shoulder shift: the planning frame defines q2=90° as horizontal,
+           but the kinematics model defines q2=0° as horizontal. We subtract pi/2 to align.
+        2. Parallelogram kinematics (KEY CORRECTION): the upper shank (forearm) maintains
+           its absolute world-frame angle based on q3 ALONE, independent of q2. This is
+           because the physical parallelogram linkage drives the forearm from the base,
+           not from the end of the shoulder link.
+             WRONG (serial):    r = a2*cos(q2) + a3*cos(q2+q3)
+             CORRECT (parallel):r = a2*cos(q2) + a3*cos(q3)
+        3. Gripper mounting offset (dx, dz): calibrated from RViz2 measurements.
+           dx = -0.019 m (longitudinal), dz = -0.015 m (transverse).
+        4. Elbow correction (k_elbow=0.080 m/rad): residual empirical correction for 
+           gripper assembly geometry when q3 != 0. Calibrated from RViz2.
+        """
+        if self.use_horizontal_constraint:
+            q1, q2 = q
+            q3 = 0.0
+        else:
+            q1, q2, q3 = q
+            
+        # Shift q2 by -90 degrees (-pi/2 radians) to align world frame (90 deg is horizontal)
+        # with the kinematics model frame (0 deg is horizontal).
+        q2_kin = q2 - np.pi / 2.0
+            
+        c1, s1 = np.cos(q1), np.sin(q1)
+        c2, s2 = np.cos(q2_kin), np.sin(q2_kin)   # lower shank: follows shoulder (q2)
+        c3, s3 = np.cos(q3), np.sin(q3)             # upper shank: follows elbow (q3) ONLY
+        
+        # Effective gripper offset: dx grows with elbow angle due to the parallelogram 
+        # geometry. sin(|q3|) provides smooth, symmetric correction.
+        dx_eff = dx + k_elbow * np.sin(abs(q3))
+        
+        # Parallelogram model: upper shank and gripper offset project using q3 alone
+        r_offset = dx_eff * c3 - dz * s3
+        z_offset = dx_eff * s3 + dz * c3
+        
+        r = self.lower_shank * c2 + self.upper_shank * c3 + r_offset
+        x = r * c1
+        y = r * s1
+        z = self.base_height + self.lower_shank * s2 + self.upper_shank * s3 + z_offset
+        
+        return np.array([x, y, z])
+
+
+
     def compute_jacobian(self, q: tuple) -> np.ndarray:
         """
         Computes the geometric Jacobian matrix J(q) for the end-effector.
