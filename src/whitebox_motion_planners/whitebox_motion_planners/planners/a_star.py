@@ -22,16 +22,9 @@ class AStarPlanner(BasePlanner):
             
     def plan(self, start_q: tuple, goal_q: tuple) -> List[tuple]:
         """
-        Plans a path in the grid with fallback to continuous collision checking if discretization
-        bloating causes the planning to fail.
+        Plans a path in the grid.
         """
-        path = self._plan_internal(start_q, goal_q)
-        if not path and self.collider.forbidden_set is not None:
-            temp_cache = self.collider.forbidden_set
-            self.collider.forbidden_set = None
-            path = self._plan_internal(start_q, goal_q)
-            self.collider.forbidden_set = temp_cache
-        return path
+        return self._plan_internal(start_q, goal_q)
 
     def _plan_internal(self, start_q: tuple, goal_q: tuple) -> List[tuple]:
         """

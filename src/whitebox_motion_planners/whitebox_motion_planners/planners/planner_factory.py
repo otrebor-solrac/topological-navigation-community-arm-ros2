@@ -48,8 +48,10 @@ class PlannerFactory:
                 space, 
                 collider, 
                 kinematics,
-                max_samples=kwargs.get('max_samples', 1000),
-                step_size=kwargs.get('step_size', 0.1),
+                max_samples=kwargs.get('max_samples', 10000),
+                step_size=kwargs.get('step_size', 0.15),
+                goal_bias=kwargs.get('goal_bias', 0.05),
+                goal_tolerance=kwargs.get('goal_tolerance', 0.2),
                 metric_type=kwargs.get('metric_type', kwargs.get('heuristic_type', 'L2'))
             )
         

@@ -20,23 +20,35 @@ from whitebox_motion_planners.spaces.metrics import Metrics
 
 import config_experiments as config
 
-def evaluate_trajectory(path, kinematics, dt=0.02):
+def evaluate_trajectory(path, kinematics, collider, dt=0.02):
     """
     Interpola el camino discreto usando splines quánticas y evalúa
     la trayectoria a 50Hz (dt = 0.02s) para calcular la duración,
-    el Jerk acumulado y los índices de manipulabilidad de Yoshikawa.
+    el Jerk acumulado, los índices de manipulabilidad de Yoshikawa, la
+    longitud real de la trayectoria continua (juntas) y la longitud
+    cartesiana recorrida por el gripper en metros.
     """
     try:
         # Generar trayectoria de tiempo continuo
         traj = TrajectoryGenerator(path, max_vel=1.0, max_acc=1.0)
         duration = traj.total_duration
         if duration <= 1e-6:
-            return 0.0, 0.0, 0.0, 0.0
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             
         steps = int(np.ceil(duration / dt))
         jerk_sum = 0.0
+        continuous_len = 0.0
+        cartesian_len = 0.0
         manipulabilities = []
         
+        # Conversión de coordenadas del mundo a URDF para cinemática directa
+        def world_to_urdf(q_world):
+            yaw_w, pitch1_w, pitch2_w = q_world
+            base_yaw = 0.559643 + (-1.0) * yaw_w
+            shoulder_pitch = 1.5707963 + (-1.0) * pitch1_w
+            elbow_pitch = 0.0 + 1.0 * pitch2_w
+            return (base_yaw, shoulder_pitch, elbow_pitch)
+
         # Evaluar en cada paso temporal
         for step in range(steps):
             t = step * dt
@@ -47,6 +59,23 @@ def evaluate_trajectory(path, kinematics, dt=0.02):
             jerk = (qdd_next - qdd) / dt
             jerk_sum += np.sum(jerk ** 2) * dt
             
+            # Calcular longitud real acumulada (en radianes en el espacio de juntas)
+            continuous_len += Metrics.heuristic_L2(q, q_next)
+            
+            # Calcular posición cartesiana exacta de la punta del gripper via URDF parser.
+            # Esto reproduce el mismo cálculo de cadena cinemática completa que usa RViz2,
+            # dando una precisión de ~0% de error respecto a la línea amarilla visualizada.
+            q_urdf = world_to_urdf(q)
+            q_next_urdf = world_to_urdf(q_next)
+            xyz = collider.urdf_parser.get_end_effector_position(q_urdf)
+            xyz_next = collider.urdf_parser.get_end_effector_position(q_next_urdf)
+            if xyz is None or xyz_next is None:
+                # Fallback a ecuación analítica si el parser falla
+                xyz = kinematics.compute_forward_kinematics_gripper(q)
+                xyz_next = kinematics.compute_forward_kinematics_gripper(q_next)
+                
+            cartesian_len += np.linalg.norm(np.array(xyz_next) - np.array(xyz))
+            
             # Calcular manipulabilidad
             w = kinematics.compute_manipulability(tuple(q))
             manipulabilities.append(w)
@@ -54,10 +83,10 @@ def evaluate_trajectory(path, kinematics, dt=0.02):
         w_min = min(manipulabilities) if manipulabilities else 0.0
         w_mean = np.mean(manipulabilities) if manipulabilities else 0.0
         
-        return duration, jerk_sum, w_min, w_mean
+        return duration, jerk_sum, w_min, w_mean, continuous_len, cartesian_len
     except Exception as e:
         print(f"Error evaluando la trayectoria temporal: {e}")
-        return 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
     """
@@ -82,7 +111,7 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
     # 2. Inicializar componentes de planificación
     grid = GridDiscretizer(step_size_deg=res, num_dof=3)
     
-    # Cargar waypoints del entorno (radianes) para limpiar el grid en esas coordenadas
+    # Cargar waypoints del entorno (radianes)
     waypoints_rad = config.get_waypoints_rad(env_key)
     
     # Cargar voxeles prohibidos en el conjunto discretizado
@@ -90,12 +119,6 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
     for voxel in forbidden_list:
         q_discrete = grid.discretize(tuple(voxel))
         forbidden_set.add(q_discrete)
-        
-    # Evitar bloqueos de inicio/meta por redondeo discretizado
-    for wp_rad in waypoints_rad:
-        wp_discrete = grid.discretize(tuple(wp_rad))
-        if wp_discrete in forbidden_set:
-            forbidden_set.remove(wp_discrete)
         
     # Inicializar FoamCollider cargando el URDF para evitar crashes de link_radius
     urdf_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/robots/community_robot_arm/urdf/spherized/community_robot_arm_slim_spherized.urdf"))
@@ -123,6 +146,13 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
         metric_type=metric
     )
     
+    # Configurar parámetros optimizados para RRT
+    if alg == "rrt":
+        planner.max_samples = 10000
+        planner.step_size = 0.15
+        planner.goal_bias = 0.05
+        planner.goal_tolerance = 0.2
+    
     success_all_segments = True
     
     # Ejecutar planificación para cada segmento consecutivo
@@ -136,14 +166,6 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
         # Medir tiempo de planificación de CPU
         t_start = time.perf_counter()
         path = planner.plan(start_discrete, goal_discrete)
-        
-        # Fallback a nivel de experimento si la discretización bloquea el camino geodésico
-        if not path and collider.forbidden_set is not None:
-            temp_set = collider.forbidden_set
-            collider.forbidden_set = None
-            path = planner.plan(start_discrete, goal_discrete)
-            collider.forbidden_set = temp_set
-            
         t_end = time.perf_counter()
         
         planning_time = t_end - t_start
@@ -151,6 +173,8 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
         
         # Inicializar variables de métricas
         path_len = 0.0
+        continuous_len = 0.0
+        cartesian_len = 0.0
         duration = 0.0
         jerk_sum = 0.0
         w_min = 0.0
@@ -162,7 +186,7 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
                 path_len += Metrics.heuristic_L2(np.array(path[j]), np.array(path[j+1]))
                 
             # Evaluar spline y suavidad
-            duration, jerk_sum, w_min, w_mean = evaluate_trajectory(path, kinematics)
+            duration, jerk_sum, w_min, w_mean, continuous_len, cartesian_len = evaluate_trajectory(path, kinematics, collider)
         else:
             success_all_segments = False
             
@@ -170,7 +194,7 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
         writer.writerow([
             alg, metric, env_key, res, rep, f"W{i}->W{i+1}",
             list(np.round(np.degrees(start_rad), 2)), list(np.round(np.degrees(goal_rad), 2)),
-            int(exito), round(planning_time, 5), round(path_len, 4),
+            int(exito), round(planning_time, 5), round(path_len, 4), round(continuous_len, 4), round(cartesian_len, 4),
             round(duration, 3), round(jerk_sum, 2), round(w_min, 5), round(w_mean, 5)
         ])
         
@@ -194,21 +218,21 @@ def main():
     if args.pilot:
         algs = ["astar"]
         metrics = ["L1"]
-        envs = ["E0"]
+        envs = ["E5"]
         resolutions = [15.0]
         repetitions = 1
-        print("🚀 Iniciando ejecución de la Fase Piloto...")
+        print("🚀 Iniciando ejecución de la Fase Piloto con E5...")
     else:
         algs = ["astar", "rrt"]
         metrics = ["L1", "L2"]
-        envs = ["E0", "E1", "E2", "E3", "E4"]
+        envs = ["E0", "E1", "E2", "E3", "E4", "E5"]
         resolutions = [args.resolution] if args.resolution else config.RESOLUTIONS
         repetitions = 5
         print(f"🚀 Iniciando ejecución de experimentos (Resoluciones: {resolutions})...")
         
     headers = [
         "algoritmo", "metrica", "entorno", "resolucion_deg", "repeticion", "segmento",
-        "inicio_q", "meta_q", "exito", "tiempo_planificacion_s", "longitud_geometrica_rad",
+        "inicio_q", "meta_q", "exito", "tiempo_planificacion_s", "longitud_geometrica_rad", "longitud_continua_rad", "longitud_cartesiana_m",
         "duracion_trayectoria_s", "jerk_acumulado", "manipulabilidad_min", "manipulabilidad_mean"
     ]
     

@@ -38,6 +38,12 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('planner_type', 'astar')
         self.declare_parameter('heuristic_type', 'L2')
         self.declare_parameter('use_horizontal_constraint', False)
+
+        # RRT Parameters
+        self.declare_parameter('rrt.max_samples', 10000)
+        self.declare_parameter('rrt.step_size', 0.15)
+        self.declare_parameter('rrt.goal_bias', 0.05)
+        self.declare_parameter('rrt.goal_tolerance', 0.2)
         
         self.declare_parameter('obstacles_urdf_path', '')
         self.declare_parameter('sphere_thinning_dist', 0.015)
@@ -216,7 +222,11 @@ class TopologicalPlannerNode(Node):
             space=self.grid,
             collider=self.collider,
             kinematics=self.kinematics,
-            heuristic_type=heuristic_type
+            heuristic_type=heuristic_type,
+            max_samples=self.get_parameter('rrt.max_samples').value,
+            step_size=self.get_parameter('rrt.step_size').value,
+            goal_bias=self.get_parameter('rrt.goal_bias').value,
+            goal_tolerance=self.get_parameter('rrt.goal_tolerance').value
         )
 
         # --- 3. ROS 2 Interface (SENSE - THINK - ACT) ---
@@ -703,7 +713,11 @@ class TopologicalPlannerNode(Node):
             space=self.grid,
             collider=self.collider,
             kinematics=self.kinematics,
-            heuristic_type=heuristic_type
+            heuristic_type=heuristic_type,
+            max_samples=self.get_parameter('rrt.max_samples').value,
+            step_size=self.get_parameter('rrt.step_size').value,
+            goal_bias=self.get_parameter('rrt.goal_bias').value,
+            goal_tolerance=self.get_parameter('rrt.goal_tolerance').value
         )
 
         angles_in_degrees = self.get_parameter('angles_in_degrees').value
@@ -932,6 +946,36 @@ class TopologicalPlannerNode(Node):
             
             self.final_planned_q = q_final
             self.current_q = q_final
+            
+            # Calculate and log the total length of the published RViz2 trail
+            if len(self.trail_points) >= 2:
+                rviz_trail_len = 0.0
+                for k in range(len(self.trail_points) - 1):
+                    p1 = self.trail_points[k]
+                    p2 = self.trail_points[k+1]
+                    rviz_trail_len += math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2 + (p2.z - p1.z)**2)
+                self.get_logger().info(f"Rviz trajectory trail length: {rviz_trail_len:.4f} m (matches RViz2 yellow line)")
+
+            # Calculate and log the total length using the exact URDF kinematics
+            if getattr(self, 'trajectory', None) is not None:
+                steps = int(math.ceil(self.trajectory.total_duration / 0.02))
+                formula_points = []
+                for step in range(steps + 1):
+                    t = step * 0.02
+                    q_val, _, _ = self.trajectory.evaluate(t)
+                    q_urdf = self.world_to_urdf(q_val)
+                    xyz = self.collider.urdf_parser.get_end_effector_position(q_urdf)
+                    if xyz is None:
+                        xyz = self.kinematics.compute_forward_kinematics_gripper(q_val)
+                    formula_points.append(xyz)
+                
+                formula_len = 0.0
+                for k in range(len(formula_points) - 1):
+                    p1 = formula_points[k]
+                    p2 = formula_points[k+1]
+                    formula_len += math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2 + (p2[2]-p1[2])**2)
+                self.get_logger().info(f"Formula-based trajectory length: {formula_len:.4f} m")
+
             self.get_logger().info("Trajectory execution complete ✅")
             self.publish_status(True, "Trajectory execution complete ✅")
             return

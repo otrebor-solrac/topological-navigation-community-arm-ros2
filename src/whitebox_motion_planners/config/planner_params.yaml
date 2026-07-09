@@ -51,6 +51,13 @@
     # TODO: Is this parameter still used? We use the GUI for this. 
     heuristic_type: "L1"
 
+    # RRT Parameters
+    rrt:
+      max_samples: 10000
+      step_size: 0.15
+      goal_bias: 0.05
+      goal_tolerance: 0.2
+
     # End-effector behavior
     # TODO: This is not useful, we might need to remove it. 
     use_horizontal_constraint: false
