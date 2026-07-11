@@ -52,9 +52,12 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('animation_rate_hz', 50.0)
 
         # Link lengths for kinematics
-        self.declare_parameter('link_lengths.base_height', 0.065)
+        self.declare_parameter('link_lengths.base_height', 0.130)
         self.declare_parameter('link_lengths.lower_shank', 0.140)
         self.declare_parameter('link_lengths.upper_shank', 0.140)
+        self.declare_parameter('link_lengths.gripper_dx', -0.05467)
+        self.declare_parameter('link_lengths.gripper_dz', 0.0)
+        self.declare_parameter('link_lengths.gripper_k_elbow', 0.0)
 
         # Configurable joint mapping to global world frame (defaults to neutral 0.0 offsets, 1 direction)
         self.declare_parameter('joint_offsets.base_yaw', 0.0)
@@ -90,7 +93,10 @@ class TopologicalPlannerNode(Node):
         link_lengths = {
             'base_height': self.get_parameter('link_lengths.base_height').value,
             'lower_shank': self.get_parameter('link_lengths.lower_shank').value,
-            'upper_shank': self.get_parameter('link_lengths.upper_shank').value
+            'upper_shank': self.get_parameter('link_lengths.upper_shank').value,
+            'gripper_dx': self.get_parameter('link_lengths.gripper_dx').value,
+            'gripper_dz': self.get_parameter('link_lengths.gripper_dz').value,
+            'gripper_k_elbow': self.get_parameter('link_lengths.gripper_k_elbow').value
         }
         self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal, link_lengths=link_lengths)
   

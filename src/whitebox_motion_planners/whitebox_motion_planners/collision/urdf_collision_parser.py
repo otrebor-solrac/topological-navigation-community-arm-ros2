@@ -464,24 +464,20 @@ class UrdfCollisionParser:
         q1, q2, q3 = q_urdf[0], q_urdf[1], q_urdf[2]
         tfs = self.compute_transforms(q1, q2, q3)
         
-        finger_positions = []
-        for s in self.thinned_spheres:
-            if 'finger' in s['link'].lower() or 'gripperfinger' in s['link'].lower():
-                lname = s['link']
-                if lname in tfs:
-                    T = tfs[lname]
-                    c_h = np.ones(4)
-                    c_h[:3] = s['local_center']
-                    world_c = (T @ c_h)[:3]
-                    finger_positions.append(world_c)
-                    
-        if finger_positions:
-            return np.mean(finger_positions, axis=0)
+        # We use the gripper base link and apply the exact calibrated physical offset
+        # of the gripper fingers (-54.67 mm in local X and -21.70 mm in local Z)
+        link_name = 'gripperbase_by_ftobler'
+        if link_name in tfs:
+            T = tfs[link_name]
+            # X is negative because the local frame is oriented towards the base
+            # Z is negative because the claws extend downwards
+            tcp_local = np.array([0.02, 0.0, -0.0217, 1.0])
+            return (T @ tcp_local)[:3]
             
-        # Fallback to standard end-effector link names
-        for link_name in ['gripperbase_by_ftobler', 'manipulator_dual']:
-            if link_name in tfs:
-                return tfs[link_name][:3, 3]
+        # # Fallback to standard end-effector link names if base link not found
+        # for fallback_name in ['gripperbase_by_ftobler', 'manipulator_dual']:
+        #     if fallback_name in tfs:
+        #         return tfs[fallback_name][:3, 3]
                 
         # Ultimate fallback to root frame origin
         return np.array([0.0, 0.0, 0.0])
