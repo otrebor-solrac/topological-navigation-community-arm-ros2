@@ -132,6 +132,20 @@ Once the system is running (`make run`), you can access the topological monitor 
 
 ---
 
+## 🔄 Planning & Trajectory Pipeline
+
+This system bridges a 3D web-based interface with high-fidelity ROS 2 topological solvers and dynamic trajectory generation. The sequential execution flow operates as follows:
+
+1. **Dashboard Command Generation**: The user defines a sequence of target waypoints on the Web Dashboard. When execution is triggered, the dashboard broadcasts a structured JSON command over WebSockets via the ROS Bridge.
+2. **ROS 2 Node Reception**: The `topological_planner_node` intercepts the JSON command. It dynamically updates the active search parameters (e.g., switching between A* or RRT planning, and L1 or L2 geodetic metrics) and writes the target points to a temporary waypoint configuration file.
+3. **Topological Search (C-Space)**: The planning node discretizes the continuous waypoint coordinates onto a toroidal grid matching the configuration space resolution. The selected planner searches for a collision-free path segment-by-segment:
+   - It computes geodetic distances on the toroidal manifold ($T^3$), accounting for periodic wrap-arounds.
+   - It performs collision validation at each node using the spherized robot geometry (via the FOAM solver cache) and environment obstacles.
+4. **Trajectory Suavization (C2 Splines)**: The raw geometric path outputted by the planner is a sequence of discrete segments. To prevent sharp speed changes, this path is processed by a Trajectory Generator that interpolates the path using quintic (5th-order) splines. This ensures continuous velocity and acceleration profiles ($C^2$ continuity), keeping the over-acceleration (*jerk*) bounded.
+5. **High-Frequency Visual Execution**: An execution timer processes the continuous trajectory at a high rate (50 Hz). At each tick, the current interpolated joint positions are published to ROS 2 topics. RViz2 and the Web Dashboard subscribe to these states to render smooth, real-time 3D animation, drawing a trail of the end-effector path in the workspace.
+
+---
+
 ## ⚙️ Hardware & Kinematics
 
 Built upon the **Community Robot Arm** open-source hardware:

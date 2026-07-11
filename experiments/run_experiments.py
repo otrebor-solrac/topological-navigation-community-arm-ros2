@@ -225,7 +225,7 @@ def main():
     else:
         algs = ["astar", "rrt"]
         metrics = ["L1", "L2"]
-        envs = ["E0", "E1", "E2", "E3", "E4", "E5"]
+        envs = ["E0", "E1", "E2", "E3", "E4"]
         resolutions = [args.resolution] if args.resolution else config.RESOLUTIONS
         repetitions = 5
         print(f"🚀 Iniciando ejecución de experimentos (Resoluciones: {resolutions})...")
