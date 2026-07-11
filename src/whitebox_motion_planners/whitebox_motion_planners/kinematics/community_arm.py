@@ -15,21 +15,16 @@ class CommunityArmKinematics(BaseKinematics):
     These will be refined once precise DH parameters are extracted.
     """
 
-    # Approximate link lengths [meters] from URDF visual inspection
-    BASE_HEIGHT = 0.065   # Height from root to shoulder axis
-    LOWER_SHANK = 0.140   # Lower shank length (140mm)
-    UPPER_SHANK = 0.140   # Upper shank length (140mm)
-
     def __init__(self, use_horizontal_constraint: bool = False, link_lengths: dict = None):
         self.use_horizontal_constraint = use_horizontal_constraint
-        if link_lengths is not None:
-            self.base_height = link_lengths.get('base_height', self.BASE_HEIGHT)
-            self.lower_shank = link_lengths.get('lower_shank', self.LOWER_SHANK)
-            self.upper_shank = link_lengths.get('upper_shank', self.UPPER_SHANK)
-        else:
-            self.base_height = self.BASE_HEIGHT
-            self.lower_shank = self.LOWER_SHANK
-            self.upper_shank = self.UPPER_SHANK
+        if link_lengths is None:
+            raise ValueError("link_lengths dictionary must be provided to CommunityArmKinematics")
+        self.base_height = link_lengths['base_height']
+        self.lower_shank = link_lengths['lower_shank']
+        self.upper_shank = link_lengths['upper_shank']
+        self.gripper_dx = link_lengths['gripper_dx']
+        self.gripper_dz = link_lengths['gripper_dz']
+        self.gripper_k_elbow = link_lengths['gripper_k_elbow']
 
     def get_dof(self) -> int:
         """
@@ -89,7 +84,7 @@ class CommunityArmKinematics(BaseKinematics):
 
         return [p0, p1, p2, p3]
 
-    def compute_forward_kinematics_gripper(self, q: tuple, dx: float = -0.019, dz: float = -0.015, k_elbow: float = 0.080) -> np.ndarray:
+    def compute_forward_kinematics_gripper(self, q: tuple, dx: float = None, dz: float = None, k_elbow: float = None) -> np.ndarray:
         """
         Computes the Cartesian 3D position of the gripper TCP in meters.
 
@@ -102,10 +97,10 @@ class CommunityArmKinematics(BaseKinematics):
            not from the end of the shoulder link.
              WRONG (serial):    r = a2*cos(q2) + a3*cos(q2+q3)
              CORRECT (parallel):r = a2*cos(q2) + a3*cos(q3)
-        3. Gripper mounting offset (dx, dz): calibrated from RViz2 measurements.
-           dx = -0.019 m (longitudinal), dz = -0.015 m (transverse).
-        4. Elbow correction (k_elbow=0.080 m/rad): residual empirical correction for 
-           gripper assembly geometry when q3 != 0. Calibrated from RViz2.
+         3. Gripper mounting offset (dx, dz): calibrated from RViz2 measurements.
+            dx = -0.019 m (longitudinal), dz = -0.015 m (transverse).
+         4. Elbow correction (k_elbow=0.080 m/rad): residual empirical correction for 
+            gripper assembly geometry when q3 != 0. Calibrated from RViz2.
         """
         if self.use_horizontal_constraint:
             q1, q2 = q
@@ -120,6 +115,11 @@ class CommunityArmKinematics(BaseKinematics):
         c1, s1 = np.cos(q1), np.sin(q1)
         c2, s2 = np.cos(q2_kin), np.sin(q2_kin)   # lower shank: follows shoulder (q2)
         c3, s3 = np.cos(q3), np.sin(q3)             # upper shank: follows elbow (q3) ONLY
+        
+        # Use instance variables if parameters are not provided explicitly
+        dx = dx if dx is not None else self.gripper_dx
+        dz = dz if dz is not None else self.gripper_dz
+        k_elbow = k_elbow if k_elbow is not None else self.gripper_k_elbow
         
         # Effective gripper offset: dx grows with elbow angle due to the parallelogram 
         # geometry. sin(|q3|) provides smooth, symmetric correction.
