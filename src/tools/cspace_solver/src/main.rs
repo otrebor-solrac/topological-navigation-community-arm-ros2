@@ -121,6 +121,8 @@ fn compute_transforms(
     joint_angles.insert("revolute_18_0".to_string(), q2);
     joint_angles.insert("revolute_15_0".to_string(), -q3);
     joint_angles.insert("revolute_19_0".to_string(), q3);
+    joint_angles.insert("revolute_23_0".to_string(), q3);
+
 
     // BFS/DFS propagation (loop until no new child can be resolved)
     let mut resolved = true;
@@ -143,7 +145,7 @@ fn compute_transforms(
 
 fn wrap_to_pi(val: f32) -> f32 {
     let mut v = (val + std::f32::consts::PI) % (2.0 * std::f32::consts::PI);
-    if v < 0.0 {
+    if v <= 1e-6 {
         v += 2.0 * std::f32::consts::PI;
     }
     v - std::f32::consts::PI
@@ -232,7 +234,8 @@ fn main() {
                 
                 let q1_urdf = offset_base_yaw + dir_base_yaw * q1_world;
                 let q2_urdf = offset_shoulder_pitch + dir_shoulder_pitch * q2_world;
-                let q3_urdf = offset_elbow_pitch + dir_elbow_pitch * q3_world;
+                let q3_relative = offset_elbow_pitch + dir_elbow_pitch * q3_world;
+                let q3_urdf = -q2_urdf - q3_relative;
                 
                 let tfs = compute_transforms(q1_urdf, q2_urdf, q3_urdf, &joints, &root_link);
                 

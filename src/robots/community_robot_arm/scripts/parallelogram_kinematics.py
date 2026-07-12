@@ -26,32 +26,34 @@ class ParallelogramKinematics(Node):
         joints = dict(zip(msg.name, msg.position))
         
         # 1. Define the primary master motor states
-        q1 = joints.get('base_yaw_joint', 0.0)
+        q1 = joints.get('base_yaw_joint', 0.0)         # Motor 1 (Base)
         q2 = joints.get('shoulder_pitch_joint', 0.0)   # Motor 2 (Lower Shank)
-        q3 = joints.get('elbow_pitch_joint', 0.0)      # Motor 3 (Lever / Palanca)
+        q3 = joints.get('elbow_pitch_joint', 0.0)      # Motor 3 (Lever)
         
-        # 2. Solve the parallelogram linkage constraint (dependent joints)
-        joints['revolute_16_0'] = -q3 - q2
-        joints['revolute_12_0'] = q2 + q3
-
-        # 3. Lower shanks/linkages (imitating lower_shank pitch)
+        # 2. Lower shanks/linkages (imitating lower_shank pitch)
         # The URDF has curved linkages hanging from the main_body.
         # They must copy the lower_shank pitch angle (q2).
         joints['revolute_32_0'] = q2   # Axis [0, 1, 0]
         joints['revolute_31_0'] = -q2  # Axis [0, -1, 0]
 
-        # 4. Triplates hanging from the lower linkages
+
+        # 3. Triplates hanging from the lower linkages
         # They must remain level by compensating for their parent rotation (q2)
         joints['revolute_13_0'] = -q2  # Axis [0, 1, 0] (inverse to revolute_32)
         joints['revolute_18_0'] = q2   # Axis [0, -1, 0] (inverse to revolute_31)
 
-        # 5. Upper linkages hanging from the triplate towards the end-effector
+        # 4. Upper linkages hanging from the triplate towards the end-effector
         # Invert signs to match upper_shank rotation directions
         joints['revolute_15_0'] = -q3   # Axis [0, -1, 0]
         joints['revolute_19_0'] = q3    # Axis [0, 1, 0]
 
+        # # 5. Gripper 
+        joints['revolute_23_0'] = q3
 
-        
+        # 6. Solve the parallelogram linkage constraint (dependent joints)
+        joints['revolute_16_0'] = -q3 - q2
+        joints['revolute_12_0'] = q2 + q3
+      
         out = JointState()
         out.header   = msg.header
         out.name     = list(joints.keys())

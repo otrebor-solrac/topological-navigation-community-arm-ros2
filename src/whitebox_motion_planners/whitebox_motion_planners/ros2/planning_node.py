@@ -98,7 +98,12 @@ class TopologicalPlannerNode(Node):
             'gripper_dz': self.get_parameter('link_lengths.gripper_dz').value,
             'gripper_k_elbow': self.get_parameter('link_lengths.gripper_k_elbow').value
         }
-        self.kinematics = get_kinematics(robot_type, use_horizontal_constraint=use_horizontal, link_lengths=link_lengths)
+
+        # Get the Kinematics from the robot type and pass the link lengths and use horizontal constraint parameter
+        self.kinematics = get_kinematics(
+            robot_type,
+            use_horizontal_constraint=use_horizontal,
+            link_lengths=link_lengths)
   
         # If using static start, initialize the robot's initial override to the start position
         use_static = self.get_parameter('use_static_start').value
@@ -363,12 +368,18 @@ class TopologicalPlannerNode(Node):
 
         base_yaw = self.base_yaw_offset + self.base_yaw_dir * yaw_w
         shoulder_pitch = self.shoulder_pitch_offset + self.shoulder_pitch_dir * pitch1_w
-        elbow_pitch = self.elbow_pitch_offset + self.elbow_pitch_dir * pitch2_w
+        # Coupled: elbow URDF = -shoulder_urdf - q3_relative
+        # This makes q3_world a RELATIVE angle (upper shank relative to lower shank)
+        q3_relative = self.elbow_pitch_offset + self.elbow_pitch_dir * pitch2_w
+        elbow_pitch = -shoulder_pitch - q3_relative
 
         return (base_yaw, shoulder_pitch, elbow_pitch)
 
     def wrap_to_pi(self, val: float) -> float:
-        return (val + math.pi) % (2 * math.pi) - math.pi
+        a = (val + math.pi) % (2 * math.pi)
+        if a <= 1e-9:
+            a += 2 * math.pi
+        return a - math.pi
 
     def urdf_to_world(self, q_urdf: tuple) -> tuple:
         """
@@ -384,7 +395,9 @@ class TopologicalPlannerNode(Node):
 
         yaw_w = self.wrap_to_pi((base_yaw - self.base_yaw_offset) / self.base_yaw_dir)
         pitch1_w = self.wrap_to_pi((shoulder_pitch - self.shoulder_pitch_offset) / self.shoulder_pitch_dir)
-        pitch2_w = self.wrap_to_pi((elbow_pitch - self.elbow_pitch_offset) / self.elbow_pitch_dir)
+        # Inverse of coupled conversion: q3_relative = -elbow_pitch - shoulder_pitch
+        q3_relative = -elbow_pitch - shoulder_pitch
+        pitch2_w = self.wrap_to_pi((q3_relative - self.elbow_pitch_offset) / self.elbow_pitch_dir)
 
         return (yaw_w, pitch1_w, pitch2_w)
 

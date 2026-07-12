@@ -52,12 +52,19 @@ class CommunityArmKinematics(BaseKinematics):
         """
         if self.use_horizontal_constraint:
             q1, q2 = q
-            q3 = 0.0  # Parallelogram keeps it horizontal if lever is at 0
+            q3 = np.pi  # forearm horizontal (theta3 = 0)
         else:
             q1, q2, q3 = q
         c1, s1 = np.cos(q1), np.sin(q1)
-        c2, s2 = np.cos(q2), np.sin(q2)
-        c23, s23 = np.cos(q2 + q3), np.sin(q2 + q3)
+        
+        # Absolute angles relative to horizontal plane
+        theta2 = q2 - np.pi / 2.0
+        # theta3 = absolute angle of upper shank = lower shank angle + relative bend
+        # q3_world=pi means no bend (colinear), so bend = q3 - pi
+        theta3 = theta2 + (q3 - np.pi)
+        
+        c2, s2 = np.cos(theta2), np.sin(theta2)
+        c3, s3 = np.cos(theta3), np.sin(theta3)
 
         # P0: Base (origin)
         p0 = np.array([0.0, 0.0, 0.0])
@@ -66,7 +73,6 @@ class CommunityArmKinematics(BaseKinematics):
         p1 = np.array([0.0, 0.0, self.base_height])
 
         # P2: Elbow joint (Spherical projection of Lower Shank)
-        # r = link_length * cos(pitch), z = link_length * sin(pitch)
         r2 = self.lower_shank * c2
         p2 = p1 + np.array([
             r2 * c1, # X: projection on XY plane * cos(yaw)
@@ -75,11 +81,11 @@ class CommunityArmKinematics(BaseKinematics):
         ])
 
         # P3: End effector (Spherical projection of Upper Shank)
-        r3 = self.upper_shank * c23
+        r3 = self.upper_shank * c3
         p3 = p2 + np.array([
             r3 * c1, # X
             r3 * s1, # Y
-            self.upper_shank * s23 # Z
+            self.upper_shank * s3 # Z
         ])
 
         return [p0, p1, p2, p3]
@@ -91,12 +97,12 @@ class CommunityArmKinematics(BaseKinematics):
         Incorporates:
         1. World-frame shoulder shift: the planning frame defines q2=90° as horizontal,
            but the kinematics model defines q2=0° as horizontal. We subtract pi/2 to align.
-        2. Parallelogram kinematics (KEY CORRECTION): the upper shank (forearm) maintains
-           its absolute world-frame angle based on q3 ALONE, independent of q2. This is
-           because the physical parallelogram linkage drives the forearm from the base,
-           not from the end of the shoulder link.
-             WRONG (serial):    r = a2*cos(q2) + a3*cos(q2+q3)
-             CORRECT (parallel):r = a2*cos(q2) + a3*cos(q3)
+        2. Serial kinematic coupling: the upper shank (forearm) absolute world-frame angle
+           theta3 depends on both the shoulder angle theta2 and the relative elbow angle q3.
+           The elbow angle q3 is defined as relative to the lower shank (180° = straight).
+             theta2 = q2 - pi/2
+             theta3 = theta2 + (q3 - pi)
+             r = lower_shank * cos(theta2) + upper_shank * cos(theta3)
          3. Gripper mounting offset (dx, dz): calibrated from RViz2 measurements.
             dx = -0.019 m (longitudinal), dz = -0.015 m (transverse).
          4. Elbow correction (k_elbow=0.080 m/rad): residual empirical correction for 
@@ -104,28 +110,29 @@ class CommunityArmKinematics(BaseKinematics):
         """
         if self.use_horizontal_constraint:
             q1, q2 = q
-            q3 = 0.0
+            q3 = np.pi  # forearm horizontal (theta3 = 0)
         else:
             q1, q2, q3 = q
             
-        # Shift q2 by -90 degrees (-pi/2 radians) to align world frame (90 deg is horizontal)
-        # with the kinematics model frame (0 deg is horizontal).
-        q2_kin = q2 - np.pi / 2.0
-            
         c1, s1 = np.cos(q1), np.sin(q1)
-        c2, s2 = np.cos(q2_kin), np.sin(q2_kin)   # lower shank: follows shoulder (q2)
-        c3, s3 = np.cos(q3), np.sin(q3)             # upper shank: follows elbow (q3) ONLY
+        
+        # Absolute angles relative to horizontal plane
+        theta2 = q2 - np.pi / 2.0
+        # theta3 = absolute angle of upper shank = lower shank angle + relative bend
+        theta3 = theta2 + (q3 - np.pi)
+        
+        c2, s2 = np.cos(theta2), np.sin(theta2)   # lower shank
+        c3, s3 = np.cos(theta3), np.sin(theta3)   # upper shank
         
         # Use instance variables if parameters are not provided explicitly
         dx = dx if dx is not None else self.gripper_dx
         dz = dz if dz is not None else self.gripper_dz
         k_elbow = k_elbow if k_elbow is not None else self.gripper_k_elbow
         
-        # Effective gripper offset: dx grows with elbow angle due to the parallelogram 
-        # geometry. sin(|q3|) provides smooth, symmetric correction.
-        dx_eff = dx + k_elbow * np.sin(abs(q3))
+        # Effective gripper offset: dx grows with elbow angle due to the geometry
+        dx_eff = dx + k_elbow * np.sin(abs(theta3))
         
-        # Parallelogram model: upper shank and gripper offset project using q3 alone
+        # Upper shank and gripper offset project using theta3 (absolute angle of the forearm)
         r_offset = dx_eff * c3 - dz * s3
         z_offset = dx_eff * s3 + dz * c3
         
