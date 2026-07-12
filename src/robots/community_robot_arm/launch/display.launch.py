@@ -138,7 +138,9 @@ def _get_zeros_params(pkg_share_wb):
     
     urdf_q1 = offset_base + dir_base * q1_rad
     urdf_q2 = offset_shoulder + dir_shoulder * q2_rad
-    urdf_q3 = offset_elbow + dir_elbow * q3_rad
+    # Coupled: q3 is relative angle (upper shank relative to lower shank)
+    q3_relative = offset_elbow + dir_elbow * q3_rad
+    urdf_q3 = -urdf_q2 - q3_relative
     
     print(f"[display.launch.py] Calculated URDF zeros: q1_rad={urdf_q1}, q2_rad={urdf_q2}, q3_rad={urdf_q3}")
     

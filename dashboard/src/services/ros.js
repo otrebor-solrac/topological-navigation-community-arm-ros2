@@ -35,12 +35,11 @@ export const statusSub = new ROSLIB.Topic({
 });
 
 // Joint offset and direction configurations matching planner_params.yaml
-// These define the mapping between World frame and URDF frame:
-//   q_urdf = offset + direction * q_world
+// These define the mapping between World frame and URDF frame (coupled for elbow).
 export const jointOffsets = {
     base_yaw: 32.0694,
-    shoulder_pitch: 90.0,
-    elbow_pitch: 0.0
+    shoulder_pitch: 110.507,
+    elbow_pitch: 300.0
 };
 
 export const jointDirections = {

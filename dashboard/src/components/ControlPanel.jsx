@@ -59,7 +59,9 @@ export default function ControlPanel({ currentQ, homeQ, setHomeQ }) {
 
         const urdf_q1 = offsetBaseYawRad + jointDirections.base_yaw * q1_rad;
         const urdf_q2 = offsetShoulderPitchRad + jointDirections.shoulder_pitch * q2_rad;
-        const urdf_q3 = offsetElbowPitchRad + jointDirections.elbow_pitch * q3_rad;
+        // Coupled: q3_world is RELATIVE angle (upper shank relative to lower shank)
+        const q3_relative_rad = offsetElbowPitchRad + jointDirections.elbow_pitch * q3_rad;
+        const urdf_q3 = -urdf_q2 - q3_relative_rad;
 
         guiJointPub.publish({
             header: { stamp: { sec: 0, nanosec: 0 }, frame_id: '' },

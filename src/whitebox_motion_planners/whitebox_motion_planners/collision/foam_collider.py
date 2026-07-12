@@ -118,7 +118,9 @@ class FoamCollider(BaseCollider):
                 yaw_w, pitch1_w, pitch2_w = q_w[:3] if len(q_w) >= 3 else (q_w[0], q_w[1], 0.0)
                 base_yaw = self.offset_base_yaw + self.dir_base_yaw * yaw_w
                 shoulder_pitch = self.offset_shoulder_pitch + self.dir_shoulder_pitch * pitch1_w
-                elbow_pitch = self.offset_elbow_pitch + self.dir_elbow_pitch * pitch2_w
+                # Coupled: elbow_pitch = -shoulder_pitch - q3_relative
+                q3_relative = self.offset_elbow_pitch + self.dir_elbow_pitch * pitch2_w
+                elbow_pitch = -shoulder_pitch - q3_relative
                 q_urdf = (base_yaw, shoulder_pitch, elbow_pitch)
                 return self.urdf_parser.get_end_effector_position(q_urdf)
 
@@ -178,7 +180,9 @@ class FoamCollider(BaseCollider):
             yaw_w, pitch1_w, pitch2_w = q[:3] if len(q) >= 3 else (q[0], q[1], 0.0)
             base_yaw = self.offset_base_yaw + self.dir_base_yaw * yaw_w
             shoulder_pitch = self.offset_shoulder_pitch + self.dir_shoulder_pitch * pitch1_w
-            elbow_pitch = self.offset_elbow_pitch + self.dir_elbow_pitch * pitch2_w
+            # Coupled: elbow_pitch = -shoulder_pitch - q3_relative
+            q3_relative = self.offset_elbow_pitch + self.dir_elbow_pitch * pitch2_w
+            elbow_pitch = -shoulder_pitch - q3_relative
             q_urdf = (base_yaw, shoulder_pitch, elbow_pitch)
 
             # 1. Self-Collision Detection

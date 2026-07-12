@@ -431,7 +431,7 @@ class CSpaceVoxelPublisher(Node):
             yaw_w, pitch1_w, pitch2_w = q_radians[:3] if len(q_radians) >= 3 else (q_radians[0], q_radians[1], 0.0)
             base_yaw = self.base_yaw_offset + self.base_yaw_dir * yaw_w
             shoulder_pitch = self.shoulder_pitch_offset + self.shoulder_pitch_dir * pitch1_w
-            elbow_pitch = self.elbow_pitch_offset + self.elbow_pitch_dir * pitch2_w
+            elbow_pitch = self.elbow_pitch_offset + self.elbow_pitch_dir * (pitch1_w + pitch2_w)
             q_urdf = (base_yaw, shoulder_pitch, elbow_pitch)
             
             is_self_collision = False

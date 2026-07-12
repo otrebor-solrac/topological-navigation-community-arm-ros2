@@ -5,7 +5,7 @@ import { jointSub, voxelSub, jointOffsets, jointDirections } from '../services/r
 
 const wrapToPi = (val) => {
     let a = (val + Math.PI) % (2 * Math.PI);
-    if (a < 0) a += 2 * Math.PI;
+    if (a <= 0) a += 2 * Math.PI;
     return a - Math.PI;
 };
 
@@ -443,11 +443,13 @@ export default function ThreeVisualizer({
 
 
 
-                const q = [
-                    wrapToPi((q_urdf[0] - offsetBaseYawRad) / jointDirections.base_yaw),
-                    wrapToPi((q_urdf[1] - offsetShoulderPitchRad) / jointDirections.shoulder_pitch),
-                    wrapToPi((q_urdf[2] - offsetElbowPitchRad) / jointDirections.elbow_pitch)
-                ];
+                const q1_world = wrapToPi((q_urdf[0] - offsetBaseYawRad) / jointDirections.base_yaw);
+                const q2_world = wrapToPi((q_urdf[1] - offsetShoulderPitchRad) / jointDirections.shoulder_pitch);
+                // Coupled inverse: q3_relative = -urdf_q3 - urdf_q2
+                const q3_relative_rad = -q_urdf[2] - q_urdf[1];
+                const q3_world = wrapToPi((q3_relative_rad - offsetElbowPitchRad) / jointDirections.elbow_pitch);
+
+                const q = [q1_world, q2_world, q3_world];
 
                 if (robotPointRef.current) {
                     robotPointRef.current.position.set(q[0], q[1], q[2]);

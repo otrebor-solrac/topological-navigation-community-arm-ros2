@@ -227,7 +227,11 @@ class UrdfCollisionParser:
             # Upper linkages (driving the end-effector pitch matching elbow rotation)
             'revolute_15_0': -q3,
             'revolute_19_0': q3,
+            
+            # Gripper leveling
+            'revolute_23_0': q3,
         }
+
         
         transforms = {self.root_link: np.eye(4)}
         
@@ -273,8 +277,9 @@ class UrdfCollisionParser:
         return transforms
 
     def _initialize_thinned_spheres(self):
-        # 1. Compute positions of all spheres at home pose using offsets
-        tfs = self.compute_transforms(self.offset_base_yaw, self.offset_shoulder_pitch, self.offset_elbow_pitch)
+        # Compute positions of all spheres at clean CAD home pose (0, 0, 0)
+        # to calculate thinning and allowed collision matrix (ACM) correctly
+        tfs = self.compute_transforms(0.0, 0.0, 0.0)
         
         all_spheres = []
         for lname, spheres in self.links_with_spheres.items():
