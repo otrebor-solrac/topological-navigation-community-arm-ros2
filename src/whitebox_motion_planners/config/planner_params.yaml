@@ -9,7 +9,8 @@
 
     # Set to true to use the static start configuration below.
     # Set to false to read start dynamically from the GUI sliders.
-    use_static_start: false
+    use_static_start: true
+
 
     # START CONFIGURATION (Point A) in DEGREES (World coordinates)
     start:
