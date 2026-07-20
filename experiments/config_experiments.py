@@ -27,53 +27,55 @@ ENVIRONMENT_NAMES = {
 # Cada secuencia inicia y termina en el Origen/Home [180.0, 90.0, 0.0] para asegurar consistencia con el Dashboard.
 WAYPOINTS = {
     "E0": [ # Sin obstáculos (Línea base)
-        [180.0, 90.0, 0.0],     # Origen / Home
-        [-90.0, 135.0, 10.0],   # Waypoint #1
-        [0.0, 90.0, -20.0],     # Waypoint #2
-        [90.0, 120.0, 0.0],     # Waypoint #3
-        [180.0, 90.0, 0.0]      # Retorno al Origen
+        [180.0, 150.0, 90.0],     # Origen / Home
+        [-90.0, 170.0, 110.0],   # Waypoint #1
+        [0.0, 90.0, 40.0],     # Waypoint #2
+        [90.0, 120.0, 110.0],     # Waypoint #3
+        [180.0, 150.0, 90.0],     # Origen / Home
     ],
 
     "E1": [ # Obstáculo de caja (Box obstacle)
-        [180.0, 90.0, 0.0],     # Origen / Home
-        [-40.0, 90.0, 0.0],     # Waypoint #1
-        [40.0, 90.0, 0.0],      # Waypoint #2
-        [180.0, 90.0, 0.0]      # Retorno al Origen
+        [180.0, 150.0, 90.0],     # Origen / Home
+        [-40.0, 150.0, 90.0],     # Waypoint #1
+        [40.0, 150.0, 90.0],      # Waypoint #2
+        [180.0, 150.0, 90.0],     # Origen / Home
     ],
 
     "E2": [ # Obstáculo de pasaje estrecho (Narrow passage)
-        [180.0, 90.0, 0.0],     # Origen / Home
-        [-50.0, 70.0, 0.0],   # Waypoint #1
-        [0.0, 90.0, 0.0],       # Waypoint #2
-        [0.0, 130.0, 30.0],     # Waypoint #3
-        [50.0, 70.0, 0.0],    # Waypoint #5
-        [180.0, 90.0, 0.0]      # Retorno al Origen
+        [180.0, 150.0, 90.0],     # Origen / Home
+        [-45.0, 120.0, 60.0],   # Waypoint #1
+        [0.0, 100.0, 40.0],       # Waypoint #2
+        [0.0, 140.0, 40.0],     # Waypoint #3
+        [45.0, 120.0, 60.0],    # Waypoint #4
+        [180.0, 150.0, 90.0],     # Origen / Home
     ],
     "E3": [ # Obstáculo de pared toroidal (Toroidal wall)
-        [180.0, 90.0, 0.0],     # Origen / Home
-        [-60.0, 112.0, 0.0],   # Waypoint #1
-        [60.0, 112.0, 0.0],    # Waypoint #2
-        [0.0, 175.0, 48.0],    # Waypoint #2
-        [180.0, 90.0, 0.0]      # Retorno al Origen
+        [180.0, 150.0, 90.0],     # Origen / Home
+        [50.0, 150.0, 90.0],      # Waypoint #1
+        [-50.0, 150.0, 90.0],     # Waypoint #2
+        [180.0, 150.0, 90.0],     # Origen / Home
     ],
 
     "E4": [ # Obstáculo en U (U-shaped obstacle)
-        [180.0, 90.0, 0.0],     # Origen / Home
-        [-60.0, 90.0, 0.0],     # Waypoint #1
-        [0.0, 120.0, 0.0],      # Waypoint #2
+        [180.0, 150.0, 90.0],     # Origen / Home
+        [-60.0, 120.0, 90.0],     # Waypoint #1
+        [0.0, 120.0, 90.0],      # Waypoint #2
         [0.0, 140.0, 40.0],     # Waypoint #3
-        [60.0, 90.0, 0.0],      # Waypoint #4
-        [180.0, 90.0, 0.0]      # Retorno al Origen
+        [60.0, 120.0, 90.0],      # Waypoint #4
+        [180.0, 150.0, 90.0],     # Origen / Home
     ],
-
     "E5": [ # Escenario personalizado de validación de paralelogramo
-        [180.0, 90.0, 0.0],     # Origen / Home
-        [-68.0, 119.0, 0.0],    # Waypoint #1
-        [61.0, 119.0, 0.0],     # Waypoint #2
-        [61.0, 78.0, 0.0],      # Waypoint #3
-        [61.0, 78.0, -17.0],    # Waypoint #4
-        [-73.0, 78.0, -17.0]   # Waypoint #5
-    ],
+        [180.0, 150.0, 90.0],     # Origen / Home
+        [90.0, 150, 90.0],    # Waypoint #1
+        [180.0, 150.0, 90.0],     # Origen / Home
+    ]
+    # "E5": [ # Escenario personalizado de validación de paralelogramo
+    #     [180.0, 150.0, 90.0],     # Origen / Home
+    #     [90.0, 160.0, 90.0],    # Waypoint #1
+    #     [30.0, 160.0, 80.0],     # Waypoint #2
+    #     [-90.0, 130.0, 80.0],      # Waypoint #3
+    #     [180.0, 150.0, 90.0],     # Origen / Home
+    # ],
 
 }
 

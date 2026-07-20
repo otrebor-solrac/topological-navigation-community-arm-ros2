@@ -108,9 +108,7 @@ class RRTPlanner(BasePlanner):
             self.nodes.append(q_new)
             self.parent[new_idx] = nearest_idx
 
-            dist_to_goal = self.dist_func(
-                np.array(q_new), np.array(goal_rad)
-            )
+            dist_to_goal = self.dist_func(q_new, goal_rad)
             if dist_to_goal < self.goal_tolerance:
                 # Add exact goal as final node
                 goal_idx = len(self.nodes)
@@ -148,12 +146,11 @@ class RRTPlanner(BasePlanner):
         Finds the index of the nearest node in the tree to q_target,
         using the configured toroidal metric (geodesic L1 or L2 distance on T^n).
         """
-        target_arr = np.array(q_target)
         best_idx = 0
         best_dist = float('inf')
 
         for idx, node in enumerate(self.nodes):
-            d = self.dist_func(np.array(node), target_arr)
+            d = self.dist_func(node, q_target)
             if d < best_dist:
                 best_dist = d
                 best_idx = idx
@@ -179,15 +176,18 @@ class RRTPlanner(BasePlanner):
             diff = (diff + math.pi) % (2 * math.pi) - math.pi
             diffs.append(diff)
 
-        diff_arr = np.array(diffs)
-        # Compute distance of the step under the selected metric
-        dist = self.dist_func(np.zeros_like(diff_arr), diff_arr)
+        # Compute distance of the step under the selected metric using pure Python (extremely fast)
+        if self.dist_func == Metrics.heuristic_L1:
+            dist = sum(abs(d) for d in diffs)
+        else:
+            dist = math.sqrt(sum(d**2 for d in diffs))
 
         if dist > self.step_size:
-            diff_arr = diff_arr * (self.step_size / dist)
+            scale = self.step_size / dist
+            diffs = [d * scale for d in diffs]
 
         result = []
-        for theta_from, diff in zip(q_from, diff_arr):
+        for theta_from, diff in zip(q_from, diffs):
             new_angle = TorusTopology.normalize_angle(theta_from + diff)
             result.append(new_angle)
 

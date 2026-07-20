@@ -74,12 +74,18 @@ class AStarPlanner(BasePlanner):
                 if neighbor_q in closed_set:
                     continue
                     
-                neighbor_rad = self.space.get_radians(neighbor_q)
-                neighbor_array = np.array(neighbor_rad)
-
-                if not self.collider.is_state_valid(neighbor_rad, self.kinematics):
-                    continue
+                # Si tenemos la caché del C-space discretizada en un set, hacemos búsqueda O(1) con los índices enteros.
+                # Esto evita convertir a radianes, instanciar arrays de numpy y volver a discretizar en el colisionador.
+                if self.collider.forbidden_set is not None:
+                    if neighbor_q in self.collider.forbidden_set:
+                        continue
+                    neighbor_rad = self.space.get_radians(neighbor_q)
+                else:
+                    neighbor_rad = self.space.get_radians(neighbor_q)
+                    if not self.collider.is_state_valid(neighbor_rad, self.kinematics):
+                        continue
                 
+                neighbor_array = np.array(neighbor_rad)
                 step_cost = self.heuristic(current_array, neighbor_array)
                 tentative_g_score = g_score[current_q] + step_cost
                 

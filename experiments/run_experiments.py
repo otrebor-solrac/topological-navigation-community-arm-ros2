@@ -41,19 +41,15 @@ def evaluate_trajectory(path, kinematics, collider, dt=0.02):
         cartesian_len = 0.0
         manipulabilities = []
         
-        # Conversión de coordenadas del mundo a URDF para cinemática directa
-        def world_to_urdf(q_world):
-            yaw_w, pitch1_w, pitch2_w = q_world
-            base_yaw = 0.559643 + (-1.0) * yaw_w
-            shoulder_pitch = 1.5707963 + (-1.0) * pitch1_w
-            elbow_pitch = 0.0 + 1.0 * pitch2_w
-            return (base_yaw, shoulder_pitch, elbow_pitch)
-
-        # Evaluar en cada paso temporal
+        # Evaluar paso inicial (t=0.0)
+        q, qd, qdd = traj.evaluate(0.0)
+        # Usar la cinemática directa analítica calibrada, que es miles de veces más rápida que el parser URDF en Python
+        xyz = kinematics.compute_forward_kinematics_gripper(q)
+        
+        # Evaluar en cada paso temporal de forma secuencial
         for step in range(steps):
-            t = step * dt
-            q, qd, qdd = traj.evaluate(t)
-            q_next, qd_next, qdd_next = traj.evaluate(t + dt)
+            t_next = (step + 1) * dt
+            q_next, qd_next, qdd_next = traj.evaluate(t_next)
             
             # Calcular Jerk numérico (derivada de la aceleración)
             jerk = (qdd_next - qdd) / dt
@@ -62,23 +58,17 @@ def evaluate_trajectory(path, kinematics, collider, dt=0.02):
             # Calcular longitud real acumulada (en radianes en el espacio de juntas)
             continuous_len += Metrics.heuristic_L2(q, q_next)
             
-            # Calcular posición cartesiana exacta de la punta del gripper via URDF parser.
-            # Esto reproduce el mismo cálculo de cadena cinemática completa que usa RViz2,
-            # dando una precisión de ~0% de error respecto a la línea amarilla visualizada.
-            q_urdf = world_to_urdf(q)
-            q_next_urdf = world_to_urdf(q_next)
-            xyz = collider.urdf_parser.get_end_effector_position(q_urdf)
-            xyz_next = collider.urdf_parser.get_end_effector_position(q_next_urdf)
-            if xyz is None or xyz_next is None:
-                # Fallback a ecuación analítica si el parser falla
-                xyz = kinematics.compute_forward_kinematics_gripper(q)
-                xyz_next = kinematics.compute_forward_kinematics_gripper(q_next)
-                
-            cartesian_len += np.linalg.norm(np.array(xyz_next) - np.array(xyz))
+            # Calcular posición cartesiana analítica del efector final
+            xyz_next = kinematics.compute_forward_kinematics_gripper(q_next)
+            cartesian_len += np.linalg.norm(xyz_next - xyz)
             
             # Calcular manipulabilidad
             w = kinematics.compute_manipulability(tuple(q))
             manipulabilities.append(w)
+            
+            # Avanzar variables al siguiente paso
+            q, qd, qdd = q_next, qd_next, qdd_next
+            xyz = xyz_next
             
         w_min = min(manipulabilities) if manipulabilities else 0.0
         w_mean = np.mean(manipulabilities) if manipulabilities else 0.0
@@ -88,6 +78,50 @@ def evaluate_trajectory(path, kinematics, collider, dt=0.02):
         print(f"Error evaluando la trayectoria temporal: {e}")
         return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
+# Global caches to avoid redundant loading, parsing and discretization of C-space caches
+_cspace_cache = {}
+_collider_instance = None
+
+def get_cspace_cache(env_key, res, cache_dir, env_hash):
+    key = (env_key, res)
+    if key in _cspace_cache:
+        return _cspace_cache[key]
+        
+    cache_filename = f"cspace_cache_{res}deg_0.015m_{env_hash}_singularity0.0005.json"
+    cache_filepath = os.path.join(cache_dir, cache_filename)
+    
+    if not os.path.exists(cache_filepath):
+        return None, None
+        
+    with open(cache_filepath, 'r') as f:
+        cache_data = json.load(f)
+        
+    forbidden_list = cache_data.get('forbidden_voxels', [])
+    grid = GridDiscretizer(step_size_deg=res, num_dof=3)
+    
+    forbidden_set = set()
+    for voxel in forbidden_list:
+        q_discrete = grid.discretize(tuple(voxel))
+        forbidden_set.add(q_discrete)
+        
+    _cspace_cache[key] = (forbidden_set, grid)
+    return forbidden_set, grid
+
+def get_collider():
+    global _collider_instance
+    if _collider_instance is None:
+        urdf_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/robots/community_robot_arm/urdf/spherized/community_robot_arm_slim_spherized.urdf"))
+        _collider_instance = FoamCollider(urdf_path=urdf_path, sphere_thinning_dist=0.015)
+        _collider_instance.set_joint_transforms(
+            offset_base_yaw=32.0694 * np.pi / 180.0,
+            offset_shoulder_pitch=110.507 * np.pi / 180.0,
+            offset_elbow_pitch=270.0 * np.pi / 180.0,
+            dir_base_yaw=-1.0,
+            dir_shoulder_pitch=-1.0,
+            dir_elbow_pitch=1.0
+        )
+    return _collider_instance
+
 def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
     """
     Ejecuta una corrida para una combinación específica de factores
@@ -95,47 +129,29 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
     """
     env_hash = config.ENVIRONMENT_HASHES[env_key]
     
-    # 1. Cargar caché de C-Space
-    cache_filename = f"cspace_cache_{res}deg_0.015m_{env_hash}_singularity0.0005.json"
-    cache_filepath = os.path.join(cache_dir, cache_filename)
-    
-    if not os.path.exists(cache_filepath):
-        print(f"Error: No se encontró la caché {cache_filename}")
+    # 1. Cargar caché de C-Space usando el caché global en memoria
+    forbidden_set, grid = get_cspace_cache(env_key, res, cache_dir, env_hash)
+    if forbidden_set is None:
+        print(f"Error: No se encontró la caché para {env_key} | {res}deg")
         return False
         
-    with open(cache_filepath, 'r') as f:
-        cache_data = json.load(f)
-        
-    forbidden_list = cache_data.get('forbidden_voxels', [])
-    
-    # 2. Inicializar componentes de planificación
-    grid = GridDiscretizer(step_size_deg=res, num_dof=3)
-    
     # Cargar waypoints del entorno (radianes)
     waypoints_rad = config.get_waypoints_rad(env_key)
     
-    # Cargar voxeles prohibidos en el conjunto discretizado
-    forbidden_set = set()
-    for voxel in forbidden_list:
-        q_discrete = grid.discretize(tuple(voxel))
-        forbidden_set.add(q_discrete)
-        
-    # Inicializar FoamCollider cargando el URDF para evitar crashes de link_radius
-    urdf_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/robots/community_robot_arm/urdf/spherized/community_robot_arm_slim_spherized.urdf"))
-    collider = FoamCollider(urdf_path=urdf_path, sphere_thinning_dist=0.015)
+    # 2. Inicializar FoamCollider reutilizando la instancia global
+    collider = get_collider()
     collider.set_cspace_cache(forbidden_set, grid)
-    
-    # Configurar transformaciones de juntas predeterminadas para mapeo de URDF/Mundo
-    collider.set_joint_transforms(
-        offset_base_yaw=0.559643,
-        offset_shoulder_pitch=1.5707963,
-        offset_elbow_pitch=0.0,
-        dir_base_yaw=-1.0,
-        dir_shoulder_pitch=-1.0,
-        dir_elbow_pitch=1.0
-    )
-    
-    kinematics = CommunityArmKinematics(use_horizontal_constraint=False)
+
+    link_lengths = {
+        'base_height': 0.130,
+        'lower_shank': 0.140,
+        'upper_shank': 0.140,
+        'gripper_dx': -0.05467,
+        'gripper_dz': -0.0217,
+        'gripper_k_elbow': 0.0
+    }
+    kinematics = CommunityArmKinematics(use_horizontal_constraint=False, link_lengths=link_lengths)
+
     
     # Crear el planificador vía la fábrica
     planner = PlannerFactory.create_planner(
@@ -191,11 +207,13 @@ def run_experiment_run(alg, metric, env_key, res, rep, cache_dir, writer):
             success_all_segments = False
             
         # Escribir fila en CSV
+        path_degrees = [[round(float(np.degrees(ang)), 2) for ang in q] for q in path] if exito else []
         writer.writerow([
             alg, metric, env_key, res, rep, f"W{i}->W{i+1}",
             list(np.round(np.degrees(start_rad), 2)), list(np.round(np.degrees(goal_rad), 2)),
             int(exito), round(planning_time, 5), round(path_len, 4), round(continuous_len, 4), round(cartesian_len, 4),
-            round(duration, 3), round(jerk_sum, 2), round(w_min, 5), round(w_mean, 5)
+            round(duration, 3), round(jerk_sum, 2), round(w_min, 5), round(w_mean, 5),
+            json.dumps(path_degrees)
         ])
         
     return success_all_segments
@@ -233,7 +251,7 @@ def main():
     headers = [
         "algoritmo", "metrica", "entorno", "resolucion_deg", "repeticion", "segmento",
         "inicio_q", "meta_q", "exito", "tiempo_planificacion_s", "longitud_geometrica_rad", "longitud_continua_rad", "longitud_cartesiana_m",
-        "duracion_trayectoria_s", "jerk_acumulado", "manipulabilidad_min", "manipulabilidad_mean"
+        "duracion_trayectoria_s", "jerk_acumulado", "manipulabilidad_min", "manipulabilidad_mean", "camino_grados"
     ]
     
     total_runs = len(algs) * len(metrics) * len(envs) * len(resolutions) * repetitions
