@@ -321,21 +321,6 @@ fn main() {
                     (wrap_to_pi(q3_world) * 1000.0).round() / 1000.0,
                 ];
 
-                // 1. Singularity check (if threshold > 0.0)
-                if sing_thresh > 0.0 {
-                    let w = compute_manipulability(
-                        q1_world, q2_world, q3_world,
-                        offset_base_yaw, offset_shoulder_pitch, offset_elbow_pitch,
-                        dir_base_yaw, dir_shoulder_pitch, dir_elbow_pitch,
-                        &joints, &root_link, &thinned_spheres
-                    );
-                    if w < sing_thresh {
-                        thread_forbidden.push(voxel);
-                        thread_singularity.push(voxel);
-                        continue;
-                    }
-                }
-
                 let q1_urdf = offset_base_yaw + dir_base_yaw * q1_world;
                 let q2_urdf = offset_shoulder_pitch + dir_shoulder_pitch * q2_world;
                 let q3_relative = offset_elbow_pitch + dir_elbow_pitch * q3_world;
@@ -400,27 +385,45 @@ fn main() {
                 if is_self_collision {
                     thread_forbidden.push(voxel);
                     thread_self.push(voxel);
-                } else {
-                    let mut is_obstacle_collision = false;
-                    for obs in obstacles.iter() {
-                        for &(c_w, r_w) in world_spheres.iter() {
-                            let dx = c_w[0] - obs.center[0];
-                            let dy = c_w[1] - obs.center[1];
-                            let dz = c_w[2] - obs.center[2];
-                            let dist_sq = dx*dx + dy*dy + dz*dz;
-                            let limit = r_w + obs.radius;
-                            if dist_sq < limit * limit {
-                                is_obstacle_collision = true;
-                                break;
-                            }
-                        }
-                        if is_obstacle_collision {
+                    continue;
+                }
+                
+                let mut is_obstacle_collision = false;
+                for obs in obstacles.iter() {
+                    for &(c_w, r_w) in world_spheres.iter() {
+                        let dx = c_w[0] - obs.center[0];
+                        let dy = c_w[1] - obs.center[1];
+                        let dz = c_w[2] - obs.center[2];
+                        let dist_sq = dx*dx + dy*dy + dz*dz;
+                        let limit = r_w + obs.radius;
+                        if dist_sq < limit * limit {
+                            is_obstacle_collision = true;
                             break;
                         }
                     }
                     if is_obstacle_collision {
+                        break;
+                    }
+                }
+                
+                if is_obstacle_collision {
+                    thread_forbidden.push(voxel);
+                    thread_obstacle.push(voxel);
+                    continue;
+                }
+
+                // Singularity check (only for collision-free states)
+                if sing_thresh > 0.0 {
+                    let w = compute_manipulability(
+                        q1_world, q2_world, q3_world,
+                        offset_base_yaw, offset_shoulder_pitch, offset_elbow_pitch,
+                        dir_base_yaw, dir_shoulder_pitch, dir_elbow_pitch,
+                        &joints, &root_link, &thinned_spheres
+                    );
+                    if w < sing_thresh {
                         thread_forbidden.push(voxel);
-                        thread_obstacle.push(voxel);
+                        thread_singularity.push(voxel);
+                        continue;
                     }
                 }
             }

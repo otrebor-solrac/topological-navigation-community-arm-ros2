@@ -141,7 +141,15 @@ def _get_or_load_environment(res, env_key, cache_dir):
         dir_elbow_pitch=1.0
     )
 
-    kinematics = CommunityArmKinematics(use_horizontal_constraint=False)
+    link_lengths = {
+        'base_height': 0.130,
+        'lower_shank': 0.140,
+        'upper_shank': 0.140,
+        'gripper_dx': -0.05467,
+        'gripper_dz': -0.0217,
+        'gripper_k_elbow': 0.0
+    }
+    kinematics = CommunityArmKinematics(use_horizontal_constraint=False, link_lengths=link_lengths)
 
     _PRELOADED_CACHES[cache_key] = (grid, collider, kinematics)
     print(f"  [RAM] Cargado ({res}°, {env_key}): {len(forbidden_set)} vóxeles prohibidos")
