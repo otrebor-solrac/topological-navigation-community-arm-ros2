@@ -52,6 +52,7 @@ class RRTPlanner(BasePlanner):
         self.step_size = step_size
         self.goal_bias = goal_bias
         self.goal_tolerance = goal_tolerance
+        self._metric_type = metric_type
         
         if metric_type == 'L1':
             self.dist_func = Metrics.heuristic_L1
@@ -85,12 +86,13 @@ class RRTPlanner(BasePlanner):
         self.parent = {0: None}
 
         n_dof = len(start_rad)
+        goal_arr = np.array(goal_rad)
 
         for i in range(self.max_samples):
             # 1. SAMPLE: Haar measure on T^n (or bias towards goal)
             q_rand = self._sample(goal_rad, n_dof)
 
-            # 2. NEAREST: Find closest node in tree using toroidal metric
+            # 2. NEAREST: Find closest node in tree using vectorized toroidal metric
             nearest_idx = self._nearest(q_rand)
             q_nearest = self.nodes[nearest_idx]
 
@@ -108,7 +110,9 @@ class RRTPlanner(BasePlanner):
             self.nodes.append(q_new)
             self.parent[new_idx] = nearest_idx
 
-            dist_to_goal = self.dist_func(q_new, goal_rad)
+            # Vectorized distance to goal (avoid creating np.array each time)
+            q_new_arr = np.array(q_new)
+            dist_to_goal = self.dist_func(q_new_arr, goal_arr)
             if dist_to_goal < self.goal_tolerance:
                 # Add exact goal as final node
                 goal_idx = len(self.nodes)
@@ -144,18 +148,25 @@ class RRTPlanner(BasePlanner):
     def _nearest(self, q_target: tuple) -> int:
         """
         Finds the index of the nearest node in the tree to q_target,
-        using the configured toroidal metric (geodesic L1 or L2 distance on T^n).
+        using vectorized toroidal metric (geodesic L1 or L2 distance on T^n).
+        
+        Builds a single NumPy matrix from the node list and computes all 
+        distances in one vectorized operation instead of looping with 
+        per-node np.array() allocations.
         """
-        best_idx = 0
-        best_dist = float('inf')
+        target_arr = np.array(q_target)
+        nodes_arr = np.array(self.nodes)  # N×D matrix (single allocation)
 
-        for idx, node in enumerate(self.nodes):
-            d = self.dist_func(node, q_target)
-            if d < best_dist:
-                best_dist = d
-                best_idx = idx
+        # Vectorized geodesic distance on T^n: min(|Δ|, 2π - |Δ|) per dimension
+        diffs = np.abs(nodes_arr - target_arr)
+        diffs = np.minimum(diffs, 2.0 * np.pi - diffs)
 
-        return best_idx
+        if self._metric_type == 'L1':
+            dists = np.sum(diffs, axis=1)
+        else:  # L2
+            dists = np.sqrt(np.sum(diffs ** 2, axis=1))
+
+        return int(np.argmin(dists))
 
     def _steer(self, q_from: tuple, q_to: tuple) -> tuple:
         """

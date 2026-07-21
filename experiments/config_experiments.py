@@ -42,12 +42,12 @@ WAYPOINTS = {
     ],
 
     "E2": [ # Obstáculo de pasaje estrecho (Narrow passage)
-        [180.0, 150.0, 90.0],     # Origen / Home
-        [-45.0, 120.0, 60.0],   # Waypoint #1
-        [0.0, 100.0, 40.0],       # Waypoint #2
-        [0.0, 140.0, 40.0],     # Waypoint #3
-        [45.0, 120.0, 60.0],    # Waypoint #4
-        [180.0, 150.0, 90.0],     # Origen / Home
+        [180.0, 90.0, 0.0],     # Origen / Home
+        [-50.0, 80.0, 0.0],   # Waypoint #1
+        [0.0, 90.0, 0.0],       # Waypoint #2
+        [0.0, 130.0, 30.0],     # Waypoint #3
+        [50.0, 80.0, 0.0],    # Waypoint #5
+        [180.0, 90.0, 0.0]      # Retorno al Origen
     ],
     "E3": [ # Obstáculo de pared toroidal (Toroidal wall)
         [180.0, 150.0, 90.0],     # Origen / Home
