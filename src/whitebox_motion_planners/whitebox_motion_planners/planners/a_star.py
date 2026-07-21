@@ -57,6 +57,9 @@ class AStarPlanner(BasePlanner):
         # Set to store already fully evaluated nodes to prevent reprocessing and infinite loops
         closed_set = set()
 
+        # Cache reference for O(1) discrete collision check (avoids int→float→int round-trip)
+        forbidden = getattr(self.collider, 'forbidden_set', None)
+
         while open_set:
             # Get the node with the lowest f_score
             current_f, current_q = heapq.heappop(open_set)
@@ -73,19 +76,24 @@ class AStarPlanner(BasePlanner):
             for neighbor_q in self.space.get_neighbors(current_q, metric_type=self.heuristic_type):
                 if neighbor_q in closed_set:
                     continue
-                    
-                # Si tenemos la caché del C-space discretizada en un set, hacemos búsqueda O(1) con los índices enteros.
-                # Esto evita convertir a radianes, instanciar arrays de numpy y volver a discretizar en el colisionador.
-                if self.collider.forbidden_set is not None:
-                    if neighbor_q in self.collider.forbidden_set:
+
+                # Fast O(1) collision check using discrete indices directly.
+                # When a precomputed forbidden_set exists, we skip the expensive
+                # round-trip: get_radians(neighbor_q) → is_state_valid() → discretize() → set lookup.
+                # Instead we check neighbor_q ∈ forbidden_set directly in integer space.
+                if forbidden is not None:
+                    if neighbor_q in forbidden:
                         continue
-                    neighbor_rad = self.space.get_radians(neighbor_q)
                 else:
-                    neighbor_rad = self.space.get_radians(neighbor_q)
-                    if not self.collider.is_state_valid(neighbor_rad, self.kinematics):
+                    if not self.collider.is_state_valid(
+                        self.space.get_radians(neighbor_q), self.kinematics
+                    ):
                         continue
-                
+
+                # Only convert to radians for valid, non-colliding neighbors (lazy evaluation)
+                neighbor_rad = self.space.get_radians(neighbor_q)
                 neighbor_array = np.array(neighbor_rad)
+
                 step_cost = self.heuristic(current_array, neighbor_array)
                 tentative_g_score = g_score[current_q] + step_cost
                 

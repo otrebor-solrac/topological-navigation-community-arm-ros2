@@ -44,6 +44,8 @@ struct InputData {
     dir_base_yaw: f32,
     dir_shoulder_pitch: f32,
     dir_elbow_pitch: f32,
+    #[serde(default)]
+    singularity_threshold: f32,
 }
 
 #[derive(Serialize)]
@@ -51,6 +53,7 @@ struct OutputData {
     forbidden_voxels: Vec<[f32; 3]>,
     self_collision_voxels: Vec<[f32; 3]>,
     obstacle_voxels: Vec<[f32; 3]>,
+    singularity_voxels: Vec<[f32; 3]>,
 }
 
 fn mul_m4_m4(a: &Matrix4, b: &Matrix4) -> Matrix4 {
@@ -107,12 +110,10 @@ fn compute_transforms(
         [0.0, 0.0, 0.0, 1.0],
     ]);
     
-    // Joint angles map
     let mut joint_angles = HashMap::new();
     joint_angles.insert("base_yaw_joint".to_string(), q1);
     joint_angles.insert("shoulder_pitch_joint".to_string(), q2);
     joint_angles.insert("elbow_pitch_joint".to_string(), q3);
-    // Mimic coupled joints for parallelogram
     joint_angles.insert("revolute_16_0".to_string(), -q3 - q2);
     joint_angles.insert("revolute_12_0".to_string(), q2 + q3);
     joint_angles.insert("revolute_32_0".to_string(), q2);
@@ -124,7 +125,6 @@ fn compute_transforms(
     joint_angles.insert("revolute_23_0".to_string(), q3);
 
 
-    // BFS/DFS propagation (loop until no new child can be resolved)
     let mut resolved = true;
     while resolved {
         resolved = false;
@@ -143,6 +143,91 @@ fn compute_transforms(
     transforms
 }
 
+fn get_end_effector_position(
+    tfs: &HashMap<String, Matrix4>,
+    thinned_spheres: &[SphereInput],
+) -> Option<Vector3> {
+    let mut sum_pos = [0.0f32; 3];
+    let mut count = 0;
+
+    for s in thinned_spheres {
+        let lname_lower = s.link.to_lowercase();
+        if lname_lower.contains("finger") || lname_lower.contains("gripperfinger") {
+            if let Some(t) = tfs.get(&s.link) {
+                let wc = mul_m4_v3(t, &s.local_c);
+                sum_pos[0] += wc[0];
+                sum_pos[1] += wc[1];
+                sum_pos[2] += wc[2];
+                count += 1;
+            }
+        }
+    }
+
+    if count > 0 {
+        return Some([
+            sum_pos[0] / count as f32,
+            sum_pos[1] / count as f32,
+            sum_pos[2] / count as f32,
+        ]);
+    }
+
+    for s in thinned_spheres {
+        let lname_lower = s.link.to_lowercase();
+        if lname_lower.contains("gripper") || lname_lower.contains("manipulator") {
+            if let Some(t) = tfs.get(&s.link) {
+                let wc = mul_m4_v3(t, &s.local_c);
+                return Some(wc);
+            }
+        }
+    }
+
+    if let Some(s) = thinned_spheres.last() {
+        if let Some(t) = tfs.get(&s.link) {
+            return Some(mul_m4_v3(t, &s.local_c));
+        }
+    }
+
+    None
+}
+
+fn compute_manipulability(
+    q1_w: f32, q2_w: f32, q3_w: f32,
+    offset_base_yaw: f32, offset_shoulder_pitch: f32, offset_elbow_pitch: f32,
+    dir_base_yaw: f32, dir_shoulder_pitch: f32, dir_elbow_pitch: f32,
+    joints: &[JointInput],
+    root_link: &str,
+    thinned_spheres: &[SphereInput],
+) -> f32 {
+    let eps = 1e-4f32;
+    
+    let get_ee = |q1: f32, q2: f32, q3: f32| -> Option<Vector3> {
+        let u1 = offset_base_yaw + dir_base_yaw * q1;
+        let u2 = offset_shoulder_pitch + dir_shoulder_pitch * q2;
+        let u3 = offset_elbow_pitch + dir_elbow_pitch * q3;
+        let tfs = compute_transforms(u1, u2, u3, joints, root_link);
+        get_end_effector_position(&tfs, thinned_spheres)
+    };
+
+    let p_p1 = match get_ee(q1_w + eps, q2_w, q3_w) { Some(p) => p, None => return 0.0 };
+    let p_m1 = match get_ee(q1_w - eps, q2_w, q3_w) { Some(p) => p, None => return 0.0 };
+
+    let p_p2 = match get_ee(q1_w, q2_w + eps, q3_w) { Some(p) => p, None => return 0.0 };
+    let p_m2 = match get_ee(q1_w, q2_w - eps, q3_w) { Some(p) => p, None => return 0.0 };
+
+    let p_p3 = match get_ee(q1_w, q2_w, q3_w + eps) { Some(p) => p, None => return 0.0 };
+    let p_m3 = match get_ee(q1_w, q2_w, q3_w - eps) { Some(p) => p, None => return 0.0 };
+
+    let j0 = [ (p_p1[0] - p_m1[0]) / (2.0 * eps), (p_p1[1] - p_m1[1]) / (2.0 * eps), (p_p1[2] - p_m1[2]) / (2.0 * eps) ];
+    let j1 = [ (p_p2[0] - p_m2[0]) / (2.0 * eps), (p_p2[1] - p_m2[1]) / (2.0 * eps), (p_p2[2] - p_m2[2]) / (2.0 * eps) ];
+    let j2 = [ (p_p3[0] - p_m3[0]) / (2.0 * eps), (p_p3[1] - p_m3[1]) / (2.0 * eps), (p_p3[2] - p_m3[2]) / (2.0 * eps) ];
+
+    let det = j0[0] * (j1[1] * j2[2] - j1[2] * j2[1])
+            - j1[0] * (j0[1] * j2[2] - j0[2] * j2[1])
+            + j2[0] * (j0[1] * j1[2] - j0[2] * j1[1]);
+
+    det.abs()
+}
+
 fn wrap_to_pi(val: f32) -> f32 {
     let mut v = (val + std::f32::consts::PI) % (2.0 * std::f32::consts::PI);
     if v <= 1e-6 {
@@ -152,7 +237,6 @@ fn wrap_to_pi(val: f32) -> f32 {
 }
 
 fn main() {
-    // Read input data from stdin
     let mut input_buf = String::new();
     if io::stdin().read_to_string(&mut input_buf).is_err() {
         eprintln!("Error reading from stdin");
@@ -167,7 +251,6 @@ fn main() {
         }
     };
     
-    // Generate all discrete states
     let mut states = Vec::new();
     if data.num_dof == 2 {
         for i in 0..data.steps_per_circle {
@@ -185,14 +268,12 @@ fn main() {
         }
     }
     
-    // Determine the number of threads based on CPU cores
     let num_threads = thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
     
     let chunk_size = (states.len() + num_threads - 1) / num_threads;
     
-    // Wrap shared data in Arc
     use std::sync::Arc;
     let joints = Arc::new(data.joints);
     let root_link = Arc::new(data.root_link);
@@ -211,6 +292,7 @@ fn main() {
         let states = Arc::clone(&states);
         let step_rad = data.step_rad;
         let num_dof = data.num_dof;
+        let sing_thresh = data.singularity_threshold;
         
         let offset_base_yaw = data.offset_base_yaw;
         let offset_shoulder_pitch = data.offset_shoulder_pitch;
@@ -226,12 +308,34 @@ fn main() {
             let mut thread_forbidden = Vec::new();
             let mut thread_self = Vec::new();
             let mut thread_obstacle = Vec::new();
+            let mut thread_singularity = Vec::new();
             for idx in start_idx..end_idx {
                 let (i, j, k) = states[idx];
                 let q1_world = (i as f32) * step_rad;
                 let q2_world = (j as f32) * step_rad;
                 let q3_world = if num_dof > 2 { (k as f32) * step_rad } else { 0.0 };
                 
+                let voxel = [
+                    (wrap_to_pi(q1_world) * 1000.0).round() / 1000.0,
+                    (wrap_to_pi(q2_world) * 1000.0).round() / 1000.0,
+                    (wrap_to_pi(q3_world) * 1000.0).round() / 1000.0,
+                ];
+
+                // 1. Singularity check (if threshold > 0.0)
+                if sing_thresh > 0.0 {
+                    let w = compute_manipulability(
+                        q1_world, q2_world, q3_world,
+                        offset_base_yaw, offset_shoulder_pitch, offset_elbow_pitch,
+                        dir_base_yaw, dir_shoulder_pitch, dir_elbow_pitch,
+                        &joints, &root_link, &thinned_spheres
+                    );
+                    if w < sing_thresh {
+                        thread_forbidden.push(voxel);
+                        thread_singularity.push(voxel);
+                        continue;
+                    }
+                }
+
                 let q1_urdf = offset_base_yaw + dir_base_yaw * q1_world;
                 let q2_urdf = offset_shoulder_pitch + dir_shoulder_pitch * q2_world;
                 let q3_relative = offset_elbow_pitch + dir_elbow_pitch * q3_world;
@@ -239,7 +343,6 @@ fn main() {
                 
                 let tfs = compute_transforms(q1_urdf, q2_urdf, q3_urdf, &joints, &root_link);
                 
-                // Project robot spheres to world coordinates
                 let mut world_spheres = Vec::with_capacity(thinned_spheres.len());
                 let mut valid_kinematics = true;
                 for s in thinned_spheres.iter() {
@@ -258,7 +361,6 @@ fn main() {
                 
                 let mut is_self_collision = false;
                 
-                // 1. Floor collision check (Z < 0) for moving links
                 for (idx, s) in thinned_spheres.iter().enumerate() {
                     let link_lower = s.link.to_lowercase();
                     let is_base = link_lower.contains("basering")
@@ -276,7 +378,6 @@ fn main() {
                     }
                 }
                 
-                // 2. Self-collision checks
                 if !is_self_collision {
                     for &(pair_i, pair_j) in active_pairs.iter() {
                         if pair_i >= world_spheres.len() || pair_j >= world_spheres.len() {
@@ -295,18 +396,11 @@ fn main() {
                         }
                     }
                 }
-                
-                let voxel = [
-                    (wrap_to_pi(q1_world) * 1000.0).round() / 1000.0,
-                    (wrap_to_pi(q2_world) * 1000.0).round() / 1000.0,
-                    (wrap_to_pi(q3_world) * 1000.0).round() / 1000.0,
-                ];
 
                 if is_self_collision {
                     thread_forbidden.push(voxel);
                     thread_self.push(voxel);
                 } else {
-                    // 2. Obstacle collision checks
                     let mut is_obstacle_collision = false;
                     for obs in obstacles.iter() {
                         for &(c_w, r_w) in world_spheres.iter() {
@@ -330,18 +424,20 @@ fn main() {
                     }
                 }
             }
-            (thread_forbidden, thread_self, thread_obstacle)
+            (thread_forbidden, thread_self, thread_obstacle, thread_singularity)
         }));
     }
     
     let mut all_forbidden = Vec::new();
     let mut all_self = Vec::new();
     let mut all_obstacle = Vec::new();
+    let mut all_singularity = Vec::new();
     for h in handles {
-        if let Ok((mut tf, mut ts, mut to)) = h.join() {
+        if let Ok((mut tf, mut ts, mut to, mut tsing)) = h.join() {
             all_forbidden.append(&mut tf);
             all_self.append(&mut ts);
             all_obstacle.append(&mut to);
+            all_singularity.append(&mut tsing);
         }
     }
     
@@ -349,6 +445,7 @@ fn main() {
         forbidden_voxels: all_forbidden,
         self_collision_voxels: all_self,
         obstacle_voxels: all_obstacle,
+        singularity_voxels: all_singularity,
     };
     
     if let Ok(serialized) = serde_json::to_string(&output) {

@@ -223,6 +223,7 @@ def main():
                 'dir_base_yaw': float(dir_base_yaw),
                 'dir_shoulder_pitch': float(dir_shoulder_pitch),
                 'dir_elbow_pitch': float(dir_elbow_pitch),
+                'singularity_threshold': float(singularity_threshold),
             }
             
             print(f"Launching Rust parallel solver for {grid.steps_per_circle}^3 = {grid.steps_per_circle**3} configurations...")
