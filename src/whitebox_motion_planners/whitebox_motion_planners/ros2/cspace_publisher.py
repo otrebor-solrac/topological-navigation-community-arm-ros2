@@ -567,10 +567,15 @@ class CSpaceVoxelPublisher(Node):
         try:
             tree = ET.parse(urdf_path)
             root = tree.getroot()
+            return self._load_obstacles_from_xml_root(root)
         except Exception as e:
             self.get_logger().error(f"Failed to parse XML from URDF: {e}")
             return []
-        
+
+    def _load_obstacles_from_xml_root(self, root: ET.Element) -> list:
+        """
+        Load obstacles from an ElementTree XML root element.
+        """
         # Parse joints to get child link origins relative to world
         link_positions = {'world': (0.0, 0.0, 0.0)}
         
@@ -678,6 +683,52 @@ class CSpaceVoxelPublisher(Node):
                 
                 # 4. Force republishing
                 self.publish_voxels()
+
+            elif action == "move_obstacle":
+                obstacle_type = data.get("obstacle_type", "box_obstacle")
+                pos_xyz = data.get("position_xyz", [0.3, 0.0, 0.15])
+                step_size = float(data.get("step_size_deg", 15.0))
+                
+                self.get_logger().info(f"Moving obstacle '{obstacle_type}' to position {pos_xyz} at {step_size}deg")
+                
+                self.grid = GridDiscretizer(step_size_deg=step_size, num_dof=self.kinematics.get_dof())
+                obstacles_urdf_content = '<?xml version="1.0"?><robot name="obstacles"><link name="root"/></robot>'
+                if obstacle_type != "no_obstacles":
+                    try:
+                        pkg_share = get_package_share_directory('community_robot_arm')
+                        obstacles_urdf = os.path.join(pkg_share, 'urdf', 'spherized', 'obstacles', f"{obstacle_type}_spherized.urdf")
+                        if os.path.exists(obstacles_urdf):
+                            tree = ET.parse(obstacles_urdf)
+                            root = tree.getroot()
+                            for joint in root.findall('joint'):
+                                origin = joint.find('origin')
+                                if origin is not None:
+                                    origin.set('xyz', f"{pos_xyz[0]} {pos_xyz[1]} {pos_xyz[2]}")
+                            
+                            obstacles_urdf_content = ET.tostring(root, encoding='utf-8').decode('utf-8')
+                            
+                            self.collider.spherical_obstacles = []
+                            obstacles = self._load_obstacles_from_xml_root(root)
+                            for center, radius in obstacles:
+                                self.collider.add_obstacle(center, radius)
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to move obstacle URDF dynamically: {e}")
+
+                try:
+                    desc_msg = String()
+                    desc_msg.data = obstacles_urdf_content
+                    self.obstacles_desc_pub.publish(desc_msg)
+                except Exception as e:
+                    self.get_logger().error(f"Failed to publish updated obstacle URDF: {e}")
+                
+                # Compute voxels in ephemeral mode (RAM only)
+                cspace_data = self._compute_cspace_voxels()
+                msg = String()
+                msg.data = json.dumps(cspace_data)
+                self.cached_voxels_msg = msg
+                self.cache_dirty = True
+                self.publish_voxels()
+
         except Exception as e:
             self.get_logger().error(f"Failed to process web command in voxelizer: {e}")
 

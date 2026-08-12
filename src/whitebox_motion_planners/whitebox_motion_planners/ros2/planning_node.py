@@ -14,10 +14,11 @@ import json
 import xml.etree.ElementTree as ET
 from ament_index_python.packages import get_package_share_directory
 
-from ..kinematics import get_kinematics, TrajectoryGenerator
+from ..kinematics import get_kinematics, TrajectoryGenerator, CommunityArmIKSolver
 from ..collision.foam_collider import FoamCollider
 from ..collision.grid_discretizer import GridDiscretizer
 from ..planners.planner_factory import PlannerFactory
+
 
 class TopologicalPlannerNode(Node):
     """
@@ -79,6 +80,7 @@ class TopologicalPlannerNode(Node):
         
         # Internal State
         self.is_animating = False
+        self._pending_origin_update = False  # True when set_origin triggered the trajectory
         self.animation_path = []
         self.animation_index = 0
         self.animation_timer = None
@@ -104,6 +106,7 @@ class TopologicalPlannerNode(Node):
             robot_type,
             use_horizontal_constraint=use_horizontal,
             link_lengths=link_lengths)
+        self.ik_solver = CommunityArmIKSolver(self.kinematics)
   
         # If using static start, initialize the robot's initial override to the start position
         use_static = self.get_parameter('use_static_start').value
@@ -247,6 +250,7 @@ class TopologicalPlannerNode(Node):
         self.current_q = None      # Robot's actual World position (used as planning start)
         self.last_gui_q = None     # Last GUI command received (used for manual change detection)
         self.master_joint_names = None
+        self.planner_lock_until = 0.0  # Timestamp until which joint_callback ignores GUI overrides
         self.joint_sub = (
             self.create_subscription(
                 JointState, 
@@ -448,7 +452,8 @@ class TopologicalPlannerNode(Node):
         # Detect manual change by comparing INCOMING GUI command against the LAST GUI command.
         # This avoids false positives when the GUI passively re-sends its old position
         # (e.g., after animation ends and robot is at goal but GUI is still at start).
-        if self.last_gui_q is not None:
+        now = self.get_clock().now().nanoseconds * 1e-9
+        if self.last_gui_q is not None and now > self.planner_lock_until:
             manual_change = any(
                 abs(a - b) > 0.01
                 for a, b in zip(new_q_world, self.last_gui_q)
@@ -456,6 +461,10 @@ class TopologicalPlannerNode(Node):
             if manual_change:
                 self.final_planned_q = None
                 self.current_q = new_q_world  # Follow new GUI command
+                xyz = self.kinematics.compute_forward_kinematics_gripper(new_q_world)
+                q_deg = [round(math.degrees(x), 1) for x in new_q_world]
+                xyz_cm = [round(v * 100.0, 1) for v in xyz]
+                self.get_logger().info(f"Joint control moved → q={q_deg}°  |  Calculated FK XYZ={xyz_cm} cm")
 
         # Track last GUI command (separate from robot actual position)
         self.last_gui_q = new_q_world
@@ -507,15 +516,6 @@ class TopologicalPlannerNode(Node):
     def web_command_callback(self, msg: String):
         """
         Receives JSON commands from the web dashboard.
-        
-        Expected JSON format:
-        {
-          "action": "plan" | "plan_sequential",
-          "planner_type": "astar" | "rrt",       (optional)
-          "heuristic_type": "L1" | "L2",        (optional)
-          "goal": [theta1, theta2, theta3],      (optional, for action="plan")
-          "waypoints": [[q1], [q2], ...]         (optional, for action="plan_sequential")
-        }
         """
         try:
             data = json.loads(msg.data)
@@ -546,12 +546,125 @@ class TopologicalPlannerNode(Node):
                     self.set_parameters([rclpy.Parameter("goal", rclpy.Parameter.Type.DOUBLE_ARRAY, goal_val)])
                 
                 self.execute_plan()
+
+            elif action == "set_origin":
+                if "xyz" in data:
+                    xyz = data["xyz"]
+                    q_goal = self.ik_solver.compute_ik(xyz[0], xyz[1], xyz[2], current_q=self.current_q)
+                    if q_goal is None:
+                        msg = f"Cannot set origin: XYZ {xyz} m is out of reach."
+                        self.get_logger().error(msg)
+                        self.publish_status(False, msg)
+                        return
+                elif "q" in data:
+                    q_vals = data["q"]
+                    angles_in_degrees = self.get_parameter('angles_in_degrees').value
+                    if angles_in_degrees:
+                        q_goal = tuple(math.radians(x) for x in q_vals)
+                    else:
+                        q_goal = tuple(float(x) for x in q_vals)
+                    xyz = None
+                else:
+                    return
+
+                angles_in_degrees = self.get_parameter('angles_in_degrees').value
+                start_param = [math.degrees(x) for x in q_goal] if angles_in_degrees else list(q_goal)
+
+                self.set_parameters([rclpy.Parameter("start", rclpy.Parameter.Type.DOUBLE_ARRAY, start_param)])
+
+                q_start = self.current_q if self.current_q is not None else q_goal
+
+                self.final_planned_q = None
+                self.current_q = q_goal
+                self.last_gui_q = q_goal
+
+                self.get_logger().info(
+                    f"Updated start origin → "
+                    f"XYZ={[round(v, 3) for v in xyz] if xyz is not None else 'N/A'} m  |  "
+                    f"q={[round(v, 1) for v in start_param]}°"
+                )
+
+                if any(abs(a - b) > 1e-3 for a, b in zip(q_start, q_goal)):
+                    self.start_animation([q_start, q_goal])
+                else:
+                    out = self._build_full_msg(q_goal)
+                    self.joint_pub.publish(out)
+                    self.publish_collision_markers(q_goal)
+
+            elif action == "plan_cartesian":
+                start_xyz = data.get("start_xyz", None)
+                goal_xyz = data.get("goal_xyz", [0.15, 0.05, 0.20])
+
+                if start_xyz is not None:
+                    q_start = self.ik_solver.compute_ik(start_xyz[0], start_xyz[1], start_xyz[2], current_q=self.current_q)
+                else:
+                    q_start = self.current_q
+
+                q_goal = self.ik_solver.compute_ik(goal_xyz[0], goal_xyz[1], goal_xyz[2], current_q=q_start)
+
+                if q_start is None:
+                    msg = f"Punto Inicial {start_xyz} fuera del alcance del brazo."
+                    self.get_logger().error(msg)
+                    self.publish_status(False, msg)
+                    return
+                if q_goal is None:
+                    msg = f"Punto Objetivo {goal_xyz} fuera del alcance del brazo."
+                    self.get_logger().error(msg)
+                    self.publish_status(False, msg)
+                    return
+
+                angles_in_degrees = self.get_parameter('angles_in_degrees').value
+                start_param = [math.degrees(x) for x in q_start] if angles_in_degrees else list(q_start)
+                goal_param = [math.degrees(x) for x in q_goal] if angles_in_degrees else list(q_goal)
+
+                self.set_parameters([
+                    rclpy.Parameter("start", rclpy.Parameter.Type.DOUBLE_ARRAY, start_param),
+                    rclpy.Parameter("goal", rclpy.Parameter.Type.DOUBLE_ARRAY, goal_param)
+                ])
+
+                self.final_planned_q = None
+                self.current_q = q_start
+                self.last_gui_q = q_start
+                if not self.is_animating:
+                    out = self._build_full_msg(q_start)
+                    self.joint_pub.publish(out)
+                    self.publish_collision_markers(q_start)
+
+                start_deg = [round(math.degrees(x), 1) for x in q_start]
+                goal_deg = [round(math.degrees(x), 1) for x in q_goal]
+                self.get_logger().info(f"Cartesian IK resolved: Start q={start_deg}°, Goal q={goal_deg}°")
+
+                self.execute_plan()
                 
             elif action == "plan_sequential":
-                waypoints = data.get("waypoints", [])
-                if len(waypoints) >= 2:
+                raw_waypoints = data.get("waypoints", [])
+                if len(raw_waypoints) >= 2:
+                    resolved_waypoints = []
+                    last_q = self.current_q
+                    for pt in raw_waypoints:
+                        if len(pt) == 3 and all(isinstance(v, (int, float)) for v in pt):
+                            # Check if waypoint is Cartesian XYZ (values in meters e.g. -0.2 to 0.5) or Joint angles
+                            # Cartesian coordinates typically have magnitude < 1.0 meter
+                            if max(abs(v) for v in pt) <= 1.0:
+                                q_sol = self.ik_solver.compute_ik(pt[0], pt[1], pt[2], current_q=last_q)
+                                if q_sol is None:
+                                    msg = f"Waypoint {pt} m fuera de alcance por IK."
+                                    self.get_logger().error(msg)
+                                    self.publish_status(False, msg)
+                                    return
+                                resolved_waypoints.append(q_sol)
+                                last_q = q_sol
+                            else:
+                                resolved_waypoints.append(pt)
+                                last_q = tuple(math.radians(v) for v in pt) if self.get_parameter('angles_in_degrees').value else tuple(pt)
+                        else:
+                            resolved_waypoints.append(pt)
+
                     if self.get_parameter('angles_in_degrees').value:
-                        waypoints = [[math.degrees(coord) for coord in pt] for pt in waypoints]
+                        waypoints = [[math.degrees(coord) if abs(coord) <= 2*math.pi else coord for coord in pt] for pt in resolved_waypoints]
+                    else:
+                        waypoints = resolved_waypoints
+
                     waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
                     try:
                         import yaml
@@ -560,6 +673,7 @@ class TopologicalPlannerNode(Node):
                     except Exception as e:
                         self.get_logger().error(f"Failed to write sequential waypoints: {e}")
                     self.execute_plan()
+
                     
             elif action == "change_cspace":
                 obstacle_type = data.get("obstacle_type")
@@ -678,6 +792,7 @@ class TopologicalPlannerNode(Node):
                     self.final_planned_q = None
                     self.current_q = q_world
                     self.last_gui_q = q_world  # Sync GUI tracking to avoid re-trigger
+                    self.planner_lock_until = self.get_clock().now().nanoseconds * 1e-9 + 2.0
                     if not self.is_animating:
                         out = self._build_full_msg(q_world)
                         self.joint_pub.publish(out)
@@ -965,36 +1080,16 @@ class TopologicalPlannerNode(Node):
             
             self.final_planned_q = q_final
             self.current_q = q_final
+
+            # If this trajectory was triggered by set_origin, commit goal as the new start
+            if self._pending_origin_update:
+                self._pending_origin_update = False
+                angles_in_degrees = self.get_parameter('angles_in_degrees').value
+                new_start = [math.degrees(x) for x in q_final] if angles_in_degrees else list(q_final)
+                self.set_parameters([rclpy.Parameter("start", rclpy.Parameter.Type.DOUBLE_ARRAY, new_start)])
+                self.last_gui_q = q_final
+                self.get_logger().info(f"Origin locked → q={[round(v,1) for v in new_start]}°")
             
-            # Calculate and log the total length of the published RViz2 trail
-            if len(self.trail_points) >= 2:
-                rviz_trail_len = 0.0
-                for k in range(len(self.trail_points) - 1):
-                    p1 = self.trail_points[k]
-                    p2 = self.trail_points[k+1]
-                    rviz_trail_len += math.sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2 + (p2.z - p1.z)**2)
-                self.get_logger().info(f"Rviz trajectory trail length: {rviz_trail_len:.4f} m (matches RViz2 yellow line)")
-
-            # Calculate and log the total length using the exact URDF kinematics
-            if getattr(self, 'trajectory', None) is not None:
-                steps = int(math.ceil(self.trajectory.total_duration / 0.02))
-                formula_points = []
-                for step in range(steps + 1):
-                    t = step * 0.02
-                    q_val, _, _ = self.trajectory.evaluate(t)
-                    q_urdf = self.world_to_urdf(q_val)
-                    xyz = self.collider.urdf_parser.get_end_effector_position(q_urdf)
-                    if xyz is None:
-                        xyz = self.kinematics.compute_forward_kinematics_gripper(q_val)
-                    formula_points.append(xyz)
-                
-                formula_len = 0.0
-                for k in range(len(formula_points) - 1):
-                    p1 = formula_points[k]
-                    p2 = formula_points[k+1]
-                    formula_len += math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2 + (p2[2]-p1[2])**2)
-                self.get_logger().info(f"Formula-based trajectory length: {formula_len:.4f} m")
-
             self.get_logger().info("Trajectory execution complete ✅")
             self.publish_status(True, "Trajectory execution complete ✅")
             return

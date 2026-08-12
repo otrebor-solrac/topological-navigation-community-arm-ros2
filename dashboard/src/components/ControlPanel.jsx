@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { guiJointPub, webCmdPub, jointOffsets, jointDirections } from '../services/ros';
 
 export default function ControlPanel({ currentQ, homeQ, setHomeQ }) {
+    const [isExpanded, setIsExpanded] = useState(false);
     // Slider states (in World degrees) — initialized to 0, updated from /joint_states on first message
     const [q1, setQ1] = useState(0);
     const [q2, setQ2] = useState(0);
     const [q3, setQ3] = useState(0);
+
 
     const [userDragging, setUserDragging] = useState(false);
     const dragTimeoutRef = useRef(null);
@@ -102,8 +104,18 @@ export default function ControlPanel({ currentQ, homeQ, setHomeQ }) {
     };
 
     const handleSetHome = () => {
-        setHomeQ({ q1, q2, q3 });
+        const val1 = parseFloat(q1) || 0;
+        const val2 = parseFloat(q2) || 0;
+        const val3 = parseFloat(q3) || 0;
+        setHomeQ({ q1: val1, q2: val2, q3: val3 });
+        webCmdPub.publish({
+            data: JSON.stringify({
+                action: "go_to_position",
+                q: [val1, val2, val3]
+            })
+        });
     };
+
 
     const handleReset = () => {
         if (homeQ) {
@@ -127,91 +139,104 @@ export default function ControlPanel({ currentQ, homeQ, setHomeQ }) {
 
     return (
         <div className="card">
-            <h2 style={{ marginTop: '0px' }}>
-                Joint control (world frame)
-            </h2>
+            <div
+                onClick={() => setIsExpanded(!isExpanded)}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+            >
+                <h2 style={{ margin: '0px', fontSize: '1.05rem' }}>
+                    Joint control (world frame)
+                </h2>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', transition: 'transform 0.2s ease', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                    ▼
+                </span>
+            </div>
 
-            {/* Sliders */}
-            <div className="slider-group" style={{ marginBottom: '12px' }}>
-                <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span>Base yaw (θ₁)</span>
-                    <input
-                        type="number"
-                        min="-180"
-                        max="180"
-                        step="1"
-                        value={q1}
-                        onChange={(e) => handleSliderChange(1, e.target.value)}
-                        className="input-field"
-                        style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
-                    />
+            {isExpanded && (
+                <div style={{ marginTop: '12px' }}>
+                    {/* Sliders */}
+                    <div className="slider-group" style={{ marginBottom: '12px' }}>
+                        <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span>Base yaw (θ₁)</span>
+                            <input
+                                type="number"
+                                min="-180"
+                                max="180"
+                                step="1"
+                                value={q1}
+                                onChange={(e) => handleSliderChange(1, e.target.value)}
+                                className="input-field"
+                                style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
+                            />
+                        </div>
+                        <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            value={q1}
+                            onChange={(e) => handleSliderChange(1, e.target.value)}
+                            className="slider"
+                        />
+                    </div>
+
+                    <div className="slider-group" style={{ marginBottom: '12px' }}>
+                        <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span>Shoulder pitch (θ₂)</span>
+                            <input
+                                type="number"
+                                min="-180"
+                                max="180"
+                                step="1"
+                                value={q2}
+                                onChange={(e) => handleSliderChange(2, e.target.value)}
+                                className="input-field"
+                                style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
+                            />
+                        </div>
+                        <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            value={q2}
+                            onChange={(e) => handleSliderChange(2, e.target.value)}
+                            className="slider"
+                        />
+                    </div>
+
+                    <div className="slider-group" style={{ marginBottom: '16px' }}>
+                        <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span>Elbow pitch (θ₃)</span>
+                            <input
+                                type="number"
+                                min="-180"
+                                max="180"
+                                step="1"
+                                value={q3}
+                                onChange={(e) => handleSliderChange(3, e.target.value)}
+                                className="input-field"
+                                style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
+                            />
+                        </div>
+                        <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            value={q3}
+                            onChange={(e) => handleSliderChange(3, e.target.value)}
+                            className="slider"
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={handleSetHome} className="btn btn-primary" style={{ flex: 1 }}>
+                            Set origin
+                        </button>
+                        <button onClick={handleReset} className="btn btn-secondary" disabled={!homeQ} style={{ flex: 1 }}>
+                            Move to origin
+                        </button>
+                    </div>
                 </div>
-                <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={q1}
-                    onChange={(e) => handleSliderChange(1, e.target.value)}
-                    className="slider"
-                />
-            </div>
-
-            <div className="slider-group" style={{ marginBottom: '12px' }}>
-                <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span>Shoulder pitch (θ₂)</span>
-                    <input
-                        type="number"
-                        min="-180"
-                        max="180"
-                        step="1"
-                        value={q2}
-                        onChange={(e) => handleSliderChange(2, e.target.value)}
-                        className="input-field"
-                        style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
-                    />
-                </div>
-                <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={q2}
-                    onChange={(e) => handleSliderChange(2, e.target.value)}
-                    className="slider"
-                />
-            </div>
-
-            <div className="slider-group" style={{ marginBottom: '16px' }}>
-                <div className="slider-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span>Elbow pitch (θ₃)</span>
-                    <input
-                        type="number"
-                        min="-180"
-                        max="180"
-                        step="1"
-                        value={q3}
-                        onChange={(e) => handleSliderChange(3, e.target.value)}
-                        className="input-field"
-                        style={{ width: '80px', textAlign: 'right', padding: '2px 6px', background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--glass-border)', borderRadius: '4px' }}
-                    />
-                </div>
-                <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={q3}
-                    onChange={(e) => handleSliderChange(3, e.target.value)}
-                    className="slider"
-                />
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleSetHome} className="btn btn-primary" style={{ flex: 1 }}>
-                    Set origin
-                </button>
-                <button onClick={handleReset} className="btn btn-secondary" disabled={!homeQ} style={{ flex: 1 }}>
-                    Move to origin
-                </button>
-            </div>
+            )}
         </div>
     );
+
 }
