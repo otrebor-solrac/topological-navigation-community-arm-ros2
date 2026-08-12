@@ -132,9 +132,10 @@ class CommunityArmKinematics(BaseKinematics):
         # Effective gripper offset: dx grows with elbow angle due to the geometry
         dx_eff = dx + k_elbow * np.sin(abs(theta3))
         
-        # Upper shank and gripper offset project using theta3 (absolute angle of the forearm)
-        r_offset = dx_eff * c3 - dz * s3
-        z_offset = dx_eff * s3 + dz * c3
+        # The mechanical parallelogram keeps the wrist perfectly vertical (and the gripper perfectly horizontal) at all times.
+        # Therefore, the gripper offsets (dx, dz) do NOT rotate with the upper arm (theta3).
+        r_offset = dx_eff
+        z_offset = dz
         
         r = self.lower_shank * c2 + self.upper_shank * c3 + r_offset
         x = r * c1

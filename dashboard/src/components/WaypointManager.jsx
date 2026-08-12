@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { webCmdPub, statusSub } from '../services/ros';
 
 export default function WaypointManager({ currentQ, homeQ, waypoints, setWaypoints }) {
+    const [isExpanded, setIsExpanded] = useState(false);
     const [planner, setPlanner] = useState('astar');
     const [heuristic, setHeuristic] = useState('L1');
     const [status, setStatus] = useState(null);
+
 
     // Listen to planner status messages
     useEffect(() => {
@@ -73,15 +75,28 @@ export default function WaypointManager({ currentQ, homeQ, waypoints, setWaypoin
 
     return (
         <div className="card">
-            <h2>Sequential waypoints</h2>
-            
-            <button 
-                onClick={handleAddWaypoint} 
-                className="btn btn-primary" 
-                style={{ width: '100%', marginBottom: '10px' }}
+            <div 
+                onClick={() => setIsExpanded(!isExpanded)} 
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
             >
-                Add current pose as waypoint
-            </button>
+                <h2 style={{ margin: '0px', fontSize: '1.05rem' }}>
+                    Sequential waypoints
+                </h2>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', transition: 'transform 0.2s ease', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                    ▼
+                </span>
+            </div>
+
+            {isExpanded && (
+                <div style={{ marginTop: '12px' }}>
+                    <button 
+                        onClick={handleAddWaypoint} 
+                        className="btn btn-primary" 
+                        style={{ width: '100%', marginBottom: '10px' }}
+                    >
+                        Add current pose as waypoint
+                    </button>
+
 
             <div id="waypoint-list" style={{ maxHeight: '200px', overflowY: 'auto', margin: '10px 0' }}>
                 {/* Always show origin row — loading from params service if not yet received */}
@@ -200,6 +215,9 @@ export default function WaypointManager({ currentQ, homeQ, waypoints, setWaypoin
                     {status.message}
                 </div>
             )}
+                </div>
+            )}
         </div>
     );
+
 }

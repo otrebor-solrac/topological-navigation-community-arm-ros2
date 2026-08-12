@@ -3,18 +3,24 @@ import { ros, startConfigSub, webCmdPub, statusSub } from './services/ros';
 
 import ThreeVisualizer from './components/ThreeVisualizer';
 import ControlPanel from './components/ControlPanel';
+import CartesianControlPanel from './components/CartesianControlPanel';
+import CartesianOriginPanel from './components/CartesianOriginPanel';
+import CartesianWaypointManager from './components/CartesianWaypointManager';
+import ObstaclePositioner from './components/ObstaclePositioner';
 import WaypointManager from './components/WaypointManager';
 import TraceTable from './components/TraceTable';
 import KinematicsProfile from './components/KinematicsProfile';
 
+
 export default function App() {
     const [currentQ, setCurrentQ] = useState(null);
     const [firstPositionReceived, setFirstPositionReceived] = useState(false);
-    const [activeTab, setActiveTab] = useState('control');
+    const [activeTab, setActiveTab] = useState('joint'); // 'joint', 'cartesian', 'kinematics'
     const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
     // homeQ: loaded from planner_params.yaml via /whitebox_planner/get_parameters service
     const [homeQ, setHomeQ] = useState(null);
+    const [homeCartesian, setHomeCartesian] = useState(null);
 
     // Global obstacle & resolution states
     const [obstacle, setObstacle] = useState('no_obstacles');
@@ -33,11 +39,14 @@ export default function App() {
     const [showObstacleCollision, setShowObstacleCollision] = useState(false);
     const [cspaceMode, setCspaceMode] = useState('obs'); // 'obs' or 'free'
     const [isLoadingVoxels, setIsLoadingVoxels] = useState(true);
+    const [showVisibilitySettings, setShowVisibilitySettings] = useState(false);
 
     // Waypoints state lifted up from WaypointManager
     const [waypoints, setWaypoints] = useState([]);
+    const [cartesianWaypoints, setCartesianWaypoints] = useState([]);
 
     const trailRef = useRef(null);
+
 
     // Monitor ROS connection
     useEffect(() => {
@@ -185,16 +194,25 @@ export default function App() {
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="tab-bar" style={{ flexShrink: 0 }}>
+                <div className="tab-bar" style={{ flexShrink: 0, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
                     <button
-                        onClick={() => setActiveTab('control')}
-                        className={`tab-btn ${activeTab === 'control' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('joint')}
+                        className={`tab-btn ${activeTab === 'joint' ? 'active' : ''}`}
+                        style={{ fontSize: '0.78rem', padding: '6px 4px' }}
                     >
-                        Control & Planning
+                        Joint space
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('cartesian')}
+                        className={`tab-btn ${activeTab === 'cartesian' ? 'active' : ''}`}
+                        style={{ fontSize: '0.78rem', padding: '6px 4px' }}
+                    >
+                        Cartesian space
                     </button>
                     <button
                         onClick={() => setActiveTab('kinematics')}
                         className={`tab-btn ${activeTab === 'kinematics' ? 'active' : ''}`}
+                        style={{ fontSize: '0.78rem', padding: '6px 4px' }}
                     >
                         Kinematics & Analytics
                     </button>
@@ -202,8 +220,8 @@ export default function App() {
 
                 {/* Tab Contents Area */}
                 <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', marginBottom: '16px' }}>
-                    {/* Tab 1: Control & Planning */}
-                    <div className={`tab-content ${activeTab === 'control' ? 'active' : ''}`}>
+                    {/* Tab 1: Joint space */}
+                    <div className={`tab-content ${activeTab === 'joint' ? 'active' : ''}`}>
                         <ControlPanel
                             currentQ={currentQ}
                             firstPositionReceived={firstPositionReceived}
@@ -218,58 +236,165 @@ export default function App() {
                                 setWaypoints={setWaypoints}
                             />
                         </div>
+                        <ObstaclePositioner activeObstacle={obstacle} resolution={resolution} />
+                        
+                        {/* Visibility & Settings Card */}
                         <div className="card" style={{ marginTop: '16px' }}>
-                            <h2 style={{ marginTop: '0', fontSize: '1em' }}>Visibility & settings</h2>
-                            <button
-                                onClick={handleClearTrail}
-                                className="btn btn-secondary"
-                                style={{ width: '100%', marginBottom: '12px', padding: '6px 12px', fontSize: '0.85em' }}
+                            <div 
+                                onClick={() => setShowVisibilitySettings(!showVisibilitySettings)} 
+                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
                             >
-                                Clear path trail
-                            </button>
-                            <div>
-                                <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={showTrail}
-                                        onChange={(e) => handleToggleTrail(e.target.checked)}
-                                    />
-                                    Show path trail
-                                </label>
+                                <h2 style={{ margin: '0', fontSize: '1.05em' }}>
+                                    Visibility & settings
+                                </h2>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', transition: 'transform 0.2s ease', transform: showVisibilitySettings ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                                    ▼
+                                </span>
                             </div>
-                            <div style={{ marginTop: '6px' }}>
-                                <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={showSelfCollision}
-                                        onChange={(e) => setShowSelfCollision(e.target.checked)}
-                                        disabled={cspaceMode !== 'obs'}
-                                    />
-                                    Show self-collisions (C-self)
-                                </label>
-                            </div>
-                            <div style={{ marginTop: '6px' }}>
-                                <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={showObstacleCollision}
-                                        onChange={(e) => setShowObstacleCollision(e.target.checked)}
-                                        disabled={cspaceMode !== 'obs'}
-                                    />
-                                    Show obstacle-collisions (C-obs)
-                                </label>
-                            </div>
-                            <div style={{ marginTop: '10px' }}>
-                                <button
-                                    onClick={toggleCspaceMode}
-                                    className={`btn ${cspaceMode === 'obs' ? 'btn-danger' : 'btn-secondary'}`}
-                                    style={{ width: '100%', fontSize: '0.8em', padding: '6px' }}
-                                >
-                                    {cspaceMode === 'obs' ? 'Current: C-obs (obstacles)' : 'Current: C-free (workspace)'}
-                                </button>
-                            </div>
+
+                            {showVisibilitySettings && (
+                                <div style={{ marginTop: '12px' }}>
+                                    <button
+                                        onClick={handleClearTrail}
+                                        className="btn btn-secondary"
+                                        style={{ width: '100%', marginBottom: '12px', padding: '6px 12px', fontSize: '0.85em' }}
+                                    >
+                                        Clear path trail
+                                    </button>
+                                    <div>
+                                        <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={showTrail}
+                                                onChange={(e) => handleToggleTrail(e.target.checked)}
+                                            />
+                                            Show path trail
+                                        </label>
+                                    </div>
+                                    <div style={{ marginTop: '6px' }}>
+                                        <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={showSelfCollision}
+                                                onChange={(e) => setShowSelfCollision(e.target.checked)}
+                                                disabled={cspaceMode !== 'obs'}
+                                            />
+                                            Show self-collisions (C-self)
+                                        </label>
+                                    </div>
+                                    <div style={{ marginTop: '6px' }}>
+                                        <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={showObstacleCollision}
+                                                onChange={(e) => setShowObstacleCollision(e.target.checked)}
+                                                disabled={cspaceMode !== 'obs'}
+                                            />
+                                            Show obstacle-collisions (C-obs)
+                                        </label>
+                                    </div>
+                                    <div style={{ marginTop: '10px' }}>
+                                        <button
+                                            onClick={toggleCspaceMode}
+                                            className={`btn ${cspaceMode === 'obs' ? 'btn-danger' : 'btn-secondary'}`}
+                                            style={{ width: '100%', fontSize: '0.8em', padding: '6px' }}
+                                        >
+                                            {cspaceMode === 'obs' ? 'Current: C-obs (obstacles)' : 'Current: C-free (workspace)'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {/* Tab 2: Cartesian space */}
+                    <div className={`tab-content ${activeTab === 'cartesian' ? 'active' : ''}`}>
+                        <CartesianOriginPanel
+                            currentQ={currentQ}
+                            homeQ={homeQ}
+                            setHomeQ={setHomeQ}
+                            homeCartesian={homeCartesian}
+                            setHomeCartesian={setHomeCartesian}
+                        />
+                        <CartesianControlPanel homeQ={homeQ} currentQ={currentQ} />
+                        <CartesianWaypointManager
+                            currentQ={currentQ}
+                            homeQ={homeQ}
+                            cartesianWaypoints={cartesianWaypoints}
+                            setCartesianWaypoints={setCartesianWaypoints}
+                            homeCartesian={homeCartesian}
+                        />
+                        <ObstaclePositioner activeObstacle={obstacle} resolution={resolution} />
+
+                        {/* Visibility & Settings Card */}
+                        <div className="card" style={{ marginTop: '16px' }}>
+                            <div 
+                                onClick={() => setShowVisibilitySettings(!showVisibilitySettings)} 
+                                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                            >
+                                <h2 style={{ margin: '0', fontSize: '1.05em' }}>
+                                    Visibility & settings
+                                </h2>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', transition: 'transform 0.2s ease', transform: showVisibilitySettings ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                                    ▼
+                                </span>
+                            </div>
+
+                            {showVisibilitySettings && (
+                                <div style={{ marginTop: '12px' }}>
+                                    <button
+                                        onClick={handleClearTrail}
+                                        className="btn btn-secondary"
+                                        style={{ width: '100%', marginBottom: '12px', padding: '6px 12px', fontSize: '0.85em' }}
+                                    >
+                                        Clear path trail
+                                    </button>
+                                    <div>
+                                        <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={showTrail}
+                                                onChange={(e) => handleToggleTrail(e.target.checked)}
+                                            />
+                                            Show path trail
+                                        </label>
+                                    </div>
+                                    <div style={{ marginTop: '6px' }}>
+                                        <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={showSelfCollision}
+                                                onChange={(e) => setShowSelfCollision(e.target.checked)}
+                                                disabled={cspaceMode !== 'obs'}
+                                            />
+                                            Show self-collisions (C-self)
+                                        </label>
+                                    </div>
+                                    <div style={{ marginTop: '6px' }}>
+                                        <label className="checkbox-container" style={{ fontSize: '0.85em' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={showObstacleCollision}
+                                                onChange={(e) => setShowObstacleCollision(e.target.checked)}
+                                                disabled={cspaceMode !== 'obs'}
+                                            />
+                                            Show obstacle-collisions (C-obs)
+                                        </label>
+                                    </div>
+                                    <div style={{ marginTop: '10px' }}>
+                                        <button
+                                            onClick={toggleCspaceMode}
+                                            className={`btn ${cspaceMode === 'obs' ? 'btn-danger' : 'btn-secondary'}`}
+                                            style={{ width: '100%', fontSize: '0.8em', padding: '6px' }}
+                                        >
+                                            {cspaceMode === 'obs' ? 'Current: C-obs (obstacles)' : 'Current: C-free (workspace)'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
 
                     {/* Tab 2: Kinematics & Analytics */}
                     <div className={`tab-content ${activeTab === 'kinematics' ? 'active' : ''}`}>
