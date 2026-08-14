@@ -32,7 +32,7 @@ class CommunityArmIKSolver:
         r_xy = math.sqrt(x**2 + y**2)
         
         # Because the gripper is perfectly horizontal, we subtract its offset to find the wrist target
-        r_wrist = r_xy - self.gripper_dx
+        r_wrist = abs(r_xy - self.gripper_dx)
         z_wrist = z - self.gripper_dz
         
         z_prime = z_wrist - self.base_height
@@ -123,6 +123,10 @@ class CommunityArmIKSolver:
 
         # Because the gripper is perfectly horizontal, we subtract its offset to find the wrist target
         r_wrist = r_xy - self.gripper_dx
+        if r_wrist < 0:
+            r_wrist = -r_wrist
+            q1 = (q1 + math.pi + math.pi) % (2.0 * math.pi) - math.pi
+
         z_wrist = z - self.gripper_dz
 
         z_prime = z_wrist - self.base_height
@@ -134,7 +138,7 @@ class CommunityArmIKSolver:
         cos_delta = max(-1.0, min(1.0, cos_delta))
         
         sin_delta_mag = math.sqrt(1.0 - cos_delta**2)
-        delta_theta = math.atan2(sin_delta_mag if elbow_up else -sin_delta_mag, cos_delta)
+        delta_theta = math.atan2(-sin_delta_mag if elbow_up else sin_delta_mag, cos_delta)
 
         A = L1 + L2 * cos_delta
         B = L2 * math.sin(delta_theta)
@@ -145,8 +149,8 @@ class CommunityArmIKSolver:
         theta2 = math.atan2(num_theta2, den_theta2)
         q2 = theta2 + math.pi / 2.0
 
-        # For the parallelogram mechanism, q3 drives the absolute angle of the upper shank
-        q3 = math.pi + delta_theta
+        # Relative elbow bend q3
+        q3 = -delta_theta
 
         # Normalize angles appropriately for T^3 Community Arm:
         # q1 (base yaw): [-pi, pi]

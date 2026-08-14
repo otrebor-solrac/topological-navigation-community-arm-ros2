@@ -56,7 +56,7 @@ class TopologicalPlannerNode(Node):
         self.declare_parameter('link_lengths.base_height', 0.130)
         self.declare_parameter('link_lengths.lower_shank', 0.140)
         self.declare_parameter('link_lengths.upper_shank', 0.140)
-        self.declare_parameter('link_lengths.gripper_dx', -0.05467)
+        self.declare_parameter('link_lengths.gripper_dx', 0.05467)
         self.declare_parameter('link_lengths.gripper_dz', 0.0)
         self.declare_parameter('link_lengths.gripper_k_elbow', 0.0)
 
@@ -577,6 +577,8 @@ class TopologicalPlannerNode(Node):
                 self.final_planned_q = None
                 self.current_q = q_goal
                 self.last_gui_q = q_goal
+                # Lock GUI slider overrides for 2 seconds after setting Cartesian origin
+                self.planner_lock_until = self.get_clock().now().nanoseconds * 1e-9 + 2.0
 
                 self.get_logger().info(
                     f"Updated start origin → "

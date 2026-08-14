@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
 import { webCmdPub } from '../services/ros';
+import { computeFK, computeIK } from '../utils/kinematics';
 
-export default function CartesianOriginPanel({ homeCartesian, setHomeCartesian }) {
+export default function CartesianOriginPanel({ currentQ, homeCartesian, setHomeCartesian }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [origX, setOrigX] = useState('-13.3');
     const [origY, setOrigY] = useState('0');
     const [origZ, setOrigZ] = useState('19');
+
+    // Helper: load current robot position into inputs
+    const handleSyncCurrentPosition = () => {
+        if (!currentQ) return;
+        const rad2deg = 180.0 / Math.PI;
+        const fk = computeFK(currentQ[0] * rad2deg, currentQ[1] * rad2deg, currentQ[2] * rad2deg);
+        setOrigX(fk.x_cm);
+        setOrigY(fk.y_cm);
+        setOrigZ(fk.z_cm);
+    };
 
     const handleSetOrigin = () => {
         const x_cm = parseFloat(origX);
@@ -76,20 +87,49 @@ export default function CartesianOriginPanel({ homeCartesian, setHomeCartesian }
                         Set or move to origin using Cartesian coordinates (X, Y, Z in cm).
                     </p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
                         <div>
                             <label style={{ fontSize: '0.75rem' }}>X (cm)</label>
-                            <input type="number" step="0.1" value={origX} onChange={(e) => setOrigX(e.target.value)} className="input-field" style={{ width: '100%' }} />
+                            <input 
+                                type="number" 
+                                step="0.1" 
+                                value={origX} 
+                                onChange={(e) => setOrigX(e.target.value)} 
+                                className="input-field" 
+                                style={{ width: '100%' }} 
+                            />
                         </div>
                         <div>
                             <label style={{ fontSize: '0.75rem' }}>Y (cm)</label>
-                            <input type="number" step="0.1" value={origY} onChange={(e) => setOrigY(e.target.value)} className="input-field" style={{ width: '100%' }} />
+                            <input 
+                                type="number" 
+                                step="0.1" 
+                                value={origY} 
+                                onChange={(e) => setOrigY(e.target.value)} 
+                                className="input-field" 
+                                style={{ width: '100%' }} 
+                            />
                         </div>
                         <div>
                             <label style={{ fontSize: '0.75rem' }}>Z (cm)</label>
-                            <input type="number" step="0.1" value={origZ} onChange={(e) => setOrigZ(e.target.value)} className="input-field" style={{ width: '100%' }} />
+                            <input 
+                                type="number" 
+                                step="0.1" 
+                                value={origZ} 
+                                onChange={(e) => setOrigZ(e.target.value)} 
+                                className="input-field" 
+                                style={{ width: '100%' }} 
+                            />
                         </div>
                     </div>
+
+                    <button
+                        onClick={handleSyncCurrentPosition}
+                        className="btn btn-secondary"
+                        style={{ width: '100%', marginBottom: '12px', fontSize: '0.78rem', padding: '4px' }}
+                    >
+                        📍 Get current position (FK)
+                    </button>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <button 

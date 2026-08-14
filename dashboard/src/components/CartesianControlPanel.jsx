@@ -12,14 +12,14 @@ export const computeFK = (deg1, deg2, deg3) => {
     const baseHeight = 0.130;
     const lowerShank = 0.140;
     const upperShank = 0.140;
-    const gripperDx = -0.05467;
+    const gripperDx = 0.05467;
     const gripperDz = -0.0217;
 
     const c1 = Math.cos(q1);
     const s1 = Math.sin(q1);
 
     const theta2 = q2 - Math.PI / 2.0;
-    const theta3 = theta2 + (q3 - Math.PI);
+    const theta3 = theta2 - q3;
 
     const c2 = Math.cos(theta2);
     const s2 = Math.sin(theta2);
@@ -40,15 +40,15 @@ export const computeFK = (deg1, deg2, deg3) => {
 export default function CartesianControlPanel({ homeQ, currentQ }) {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Default start position in cm (-13.3, 0, 19.0)
-    const [startX, setStartX] = useState('-13.3');
+    // Default start position in cm (-24.6, 0, 16.0)
+    const [startX, setStartX] = useState('-24.6');
     const [startY, setStartY] = useState('0');
-    const [startZ, setStartZ] = useState('19');
+    const [startZ, setStartZ] = useState('16.0');
 
-    // Default goal position in cm (13.3, 0, 19.0)
-    const [goalX, setGoalX] = useState('13.3');
+    // Default goal position in cm (24.6, 0, 16.0)
+    const [goalX, setGoalX] = useState('24.6');
     const [goalY, setGoalY] = useState('0');
-    const [goalZ, setGoalZ] = useState('19');
+    const [goalZ, setGoalZ] = useState('16.0');
 
     // Sync Start position when homeQ is loaded
     useEffect(() => {
@@ -70,7 +70,7 @@ export default function CartesianControlPanel({ homeQ, currentQ }) {
         }
     };
 
-    // Kinematic reachability helper (base_height = 0.130m, L1 = 0.140m, L2_eff = 0.08533m)
+    // Kinematic reachability helper (base_height = 0.130m, L1 = 0.140m, L2 = 0.140m, dx = 0.05467m, dz = -0.0217m)
     const checkReachability = (xStr, yStr, zStr) => {
         const x = parseFloat(xStr) / 100.0;
         const y = parseFloat(yStr) / 100.0;
@@ -79,13 +79,19 @@ export default function CartesianControlPanel({ homeQ, currentQ }) {
 
         const baseHeight = 0.130;
         const L1 = 0.140;
-        const L2Eff = 0.08533;
-        const maxReach = L1 + L2Eff;
-        const minReach = Math.abs(L1 - L2Eff);
+        const L2 = 0.140;
+        const gripperDx = 0.05467;
+        const gripperDz = -0.0217;
+
+        const maxReach = L1 + L2;
+        const minReach = Math.abs(L1 - L2);
 
         const rXY = Math.sqrt(x * x + y * y);
-        const zPrime = z - baseHeight;
-        const dist = Math.sqrt(rXY * rXY + zPrime * zPrime);
+        const rWrist = Math.abs(rXY - gripperDx);
+        const zWrist = z - gripperDz;
+        const zPrime = zWrist - baseHeight;
+
+        const dist = Math.sqrt(rWrist * rWrist + zPrime * zPrime);
 
         return dist >= minReach && dist <= maxReach;
     };
