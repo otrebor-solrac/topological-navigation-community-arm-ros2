@@ -59,9 +59,7 @@ class CommunityArmKinematics(BaseKinematics):
         
         # Absolute angles relative to horizontal plane
         theta2 = q2 - np.pi / 2.0
-        # theta3 = absolute angle of upper shank = lower shank angle + relative bend
-        # q3_world=pi means no bend (colinear), so bend = q3 - pi
-        theta3 = theta2 + (q3 - np.pi)
+        theta3 = theta2 - q3
         
         c2, s2 = np.cos(theta2), np.sin(theta2)
         c3, s3 = np.cos(theta3), np.sin(theta3)
@@ -118,8 +116,7 @@ class CommunityArmKinematics(BaseKinematics):
         
         # Absolute angles relative to horizontal plane
         theta2 = q2 - np.pi / 2.0
-        # theta3 = absolute angle of upper shank = lower shank angle + relative bend
-        theta3 = theta2 + (q3 - np.pi)
+        theta3 = theta2 - q3
         
         c2, s2 = np.cos(theta2), np.sin(theta2)   # lower shank
         c3, s3 = np.cos(theta3), np.sin(theta3)   # upper shank

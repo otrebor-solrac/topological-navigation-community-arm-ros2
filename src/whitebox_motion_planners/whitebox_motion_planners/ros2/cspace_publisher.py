@@ -81,7 +81,7 @@ class CSpaceVoxelPublisher(Node):
         self.declare_parameter('link_lengths.base_height', 0.130)
         self.declare_parameter('link_lengths.lower_shank', 0.140)
         self.declare_parameter('link_lengths.upper_shank', 0.140)
-        self.declare_parameter('link_lengths.gripper_dx', -0.05467)
+        self.declare_parameter('link_lengths.gripper_dx', 0.05467)
         self.declare_parameter('link_lengths.gripper_dz', 0.0)
         self.declare_parameter('link_lengths.gripper_k_elbow', 0.0)
         
@@ -689,7 +689,7 @@ class CSpaceVoxelPublisher(Node):
                 pos_xyz = data.get("position_xyz", [0.3, 0.0, 0.15])
                 step_size = float(data.get("step_size_deg", 15.0))
                 
-                self.get_logger().info(f"Moving obstacle '{obstacle_type}' to position {pos_xyz} at {step_size}deg")
+                self.get_logger().info(f"Moving obstacle '{obstacle_type}' center to target position {pos_xyz} at {step_size}deg")
                 
                 self.grid = GridDiscretizer(step_size_deg=step_size, num_dof=self.kinematics.get_dof())
                 obstacles_urdf_content = '<?xml version="1.0"?><robot name="obstacles"><link name="root"/></robot>'
@@ -700,17 +700,40 @@ class CSpaceVoxelPublisher(Node):
                         if os.path.exists(obstacles_urdf):
                             tree = ET.parse(obstacles_urdf)
                             root = tree.getroot()
+                            
+                            # 1. Parse original obstacle spheres to compute current center of mass / centroid
+                            orig_spheres = self._load_obstacles_from_xml_root(root)
+                            if orig_spheres:
+                                centers = np.array([c for c, r in orig_spheres])
+                                orig_centroid = np.mean(centers, axis=0)
+                            else:
+                                orig_centroid = np.array([0.0, 0.0, 0.0])
+                                
+                            # 2. Compute shift required to move centroid to target pos_xyz
+                            target_pos = np.array(pos_xyz, dtype=float)
+                            shift = target_pos - orig_centroid
+                            
+                            # 3. Update URDF joint origins for RViz visualization
                             for joint in root.findall('joint'):
                                 origin = joint.find('origin')
-                                if origin is not None:
-                                    origin.set('xyz', f"{pos_xyz[0]} {pos_xyz[1]} {pos_xyz[2]}")
+                                if origin is None:
+                                    origin = ET.SubElement(joint, 'origin')
+                                    origin.set('rpy', '0 0 0')
+                                    current_xyz = np.array([0.0, 0.0, 0.0])
+                                else:
+                                    xyz_str = origin.get('xyz', '0 0 0')
+                                    current_xyz = np.array([float(x) for x in xyz_str.split()])
+                                    
+                                new_xyz = current_xyz + shift
+                                origin.set('xyz', f"{new_xyz[0]:.6f} {new_xyz[1]:.6f} {new_xyz[2]:.6f}")
                             
                             obstacles_urdf_content = ET.tostring(root, encoding='utf-8').decode('utf-8')
                             
+                            # 4. Update collision spheres in FoamCollider
                             self.collider.spherical_obstacles = []
-                            obstacles = self._load_obstacles_from_xml_root(root)
-                            for center, radius in obstacles:
-                                self.collider.add_obstacle(center, radius)
+                            for center, radius in orig_spheres:
+                                new_center = (center[0] + shift[0], center[1] + shift[1], center[2] + shift[2])
+                                self.collider.add_obstacle(new_center, radius)
                     except Exception as e:
                         self.get_logger().error(f"Failed to move obstacle URDF dynamically: {e}")
 

@@ -1,0 +1,185 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\spanishdeactivate{<>}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{babel}
+
+\geometry{top=2.0cm, bottom=2.0cm, left=2.0cm, right=2.0cm}
+
+\title{\textbf{Análisis Matemático de Cinemática Directa e Inversa}\\
+\large Brazo Robótico $T^3$ Community Arm (3 Eslabones Planares)}
+\author{Documentación de Tesis ROS 2}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\begin{tikzpicture}[scale=0.33]
+    % Ejes principales
+    \draw[thick] (-3,0) -- (31,0) node[right] {$R$};
+    \draw[thick] (0,0) -- (0,28) node[above] {$Z$};
+    
+    % Base del robot
+    \draw[fill=gray!30] (-1.5,0) rectangle (1.5,13);
+    \node at (0,6.5) {$L_{\text{base}}$};
+    
+    % Eje vertical inferior de referencia desde el hombro (q2 = 0 deg)
+    \draw[dashed, blue, line width=1.4pt] (0,13) -- (0,1) node[below] {Vertical Inferior ($q_2=0^\circ$)};
+    
+    % Hombro
+    \filldraw[fill=orange!80] (0,13) circle (0.8) node[left=10pt] {\textbf{Hombro}};
+    
+    % Eslabón 1 (L1)
+    \draw[line width=4pt, orange!90!black] (0,13) -- (9.9,22.9) node[midway, above left] {$L_1$};
+    
+    % Arco q2 (medido desde el eje vertical INFERIOR hacia arriba/derecha)
+    \draw[line width=1.5pt, blue] (0,8) arc (-90:45:5);
+    \node[blue] at (5.5, 9.5) {\Large \textbf{$q_2$}};
+    
+    % Codo
+    \filldraw[fill=orange!80] (9.9,22.9) circle (0.8) node[above=8pt] {\textbf{Codo}};
+    
+    % Prolongación recta de L1 (referencia para q3 = 0 deg)
+    \draw[dashed, gray, line width=1.2pt] (9.9,22.9) -- (16.96,29.96) node[above right] {Prolongación de $L_1$};
+    
+    % Eslabón 2 (L2)
+    \draw[line width=4pt, orange!90!black] (9.9,22.9) -- (23.05,18.11) node[midway, above right] {$L_2$};
+    
+    % Arco q3 (medido desde la prolongación de L1)
+    \draw[line width=1.5pt, red] (14.14,27.14) arc (45:-20:6);
+    \node[red] at (17.5, 25) {\Large \textbf{$q_3$}};
+    
+    % Muñeca
+    \filldraw[fill=black] (23.05,18.11) circle (0.6) node[above] {\textbf{Muñeca}};
+    
+    % Offsets de pinza extending FORWARD to the RIGHT (+R)
+    \draw[line width=2pt, darkgray] (23.05,18.11) -- (28.52,18.11) node[midway, above] {$d_x$};
+    \draw[line width=2pt, darkgray] (28.52,18.11) -- (28.52,15.94) node[midway, right] {$d_z$};
+    
+    % Efector Final
+    \filldraw[fill=red] (28.52,15.94) circle (0.7) node[below right] {\textbf{Efector Final} $(r, Z)$};
+\end{tikzpicture}\\
+\small \textbf{Figura 1:} Esquema geométrico del manipulador en el plano $RZ$. El ángulo del hombro $q_2$ se mide desde la \textbf{Vertical Inferior ($-Z$)}. El ángulo del codo $q_3$ se mide relativo a la prolongación del eslabón $L_1$. La pinza extiende hacia la derecha ($+d_x$).
+\end{center}
+
+\section{Definición Geométrica y Parámetros del Robot}
+
+El robot $T^3$ Community Arm se modela en el plano de elevación $RZ$ como un manipulador antropomórfico planar de 3 eslabones principales con base rotacional ($q_1$) y dos eslabones de elevación ($q_2, q_3$).
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Parámetro} & \textbf{Símbolo} & \textbf{Valor} \\ \midrule
+Altura de la Base & $L_{\text{base}}$ & $13.0\text{ cm}$ \\
+Longitud Eslabón 1 (Hombro) & $L_1$ & $14.0\text{ cm}$ \\
+Longitud Eslabón 2 (Codo) & $L_2$ & $14.0\text{ cm}$ \\
+Offset de Pinza Longitudinal & $d_x$ & $+5.47\text{ cm}$ \\
+Offset de Pinza Vertical & $d_z$ & $-2.17\text{ cm}$ \\ \bottomrule
+\end{tabular}
+\caption{Parámetros dimensionales del robot Community Arm.}
+\end{table}
+
+\subsection{\texorpdfstring{Definición de Ángulos Articulares ($q_2, q_3$)}{Definicion de Angulos Articulares (q2, q3)}}
+
+\begin{itemize}
+    \item $q_1$: Rotación de la base en el plano $XY$ (Azimut).
+    \item $q_2$: Ángulo de la articulación del hombro, medido desde la \textbf{Vertical Inferior ($-Z$)}.
+    \item $q_3$: Ángulo de la articulación del codo, medido relativo a la \textbf{prolongación del eslabón $L_1$}.
+\end{itemize}
+
+\section{Cinemática Directa (Forward Kinematics - FK)}
+
+Dado el vector de ángulos articulares $q = (q_1, q_2, q_3)$ expresado en radianes:
+
+\subsection{Conversión a Ángulos Absolutos respecto a la Horizontal}
+
+Para proyectar los eslabones trigonométricamente sobre el sistema cartesiano $+R$ (horizontal), se definen los ángulos absolutos $\theta_2$ y $\theta_3$:
+
+\begin{equation}
+\theta_2 = q_2 - \frac{\pi}{2}
+\end{equation}
+
+\begin{equation}
+\theta_3 = \theta_2 - q_3 = q_2 - q_3 - \frac{\pi}{2}
+\end{equation}
+
+\subsection{Ecuaciones de Posición de la Muñeca}
+
+En el plano de elevación $RZ$:
+\begin{equation}
+r_{\text{wrist}} = L_1 \cos(\theta_2) + L_2 \cos(\theta_3)
+\end{equation}
+\begin{equation}
+z_{\text{wrist}} = L_{\text{base}} + L_1 \sin(\theta_2) + L_2 \sin(\theta_3)
+\end{equation}
+
+\subsection{Ecuaciones Finales del Efector Final (Gripper Tip)}
+
+Debido al paralelogramo horizontal rígido, los offsets $(d_x, d_z)$ actúan como traslaciones puras:
+\begin{equation}
+r_{\text{total}} = r_{\text{wrist}} + d_x
+\end{equation}
+\begin{equation}
+X = r_{\text{total}} \cdot \cos(q_1) = \left( L_1 \cos(\theta_2) + L_2 \cos(\theta_3) + d_x \right) \cos(q_1)
+\end{equation}
+\begin{equation}
+Y = r_{\text{total}} \cdot \sin(q_1) = \left( L_1 \cos(\theta_2) + L_2 \cos(\theta_3) + d_x \right) \sin(q_1)
+\end{equation}
+\begin{equation}
+Z = L_{\text{base}} + L_1 \sin(\theta_2) + L_2 \sin(\theta_3) + d_z
+\end{equation}
+
+\section{Cinemática Inversa (Inverse Kinematics - IK)}
+
+Dado un punto objetivo $(X, Y, Z)$ en coordenadas cartesianas globales, se calcula $q = (q_1, q_2, q_3)$:
+
+\subsection{\texorpdfstring{Paso 1: Ángulo de la Base ($q_1$)}{Paso 1: Angulo de la Base (q1)}}
+\begin{equation}
+r_{xy} = \sqrt{X^2 + Y^2}
+\end{equation}
+\begin{equation}
+q_1 = \text{atan2}(Y, X)
+\end{equation}
+
+\subsection{Paso 2: Aislamiento de la Muñeca}
+\begin{equation}
+r_{\text{wrist}} = r_{xy} - d_x
+\end{equation}
+\begin{equation}
+z' = Z - d_z - L_{\text{base}}
+\end{equation}
+
+\subsection{\texorpdfstring{Paso 3: Ley de Cosenos para el Ángulo del Codo ($\delta$)}{Paso 3: Ley de Cosenos para el Angulo del Codo (delta)}}
+\begin{equation}
+D^2 = r_{\text{wrist}}^2 + (z')^2
+\end{equation}
+\begin{equation}
+\cos(\delta) = \frac{r_{\text{wrist}}^2 + (z')^2 - L_1^2 - L_2^2}{2 L_1 L_2}
+\end{equation}
+\begin{equation}
+\delta = \text{atan2}\left(\pm \sqrt{1 - \cos^2(\delta)}, \; \cos(\delta)\right)
+\end{equation}
+
+\subsection{\texorpdfstring{Paso 4: Solución de $q_2$ y $q_3$}{Paso 4: Solucion de q2 y q3}}
+\begin{equation}
+A = L_1 + L_2 \cos(\delta), \quad B = L_2 \sin(\delta)
+\end{equation}
+\begin{equation}
+\theta_2 = \text{atan2}\left( A \cdot z' - B \cdot r_{\text{wrist}}, \; A \cdot r_{\text{wrist}} + B \cdot z' \right)
+\end{equation}
+\begin{equation}
+q_2 = \theta_2 + \frac{\pi}{2}
+\end{equation}
+\begin{equation}
+q_3 = -\delta
+\end{equation}
+
+\end{document}
