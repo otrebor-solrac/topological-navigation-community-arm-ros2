@@ -474,9 +474,9 @@ class UrdfCollisionParser:
         link_name = 'gripperbase_by_ftobler'
         if link_name in tfs:
             T = tfs[link_name]
-            # X is negative because the local frame is oriented towards the base
-            # Z is negative because the claws extend downwards
-            tcp_local = np.array([0.02, 0.0, -0.0217, 1.0])
+            # X is negative because the local frame is oriented towards the base (-54.67 mm)
+            # Z is negative because the claws extend downwards (-21.70 mm)
+            tcp_local = np.array([-0.05467, 0.0, -0.0217, 1.0])
             return (T @ tcp_local)[:3]
             
         # # Fallback to standard end-effector link names if base link not found
