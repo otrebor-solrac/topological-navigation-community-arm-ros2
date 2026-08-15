@@ -2,11 +2,25 @@ import React, { useState } from 'react';
 import { webCmdPub } from '../services/ros';
 import { computeFK, computeIK } from '../utils/kinematics';
 
-export default function CartesianOriginPanel({ currentQ, homeCartesian, setHomeCartesian }) {
+export default function CartesianOriginPanel({ currentQ, homeQ, homeCartesian, setHomeCartesian }) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [origX, setOrigX] = useState('-13.3');
-    const [origY, setOrigY] = useState('0');
-    const [origZ, setOrigZ] = useState('19');
+    const [origX, setOrigX] = useState('-24.6');
+    const [origY, setOrigY] = useState('0.0');
+    const [origZ, setOrigZ] = useState('16.0');
+
+    // Sync initial origin coordinates when homeCartesian or homeQ updates on system startup
+    React.useEffect(() => {
+        if (homeCartesian) {
+            setOrigX((homeCartesian[0] * 100).toFixed(1));
+            setOrigY((homeCartesian[1] * 100).toFixed(1));
+            setOrigZ((homeCartesian[2] * 100).toFixed(1));
+        } else if (homeQ) {
+            const fk = computeFK(homeQ.q1, homeQ.q2, homeQ.q3);
+            setOrigX(fk.x_cm);
+            setOrigY(fk.y_cm);
+            setOrigZ(fk.z_cm);
+        }
+    }, [homeCartesian, homeQ]);
 
     // Helper: load current robot position into inputs
     const handleSyncCurrentPosition = () => {
