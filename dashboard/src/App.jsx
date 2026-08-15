@@ -36,6 +36,8 @@ export default function App() {
     const [showObstacleCollision, setShowObstacleCollision] = useState(false);
     const [cspaceMode, setCspaceMode] = useState('obs');
     const [isLoadingVoxels, setIsLoadingVoxels] = useState(true);
+    const [loadingTitle, setLoadingTitle] = useState('LOADING MANIFOLD CACHE');
+    const [loadingSubtext, setLoadingSubtext] = useState('Reading pre-computed C-space cache from disk...');
     const [showVisibilitySettings, setShowVisibilitySettings] = useState(false);
 
     const [waypoints, setWaypoints] = useState([]);
@@ -118,6 +120,8 @@ export default function App() {
     };
 
     const handleEnvChange = (newObstacle, newResolution) => {
+        setLoadingTitle('LOADING MANIFOLD CACHE');
+        setLoadingSubtext('Reading pre-computed C-space cache from disk...');
         setIsLoadingVoxels(true);
         handleClearTrail();
         setPlannedPath([]);
@@ -216,7 +220,15 @@ export default function App() {
                                 setCartesianWaypoints={setCartesianWaypoints}
                                 homeCartesian={homeCartesian}
                             />
-                            <ObstaclePositioner activeObstacle={obstacle} resolution={resolution} />
+                            <ObstaclePositioner
+                                activeObstacle={obstacle}
+                                resolution={resolution}
+                                onApplyPosition={() => {
+                                    setLoadingTitle('COMPUTING C-SPACE ON-THE-FLY');
+                                    setLoadingSubtext('Solving 13,824 manifold states in Rust for updated obstacle position...');
+                                    setIsLoadingVoxels(true);
+                                }}
+                            />
                             <VisibilitySection {...visibilityProps} />
                         </div>
 
@@ -268,10 +280,10 @@ export default function App() {
                             animation: 'spin 1s linear infinite',
                         }} />
                         <div style={{ fontSize: '0.9em', letterSpacing: '2px', color: 'var(--accent-green)' }}>
-                            C-SPACE LOADING
+                            {loadingTitle}
                         </div>
-                        <div style={{ fontSize: '0.75em', color: 'var(--text-muted)' }}>
-                            Generating configuration space manifold
+                        <div style={{ fontSize: '0.78em', color: 'var(--text-muted)' }}>
+                            {loadingSubtext}
                         </div>
                     </div>
                 )}

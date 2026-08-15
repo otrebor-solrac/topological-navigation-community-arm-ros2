@@ -12,6 +12,7 @@ import time
 import os
 import json
 import xml.etree.ElementTree as ET
+import numpy as np
 from ament_index_python.packages import get_package_share_directory
 
 from ..kinematics import get_kinematics, TrajectoryGenerator, CommunityArmIKSolver
@@ -340,6 +341,20 @@ class TopologicalPlannerNode(Node):
             self.web_command_callback,
             10
         )
+
+        # Synchronize C-Space forbidden voxels computed on-the-fly by voxelizer
+        self.cspace_voxels_sub = self.create_subscription(
+            String,
+            '/cspace_voxels',
+            self.cspace_voxels_callback,
+            10
+        )
+
+        # Dynamic & Static TF broadcasters for live obstacle visualization
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
+        self.tf_static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
+        self.active_obstacle_transforms = []
+        self.tf_timer = self.create_timer(0.1, self._timer_publish_obstacle_tfs)
 
         self.get_logger().info("Node ready. Waiting for trigger...")
         self.get_logger().info("  Option 1: Click in RViz2 using 'Publish Point' tool")
@@ -756,6 +771,65 @@ class TopologicalPlannerNode(Node):
                 if self.current_q is not None:
                     self.publish_collision_markers(self.current_q)
             
+            elif action in ["move_obstacle", "preview_obstacle"]:
+                obstacle_type = data.get("obstacle_type", "box_obstacle")
+                pos_xyz = data.get("position_xyz", [0.3, 0.0, 0.15])
+                
+                obstacles_urdf_content = '<?xml version="1.0"?><robot name="obstacles"><link name="root"/></robot>'
+                if obstacle_type != "no_obstacles":
+                    try:
+                        pkg_share = get_package_share_directory('community_robot_arm')
+                        obstacles_urdf = os.path.join(pkg_share, 'urdf', 'spherized', 'obstacles', f"{obstacle_type}_spherized.urdf")
+                        if os.path.exists(obstacles_urdf):
+                            tree = ET.parse(obstacles_urdf)
+                            root = tree.getroot()
+                            
+                            orig_spheres = self._load_obstacles_from_xml_root(root)
+                            if orig_spheres:
+                                centers = np.array([c for c, r in orig_spheres])
+                                orig_centroid = np.mean(centers, axis=0)
+                            else:
+                                orig_centroid = np.array([0.0, 0.0, 0.0])
+                                
+                            target_pos = np.array(pos_xyz, dtype=float)
+                            shift = target_pos - orig_centroid
+                            
+                            for joint in root.findall('joint'):
+                                origin = joint.find('origin')
+                                if origin is None:
+                                    origin = ET.SubElement(joint, 'origin')
+                                    origin.set('rpy', '0 0 0')
+                                    current_xyz = np.array([0.0, 0.0, 0.0])
+                                else:
+                                    xyz_str = origin.get('xyz', '0 0 0')
+                                    current_xyz = np.array([float(x) for x in xyz_str.split()])
+                                    
+                                new_xyz = current_xyz + shift
+                                origin.set('xyz', f"{new_xyz[0]:.6f} {new_xyz[1]:.6f} {new_xyz[2]:.6f}")
+                            
+                            obstacles_urdf_content = ET.tostring(root, encoding='utf-8').decode('utf-8')
+                            
+                            if action == "move_obstacle":
+                                self.collider.spherical_obstacles = []
+                                for center, radius in orig_spheres:
+                                    new_center = (center[0] + shift[0], center[1] + shift[1], center[2] + shift[2])
+                                    self.collider.add_obstacle(new_center, radius)
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to move obstacle in planner: {e}")
+
+                try:
+                    desc_msg = String()
+                    desc_msg.data = obstacles_urdf_content
+                    self.obstacles_desc_pub.publish(desc_msg)
+                    self.publish_obstacle_tfs(obstacles_urdf_content)
+                except Exception as e:
+                    self.get_logger().error(f"Failed to publish updated obstacle URDF in planner: {e}")
+                
+                if action == "move_obstacle":
+                    self.collider.set_cspace_cache(None, self.grid)
+                    if self.current_q is not None:
+                        self.publish_collision_markers(self.current_q)
+
             elif action == "clear_trail":
                 self.trail_points = []
                 clear_trail_marker = Marker()
@@ -808,7 +882,32 @@ class TopologicalPlannerNode(Node):
                     self.trail_pub.publish(marker_array)
                     
         except Exception as e:
-            self.get_logger().error(f"Failed to process web command: {e}")
+            self.get_logger().error(f"Failed to process web command in planner: {e}")
+
+    def cspace_voxels_callback(self, msg: String):
+        """
+        Callback triggered whenever /cspace_voxels publishes forbidden voxels
+        (e.g., when dynamic obstacle is moved and recomputed on-the-fly by voxelizer).
+        Synchronizes planner cache so A* and RRT plan in ~5ms instead of 60 seconds.
+        """
+        try:
+            data = json.loads(msg.data)
+            if isinstance(data, dict):
+                forbidden_list = data.get('forbidden_voxels', [])
+            else:
+                forbidden_list = data
+
+            if forbidden_list:
+                old_count = len(self.collider.forbidden_set) if self.collider.forbidden_set else 0
+                forbidden_set = set()
+                for voxel in forbidden_list:
+                    q_discrete = self.grid.discretize(tuple(voxel))
+                    forbidden_set.add(q_discrete)
+                self.collider.set_cspace_cache(forbidden_set, self.grid)
+                if old_count != len(forbidden_set):
+                    self.get_logger().info(f"Planner C-space cache updated: {len(forbidden_set)} voxels")
+        except Exception as e:
+            self.get_logger().error(f"Failed to update planner C-space cache from /cspace_voxels: {e}")
 
     def execute_plan(self) -> tuple:
         """
@@ -1259,10 +1358,12 @@ class TopologicalPlannerNode(Node):
         try:
             tree = ET.parse(urdf_path)
             root = tree.getroot()
+            return self._load_obstacles_from_xml_root(root)
         except Exception as e:
             self.get_logger().error(f"Failed to parse XML from URDF: {e}")
             return []
-        
+
+    def _load_obstacles_from_xml_root(self, root: ET.Element) -> list:
         # Parse joints to get child link origins relative to world
         link_positions = {'world': (0.0, 0.0, 0.0)}
         for joint in root.findall('joint'):
@@ -1312,8 +1413,17 @@ class TopologicalPlannerNode(Node):
                         obstacles.append((abs_center, radius))
         return obstacles
 
+    def _timer_publish_obstacle_tfs(self):
+        if hasattr(self, 'active_obstacle_transforms') and self.active_obstacle_transforms:
+            now_stamp = self.get_clock().now().to_msg()
+            for t in self.active_obstacle_transforms:
+                t.header.stamp = now_stamp
+            self.tf_broadcaster.sendTransform(self.active_obstacle_transforms)
+
     def publish_obstacle_tfs(self, urdf_content: str):
         try:
+            if not hasattr(self, 'tf_broadcaster'):
+                self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
             if not hasattr(self, 'tf_static_broadcaster'):
                 self.tf_static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
                 
@@ -1363,8 +1473,9 @@ class TopologicalPlannerNode(Node):
                         transforms.append(t)
                         
             if transforms:
+                self.active_obstacle_transforms = transforms
+                self.tf_broadcaster.sendTransform(transforms)
                 self.tf_static_broadcaster.sendTransform(transforms)
-                self.get_logger().info(f"Published {len(transforms)} static transforms for dynamic obstacles")
         except Exception as e:
             self.get_logger().error(f"Failed to publish dynamic obstacle TFs: {e}")
 
