@@ -3,7 +3,6 @@ import { ros, startConfigSub, webCmdPub, statusSub } from './services/ros';
 
 import ThreeVisualizer from './components/ThreeVisualizer';
 import ControlPanel from './components/ControlPanel';
-import CartesianControlPanel from './components/CartesianControlPanel';
 import CartesianOriginPanel from './components/CartesianOriginPanel';
 import CartesianWaypointManager from './components/CartesianWaypointManager';
 import ObstaclePositioner from './components/ObstaclePositioner';
@@ -11,6 +10,8 @@ import WaypointManager from './components/WaypointManager';
 import TraceTable from './components/TraceTable';
 import KinematicsProfile from './components/KinematicsProfile';
 
+
+import { computeFK } from './utils/kinematics';
 
 export default function App() {
     const [currentQ, setCurrentQ] = useState(null);
@@ -85,6 +86,11 @@ export default function App() {
                 const data = JSON.parse(msg.data);
                 if (data.start && data.start.length >= 3) {
                     setHomeQ({ q1: data.start[0], q2: data.start[1], q3: data.start[2] });
+                    const fk = computeFK(data.start[0], data.start[1], data.start[2]);
+                    const x_m = parseFloat(fk.x_cm) / 100.0;
+                    const y_m = parseFloat(fk.y_cm) / 100.0;
+                    const z_m = parseFloat(fk.z_cm) / 100.0;
+                    setHomeCartesian([x_m, y_m, z_m]);
                 }
             } catch (e) {
                 console.error('Failed to parse planner_start_config:', e);
@@ -236,7 +242,6 @@ export default function App() {
                                 setWaypoints={setWaypoints}
                             />
                         </div>
-                        <ObstaclePositioner activeObstacle={obstacle} resolution={resolution} />
                         
                         {/* Visibility & Settings Card */}
                         <div className="card" style={{ marginTop: '16px' }}>
@@ -316,7 +321,6 @@ export default function App() {
                             homeCartesian={homeCartesian}
                             setHomeCartesian={setHomeCartesian}
                         />
-                        <CartesianControlPanel homeQ={homeQ} currentQ={currentQ} />
                         <CartesianWaypointManager
                             currentQ={currentQ}
                             homeQ={homeQ}

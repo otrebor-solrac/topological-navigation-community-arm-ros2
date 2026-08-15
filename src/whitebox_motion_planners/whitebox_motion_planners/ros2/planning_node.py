@@ -88,6 +88,7 @@ class TopologicalPlannerNode(Node):
         self.final_planned_q = None     # Holds final position after animation
         self.trail_points = []          # Accumulated end-effector positions for RViz trail
         self.show_path_trail = True     # Toggle to show/hide end-effector trail in RViz
+        self.active_waypoints = None    # Active sequential waypoints in memory
  
         # 2. Mathematical Components (White-Box)
         robot_type = self.get_parameter('robot_type').value
@@ -530,14 +531,7 @@ class TopologicalPlannerNode(Node):
                 self.get_logger().info(f"Updated heuristic_type via web to: {data['heuristic_type']}")
             
             if action == "plan":
-                # Clear sequential waypoints so we plan to the single goal parameter
-                waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
-                if os.path.exists(waypoints_file):
-                    try:
-                        with open(waypoints_file, 'w') as f:
-                            f.write("") # Clear file
-                    except Exception:
-                        pass
+                self.active_waypoints = None
                 
                 if "goal" in data:
                     goal_val = [float(x) for x in data["goal"]]
@@ -594,6 +588,7 @@ class TopologicalPlannerNode(Node):
                     self.publish_collision_markers(q_goal)
 
             elif action == "plan_cartesian":
+                self.active_waypoints = None
                 start_xyz = data.get("start_xyz", None)
                 goal_xyz = data.get("goal_xyz", [0.15, 0.05, 0.20])
 
@@ -667,13 +662,7 @@ class TopologicalPlannerNode(Node):
                     else:
                         waypoints = resolved_waypoints
 
-                    waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
-                    try:
-                        import yaml
-                        with open(waypoints_file, 'w') as f:
-                            yaml.safe_dump({'waypoints': waypoints}, f)
-                    except Exception as e:
-                        self.get_logger().error(f"Failed to write sequential waypoints: {e}")
+                    self.active_waypoints = waypoints
                     self.execute_plan()
 
                     
@@ -858,28 +847,10 @@ class TopologicalPlannerNode(Node):
 
         angles_in_degrees = self.get_parameter('angles_in_degrees').value
 
-        # Try to load waypoints from config/waypoints.yaml dynamically
-        waypoints_file = '/home/ros_ws/src/whitebox_motion_planners/config/waypoints.yaml'
-        if not os.path.exists(waypoints_file):
-            try:
-                pkg_share = get_package_share_directory('whitebox_motion_planners')
-                waypoints_file = os.path.join(pkg_share, 'config', 'waypoints.yaml')
-            except Exception:
-                pass
-
-        import yaml
-        waypoints_list = []
-        if os.path.exists(waypoints_file):
-            try:
-                with open(waypoints_file, 'r') as f:
-                    data = yaml.safe_load(f)
-                    if data and 'waypoints' in data:
-                        waypoints_list = data['waypoints']
-            except Exception as e:
-                self.get_logger().error(f"Failed to parse waypoints file: {e}")
+        waypoints_list = self.active_waypoints if (self.active_waypoints and len(self.active_waypoints) >= 2) else []
 
         if len(waypoints_list) >= 2:
-            self.get_logger().info(f"Loaded {len(waypoints_list)} waypoints from {waypoints_file}. Planning sequential trajectory...")
+            self.get_logger().info(f"Loaded {len(waypoints_list)} sequential waypoints. Planning sequential trajectory...")
             path_segments = []
             for i, pt in enumerate(waypoints_list):
                 if angles_in_degrees:
@@ -894,11 +865,15 @@ class TopologicalPlannerNode(Node):
                 p_goal = path_segments[i+1]
 
                 if not self.collider.is_state_valid(p_start, self.kinematics):
-                    msg = f"TOPOLOGICAL ERROR: Waypoint #{i+1} {waypoints_list[i]} is in collision."
+                    xyz_cm = [round(v * 100.0, 1) for v in self.kinematics.compute_forward_kinematics_gripper(p_start)]
+                    deg = [round(math.degrees(x), 1) for x in p_start]
+                    msg = f"COLLISION ERROR: Waypoint #{i+1} XYZ={xyz_cm} cm ({deg}°) is in collision."
                     self.get_logger().error(msg)
                     return self.publish_status(False, msg)
                 if not self.collider.is_state_valid(p_goal, self.kinematics):
-                    msg = f"TOPOLOGICAL ERROR: Waypoint #{i+2} {waypoints_list[i+1]} is in collision."
+                    xyz_cm = [round(v * 100.0, 1) for v in self.kinematics.compute_forward_kinematics_gripper(p_goal)]
+                    deg = [round(math.degrees(x), 1) for x in p_goal]
+                    msg = f"COLLISION ERROR: Waypoint #{i+2} XYZ={xyz_cm} cm ({deg}°) is in collision."
                     self.get_logger().error(msg)
                     return self.publish_status(False, msg)
 
@@ -908,7 +883,9 @@ class TopologicalPlannerNode(Node):
                 self.get_logger().info(f"Planning segment {i+1}/{len(path_segments)-1}: {waypoints_list[i]} -> {waypoints_list[i+1]}")
                 segment = self.planner.plan(start_discrete, goal_discrete)
                 if not segment:
-                    msg = f"TOPOLOGICAL ERROR: No collision-free path found for segment {i+1}: {waypoints_list[i]} -> {waypoints_list[i+1]}"
+                    xyz_start = [round(v * 100.0, 1) for v in self.kinematics.compute_forward_kinematics_gripper(p_start)]
+                    xyz_goal = [round(v * 100.0, 1) for v in self.kinematics.compute_forward_kinematics_gripper(p_goal)]
+                    msg = f"PLANNING ERROR: No collision-free path found for segment {i+1}: XYZ={xyz_start} cm -> XYZ={xyz_goal} cm."
                     self.get_logger().error(msg)
                     return self.publish_status(False, msg)
 
@@ -958,13 +935,15 @@ class TopologicalPlannerNode(Node):
         # Check if start or goal is in collision
         if not self.collider.is_state_valid(start_q, self.kinematics):
             start_deg = tuple(round(math.degrees(x), 1) for x in start_q)
-            msg = f"TOPOLOGICAL ERROR: Start configuration (Point A) {start_deg} is in collision."
+            start_xyz = [round(v * 100.0, 1) for v in self.kinematics.compute_forward_kinematics_gripper(start_q)]
+            msg = f"COLLISION ERROR: Start configuration (Point A) XYZ={start_xyz} cm ({start_deg}°) is in collision."
             self.get_logger().error(msg)
             return self.publish_status(False, msg)
             
         if not self.collider.is_state_valid(goal_q, self.kinematics):
             goal_deg = tuple(round(math.degrees(x), 1) for x in goal_q)
-            msg = f"TOPOLOGICAL ERROR: Goal configuration (Point B) {goal_deg} is in collision."
+            goal_xyz = [round(v * 100.0, 1) for v in self.kinematics.compute_forward_kinematics_gripper(goal_q)]
+            msg = f"COLLISION ERROR: Goal configuration (Point B) XYZ={goal_xyz} cm ({goal_deg}°) is in collision."
             self.get_logger().error(msg)
             return self.publish_status(False, msg)
 
@@ -972,7 +951,7 @@ class TopologicalPlannerNode(Node):
         path = self.planner.plan(start_discrete, goal_discrete)
 
         if not path:
-            msg = "TOPOLOGICAL ERROR: No collision-free path found in C_free."
+            msg = "PLANNING ERROR: No collision-free path found in C_free."
             self.get_logger().error(msg)
             return self.publish_status(False, msg)
 
@@ -1058,6 +1037,21 @@ class TopologicalPlannerNode(Node):
         self.trajectory = TrajectoryGenerator(path, max_vel=1.0, max_acc=1.0)
         self.animation_start_time = self.get_clock().now()
         self.trail_points = []  # Clear previous trail for new trajectory
+        if path and len(path) > 0:
+            try:
+                q_start = tuple(path[0])
+                if getattr(self.collider, 'urdf_parser', None) is not None:
+                    q_urdf = self.world_to_urdf(q_start)
+                    pos = self.collider.urdf_parser.get_end_effector_position(q_urdf)
+                else:
+                    pos = self.kinematics.compute_forward_kinematics(q_start)[-1]
+                if pos is not None:
+                    pt = Point()
+                    pt.x, pt.y, pt.z = float(pos[0]), float(pos[1]), float(pos[2])
+                    self.trail_points.append(pt)
+            except Exception as e:
+                self.get_logger().warn(f"Failed to pre-populate start trail point: {e}")
+
         self.publish_status(True, "Executing planned trajectory...", path)
 
         # Publish waypoints at dynamic rate (animation_rate_hz)
